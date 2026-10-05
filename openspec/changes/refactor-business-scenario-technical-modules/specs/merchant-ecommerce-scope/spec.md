@@ -17,7 +17,19 @@
 
 #### Scenario: Consumer accesses own commerce data
 - **WHEN** 已登录消费者访问消费者中心
-- **THEN** 系统允许其发起 Agent 会话并查询本人订单与物流，不返回其他消费者或其他商户的数据
+- **THEN** 系统继承公开商城的商品、SKU、公开库存和公开知识问答能力，并允许其发起 Agent 会话和查询本人订单与物流；不返回其他消费者或其他商户的数据
+
+### Requirement: Consumer order access shall be read-only and provisioned by the system
+
+消费者首期 MUST 只读订单和物流，不提供下单、支付或订单创建能力；消费者可见的订单和物流数据必须来自样板种子数据或商户后台已创建的数据。
+
+#### Scenario: Consumer attempts to create an order
+- **WHEN** 消费者在首期消费者中心尝试提交下单、支付或创建订单请求
+- **THEN** 系统不提供对应能力并拒绝请求，不创建订单、不占用库存
+
+#### Scenario: Consumer reads a provisioned order
+- **WHEN** 样板种子或商户后台已经创建了属于该消费者的订单和物流数据
+- **THEN** 消费者可以只读查询本人订单、订单项和物流信息，并继续受到商户与消费者资源归属校验
 
 #### Scenario: Merchant staff operates the workspace
 - **WHEN** 商户管理员或客服访问商户客服工作台
