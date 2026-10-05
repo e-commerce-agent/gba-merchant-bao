@@ -1,0 +1,4182 @@
+openapi: 3.0.1
+info:
+  title: 苍穹外卖
+  description: ''
+  version: 1.0.0
+tags:
+  - name: 分类相关接口
+  - name: 员工相关接口
+  - name: 套餐相关接口
+  - name: 工作台接口
+  - name: 店铺操作接口
+  - name: 数据统计相关接口
+  - name: 菜品相关接口
+  - name: 订单管理接口
+  - name: 通用接口
+  - name: 店铺相关接口
+  - name: C端-菜品浏览接口
+  - name: C端用户相关接口
+  - name: 用户端订单相关接口
+  - name: C端-套餐浏览接口
+  - name: C端-分类接口
+  - name: C端地址簿接口
+  - name: C端购物车相关接口
+paths:
+  /admin/category:
+    post:
+      summary: 新增分类
+      deprecated: false
+      description: 新增分类
+      tags:
+        - 分类相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryDTO'
+              description: ''
+              title: CategoryDTO
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultString'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: ''
+      security: []
+    delete:
+      summary: 删除分类
+      deprecated: false
+      description: 删除分类
+      tags:
+        - 分类相关接口
+      parameters:
+        - name: id
+          in: query
+          description: 分类id
+          required: false
+          example: 100
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultString'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: ''
+      security: []
+    put:
+      summary: 修改分类
+      deprecated: false
+      description: 修改分类
+      tags:
+        - 分类相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryDTO'
+              description: ''
+              title: CategoryDTO
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultString'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: ''
+      security: []
+  /admin/category/page:
+    get:
+      summary: 分类分页查询
+      deprecated: false
+      description: 分类分页查询
+      tags:
+        - 分类相关接口
+      parameters:
+        - name: page
+          in: query
+          description: 页码
+          required: false
+          example: 1
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          description: 每页记录数
+          required: false
+          example: 10
+          schema:
+            type: integer
+        - name: name
+          in: query
+          description: 分类名称
+          required: false
+          example: 传统主食
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: 分类类型：1为菜品分类，2为套餐分类
+          required: false
+          example: 1
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultPageResult'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  total: 0
+                  records:
+                    - {}
+      security: []
+  /admin/category/status/{status}:
+    post:
+      summary: 启用禁用分类
+      deprecated: false
+      description: 启用、禁用分类
+      tags:
+        - 分类相关接口
+      parameters:
+        - name: status
+          in: path
+          description: 1为启用，0为禁用
+          required: true
+          example: 1
+          schema:
+            type: integer
+        - name: id
+          in: query
+          description: 分类id
+          required: false
+          example: 100
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultString'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: ''
+      security: []
+  /admin/category/list:
+    get:
+      summary: 根据类型查询分类
+      deprecated: false
+      description: 根据类型查询分类
+      tags:
+        - 分类相关接口
+      parameters:
+        - name: type
+          in: query
+          description: 分类类型：1为菜品分类，2为套餐分类
+          required: false
+          example: 2
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultListCategory'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  - id: 0
+                    type: 0
+                    name: ''
+                    sort: 0
+                    status: 0
+                    createTime: ''
+                    updateTime: ''
+                    createUser: 0
+                    updateUser: 0
+      security: []
+  /admin/employee/login:
+    post:
+      summary: 登录
+      deprecated: false
+      description: ''
+      tags:
+        - 员工相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeLoginDTO'
+              description: 员工登录时传递的数据模型
+              title: EmployeeLoginDTO
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultEmployeeLoginVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  id: 0
+                  userName: ''
+                  name: ''
+                  token: ''
+      security: []
+  /admin/employee/editPassword:
+    put:
+      summary: 修改密码
+      deprecated: false
+      description: ''
+      tags:
+        - 员工相关接口
+      parameters:
+        - name: Content-Type
+          in: header
+          description: ''
+          required: true
+          example: application/json
+          schema:
+            type: string
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                empId:
+                  type: integer
+                  format: int64
+                  description: 员工id
+                newPassword:
+                  type: string
+                  description: 新密码
+                oldPassword:
+                  type: string
+                  description: 旧密码
+              title: PasswordEditDTO
+              $$ref: '#/definitions/PasswordEditDTO'
+              required:
+                - empId
+                - newPassword
+                - oldPassword
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                  data:
+                    type: string
+                  msg:
+                    type: string
+                title: R«string»
+                $$ref: '#/definitions/R«string»'
+                required:
+                  - code
+      security: []
+  /admin/employee/logout:
+    post:
+      summary: 退出
+      deprecated: false
+      description: ''
+      tags:
+        - 员工相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultString'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: ''
+      security: []
+  /admin/employee:
+    post:
+      summary: 新增员工
+      deprecated: false
+      description: 新增员工
+      tags:
+        - 员工相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeDTO'
+              description: ''
+              title: EmployeeDTO
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+    put:
+      summary: 编辑员工信息
+      deprecated: false
+      description: 编辑员工信息
+      tags:
+        - 员工相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeDTO'
+              description: ''
+              title: EmployeeDTO
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /admin/employee/page:
+    get:
+      summary: 员工分页查询
+      deprecated: false
+      description: 员工分布查询
+      tags:
+        - 员工相关接口
+      parameters:
+        - name: name
+          in: query
+          description: 员工姓名
+          required: false
+          example: 张三
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: 页码
+          required: false
+          example: 1
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          description: 每页记录数
+          required: false
+          example: 10
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultPageResult'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  total: 0
+                  records:
+                    - {}
+      security: []
+  /admin/employee/status/{status}:
+    post:
+      summary: 启用禁用员工账号
+      deprecated: false
+      description: 启用禁用员工账号
+      tags:
+        - 员工相关接口
+      parameters:
+        - name: status
+          in: path
+          description: 状态，1为启用 0为禁用
+          required: true
+          example: 1
+          schema:
+            type: integer
+        - name: id
+          in: query
+          description: 员工id
+          required: false
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /admin/employee/{id}:
+    get:
+      summary: 根据 id 查询员工信息
+      deprecated: false
+      description: 根据 id 查询员工信息
+      tags:
+        - 员工相关接口
+      parameters:
+        - name: id
+          in: path
+          description: 员工id
+          required: true
+          example: 100
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultEmployee'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  id: 0
+                  username: ''
+                  name: ''
+                  password: ''
+                  phone: ''
+                  sex: ''
+                  idNumber: ''
+                  status: 0
+                  createTime: ''
+                  updateTime: ''
+                  createUser: 0
+                  updateUser: 0
+      security: []
+  /admin/setmeal:
+    post:
+      summary: 新增套餐
+      deprecated: false
+      description: 新增套餐
+      tags:
+        - 套餐相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetmealDTO'
+              description: ''
+              title: SetmealDTO
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+    delete:
+      summary: 批量删除套餐
+      deprecated: false
+      description: 批量删除套餐
+      tags:
+        - 套餐相关接口
+      parameters:
+        - name: ids
+          in: query
+          description: ids
+          required: true
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+    put:
+      summary: 修改套餐
+      deprecated: false
+      description: 修改套餐
+      tags:
+        - 套餐相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetmealDTO'
+              description: ''
+              title: SetmealDTO
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /admin/setmeal/page:
+    get:
+      summary: 分页查询
+      deprecated: false
+      description: 分页查询
+      tags:
+        - 套餐相关接口
+      parameters:
+        - name: page
+          in: query
+          description: 页码
+          required: false
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          description: 每页记录数
+          required: false
+          schema:
+            type: integer
+        - name: name
+          in: query
+          description: 套餐名称
+          required: false
+          schema:
+            type: string
+        - name: categoryId
+          in: query
+          description: 分类id
+          required: false
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: 套餐起售状态
+          required: false
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultPageResult'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  total: 0
+                  records:
+                    - {}
+      security: []
+  /admin/setmeal/{id}:
+    get:
+      summary: 根据id查询套餐
+      deprecated: false
+      description: 根据id查询套餐，用于修改页面回显数据
+      tags:
+        - 套餐相关接口
+      parameters:
+        - name: id
+          in: path
+          description: 套餐id
+          required: true
+          example: 101
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultSetmealVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  id: 0
+                  categoryId: 0
+                  name: ''
+                  price: 0
+                  status: 0
+                  description: ''
+                  image: ''
+                  updateTime: ''
+                  categoryName: ''
+                  setmealDishes:
+                    - id: 0
+                      setmealId: 0
+                      dishId: 0
+                      name: ''
+                      price: 0
+                      copies: 0
+      security: []
+  /admin/setmeal/status/{status}:
+    post:
+      summary: 套餐起售停售
+      deprecated: false
+      description: 套餐起售停售
+      tags:
+        - 套餐相关接口
+      parameters:
+        - name: status
+          in: path
+          description: 套餐状态，1表示起售，0表示停售
+          required: true
+          example: 1
+          schema:
+            type: integer
+        - name: id
+          in: query
+          description: 套餐id
+          required: false
+          example: 101
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /admin/workspace/businessData:
+    get:
+      summary: 工作台今日数据查询
+      deprecated: false
+      description: 工作台今日数据查询
+      tags:
+        - 工作台接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultBusinessDataVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  turnover: 0
+                  validOrderCount: 0
+                  orderCompletionRate: 0
+                  unitPrice: 0
+                  newUsers: 0
+      security: []
+  /admin/workspace/overviewOrders:
+    get:
+      summary: 查询订单管理数据
+      deprecated: false
+      description: 查询订单管理数据
+      tags:
+        - 工作台接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOrderOverViewVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  waitingOrders: 0
+                  deliveredOrders: 0
+                  completedOrders: 0
+                  cancelledOrders: 0
+                  allOrders: 0
+      security: []
+  /admin/workspace/overviewDishes:
+    get:
+      summary: 查询菜品总览
+      deprecated: false
+      description: 查询菜品总览
+      tags:
+        - 工作台接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultDishOverViewVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  sold: 0
+                  discontinued: 0
+      security: []
+  /admin/workspace/overviewSetmeals:
+    get:
+      summary: 查询套餐总览
+      deprecated: false
+      description: 查询套餐总览
+      tags:
+        - 工作台接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultSetmealOverViewVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  sold: 0
+                  discontinued: 0
+      security: []
+  /admin/shop/{status}:
+    put:
+      summary: 设置店铺的营业状态
+      deprecated: false
+      description: 设置店铺的营业状态
+      tags:
+        - 店铺操作接口
+      parameters:
+        - name: status
+          in: path
+          description: 店铺营业状态：1为营业，0为打烊
+          required: true
+          example: 1
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /admin/shop/status:
+    get:
+      summary: 获取店铺的营业状态
+      deprecated: false
+      description: 获取店铺的营业状态
+      tags:
+        - 店铺操作接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultInteger'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: 0
+      security: []
+  /admin/report/turnoverStatistics:
+    get:
+      summary: 营业额统计
+      deprecated: false
+      description: 营业额统计
+      tags:
+        - 数据统计相关接口
+      parameters:
+        - name: begin
+          in: query
+          description: 开始日期
+          required: false
+          example: '2022-05-01'
+          schema:
+            type: string
+        - name: end
+          in: query
+          description: 结束日期
+          required: false
+          example: '2022-05-31'
+          schema:
+            type: string
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultTurnoverReportVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  dateList: ''
+                  turnoverList: ''
+      security: []
+  /admin/report/userStatistics:
+    get:
+      summary: 用户量统计
+      deprecated: false
+      description: 用户统计
+      tags:
+        - 数据统计相关接口
+      parameters:
+        - name: begin
+          in: query
+          description: 开始日期
+          required: false
+          example: '2022-05-01'
+          schema:
+            type: string
+        - name: end
+          in: query
+          description: 结束日期
+          required: false
+          example: '2022-05-31'
+          schema:
+            type: string
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultUserReportVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  dateList: ''
+                  totalUserList: ''
+                  newUserList: ''
+      security: []
+  /admin/report/ordersStatistics:
+    get:
+      summary: 订单统计
+      deprecated: false
+      description: 订单统计
+      tags:
+        - 数据统计相关接口
+      parameters:
+        - name: begin
+          in: query
+          description: 开始日期
+          required: false
+          example: '2022-05-01'
+          schema:
+            type: string
+        - name: end
+          in: query
+          description: 结束日期
+          required: false
+          example: '2022-05-31'
+          schema:
+            type: string
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOrderReportVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  dateList: ''
+                  orderCountList: ''
+                  validOrderCountList: ''
+                  totalOrderCount: 0
+                  validOrderCount: 0
+                  orderCompletionRate: 0
+      security: []
+  /admin/report/top10:
+    get:
+      summary: 销售排名top10
+      deprecated: false
+      description: 销售排名top10
+      tags:
+        - 数据统计相关接口
+      parameters:
+        - name: begin
+          in: query
+          description: 开始日期
+          required: false
+          example: '2022-05-01'
+          schema:
+            type: string
+        - name: end
+          in: query
+          description: 结束日期
+          required: false
+          example: '2022-05-31'
+          schema:
+            type: string
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultSalesTop10ReportVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  nameList: ''
+                  numberList: ''
+      security: []
+  /admin/report/export:
+    get:
+      summary: 导出运营数据报表
+      deprecated: false
+      description: 导出运营数据报表
+      tags:
+        - 数据统计相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+      security: []
+  /admin/dish:
+    post:
+      summary: 新增菜品
+      deprecated: false
+      description: 新增菜品
+      tags:
+        - 菜品相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DishDTO'
+              description: ''
+              title: DishDTO
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+    delete:
+      summary: 菜品批量删除
+      deprecated: false
+      description: 菜品批量删除
+      tags:
+        - 菜品相关接口
+      parameters:
+        - name: ids
+          in: query
+          description: 菜品id，之间用逗号分隔
+          required: true
+          example: 1,2,3
+          schema:
+            type: array
+            items:
+              type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+    put:
+      summary: 修改菜品
+      deprecated: false
+      description: 修改菜品
+      tags:
+        - 菜品相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DishDTO'
+              description: ''
+              title: DishDTO
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /admin/dish/page:
+    get:
+      summary: 菜品分页查询
+      deprecated: false
+      description: 菜品分页查询
+      tags:
+        - 菜品相关接口
+      parameters:
+        - name: page
+          in: query
+          description: 页码
+          required: false
+          example: 1
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          description: 每页记录数
+          required: false
+          example: 10
+          schema:
+            type: integer
+        - name: name
+          in: query
+          description: 菜品名称
+          required: false
+          example: 宫保鸡丁
+          schema:
+            type: string
+        - name: categoryId
+          in: query
+          description: 分类id
+          required: false
+          example: 101
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: 分类状态
+          required: false
+          example: 1
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultPageResult'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  total: 0
+                  records:
+                    - {}
+      security: []
+  /admin/dish/{id}:
+    get:
+      summary: 根据id查询菜品信息
+      deprecated: false
+      description: 根据id查询菜品信息
+      tags:
+        - 菜品相关接口
+      parameters:
+        - name: id
+          in: path
+          description: 菜品id
+          required: true
+          example: 101
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultDishVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  id: 0
+                  name: ''
+                  categoryId: 0
+                  price: 0
+                  image: ''
+                  description: ''
+                  status: 0
+                  updateTime: ''
+                  categoryName: ''
+                  flavors:
+                    - id: 0
+                      dishId: 0
+                      name: ''
+                      value: ''
+      security: []
+  /admin/dish/list:
+    get:
+      summary: 根据分类id查询菜品
+      deprecated: false
+      description: 根据分类id查询菜品
+      tags:
+        - 菜品相关接口
+      parameters:
+        - name: categoryId
+          in: query
+          description: 分类id
+          required: false
+          example: 101
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultListDish'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  - id: 0
+                    name: ''
+                    categoryId: 0
+                    price: 0
+                    image: ''
+                    description: ''
+                    status: 0
+                    createTime: ''
+                    updateTime: ''
+                    createUser: 0
+                    updateUser: 0
+      security: []
+  /admin/dish/status/{status}:
+    post:
+      summary: 菜品起售、停售
+      deprecated: false
+      description: ''
+      tags:
+        - 菜品相关接口
+      parameters:
+        - name: status
+          in: path
+          description: 菜品状态：1为起售，0为停售
+          required: true
+          example: '1'
+          schema:
+            type: string
+        - name: id
+          in: query
+          description: 菜品id
+          required: true
+          example: '101'
+          schema:
+            type: string
+        - name: Content-Type
+          in: header
+          description: ''
+          required: true
+          example: application/json
+          schema:
+            type: string
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                  data:
+                    type: string
+                  msg:
+                    type: string
+                title: R«string»
+                $$ref: '#/definitions/R«string»'
+                required:
+                  - code
+      security: []
+  /admin/order/conditionSearch:
+    get:
+      summary: 订单搜索
+      deprecated: false
+      description: 订单搜索
+      tags:
+        - 订单管理接口
+      parameters:
+        - name: page
+          in: query
+          description: page
+          required: false
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          description: pageSize
+          required: false
+          schema:
+            type: integer
+        - name: number
+          in: query
+          description: number
+          required: false
+          schema:
+            type: string
+        - name: phone
+          in: query
+          description: phone
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: status
+          required: false
+          schema:
+            type: integer
+        - name: beginTime
+          in: query
+          description: beginTime
+          required: false
+          schema:
+            type: string
+        - name: endTime
+          in: query
+          description: endTime
+          required: false
+          schema:
+            type: string
+        - name: userId
+          in: query
+          description: ''
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultPageResult'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  total: 0
+                  records:
+                    - {}
+      security: []
+  /admin/order/statistics:
+    get:
+      summary: 各个状态的订单数量统计
+      deprecated: false
+      description: 各个状态的订单数量统计
+      tags:
+        - 订单管理接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOrderStatisticsVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  toBeConfirmed: 0
+                  confirmed: 0
+                  deliveryInProgress: 0
+      security: []
+  /admin/order/details/{id}:
+    get:
+      summary: 查询订单详情
+      deprecated: false
+      description: 订单详情
+      tags:
+        - 订单管理接口
+      parameters:
+        - name: id
+          in: path
+          description: 订单id
+          required: true
+          example: 101
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOrderVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  id: 0
+                  number: ''
+                  status: 0
+                  userId: 0
+                  addressBookId: 0
+                  orderTime: ''
+                  checkoutTime: ''
+                  payMethod: 0
+                  payStatus: 0
+                  amount: 0
+                  remark: ''
+                  userName: ''
+                  phone: ''
+                  address: ''
+                  consignee: ''
+                  cancelReason: ''
+                  rejectionReason: ''
+                  cancelTime: ''
+                  estimatedDeliveryTime: ''
+                  deliveryStatus: 0
+                  deliveryTime: ''
+                  packAmount: 0
+                  tablewareNumber: 0
+                  tablewareStatus: 0
+                  orderDishes: ''
+                  orderDetailList:
+                    - id: 0
+                      name: ''
+                      orderId: 0
+                      dishId: 0
+                      setmealId: 0
+                      dishFlavor: ''
+                      number: 0
+                      amount: 0
+                      image: ''
+      security: []
+  /admin/order/confirm:
+    put:
+      summary: 接单
+      deprecated: false
+      description: 接单
+      tags:
+        - 订单管理接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrdersConfirmDTO'
+              description: ''
+              title: OrdersConfirmDTO
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /admin/order/rejection:
+    put:
+      summary: 拒单
+      deprecated: false
+      description: 拒单
+      tags:
+        - 订单管理接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrdersRejectionDTO'
+              description: ''
+              title: OrdersRejectionDTO
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /admin/order/cancel:
+    put:
+      summary: 取消订单
+      deprecated: false
+      description: 取消订单
+      tags:
+        - 订单管理接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrdersCancelDTO'
+              description: ''
+              title: OrdersCancelDTO
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /admin/order/delivery/{id}:
+    put:
+      summary: 派送订单
+      deprecated: false
+      description: 派送订单
+      tags:
+        - 订单管理接口
+      parameters:
+        - name: id
+          in: path
+          description: 订单id
+          required: true
+          example: 101
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /admin/order/complete/{id}:
+    put:
+      summary: 完成订单
+      deprecated: false
+      description: 完成订单
+      tags:
+        - 订单管理接口
+      parameters:
+        - name: id
+          in: path
+          description: 订单id
+          required: true
+          example: 101
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /admin/common/upload:
+    post:
+      summary: 文件上传接口
+      deprecated: false
+      description: 文件上传
+      tags:
+        - 通用接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  description: 文件
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultString'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: ''
+      security: []
+  /user/shop/status:
+    get:
+      summary: 获取店铺的营业状态
+      deprecated: false
+      description: 获取店铺的营业状态
+      tags:
+        - 店铺相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultInteger'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: 0
+      security: []
+  /user/dish/list:
+    get:
+      summary: 根据分类id查询菜品
+      deprecated: false
+      description: 根据分类id查询菜品
+      tags:
+        - C端-菜品浏览接口
+      parameters:
+        - name: categoryId
+          in: query
+          description: ''
+          required: false
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultListDishVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  - id: 0
+                    name: ''
+                    categoryId: 0
+                    price: 0
+                    image: ''
+                    description: ''
+                    status: 0
+                    updateTime: ''
+                    categoryName: ''
+                    flavors:
+                      - id: 0
+                        dishId: 0
+                        name: ''
+                        value: ''
+      security: []
+  /user/user/login:
+    post:
+      summary: 微信登录
+      deprecated: false
+      description: 微信登录
+      tags:
+        - C端用户相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLoginDTO'
+              description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultUserLoginVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  id: 0
+                  openid: ''
+                  token: ''
+      security: []
+  /user/order/submit:
+    post:
+      summary: 用户下单
+      deprecated: false
+      description: 用户下单
+      tags:
+        - 用户端订单相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrdersSubmitDTO'
+              description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOrderSubmitVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  id: 0
+                  orderNumber: ''
+                  orderAmount: 0
+                  orderTime: ''
+      security: []
+  /user/order/payment:
+    put:
+      summary: 订单支付
+      deprecated: false
+      description: 订单支付
+      tags:
+        - 用户端订单相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrdersPaymentDTO'
+              description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOrderPaymentVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  nonceStr: ''
+                  paySign: ''
+                  timeStamp: ''
+                  signType: ''
+                  packageStr: ''
+      security: []
+  /user/order/historyOrders:
+    get:
+      summary: 历史订单查询
+      deprecated: false
+      description: 历史订单查询
+      tags:
+        - 用户端订单相关接口
+      parameters:
+        - name: page
+          in: query
+          description: ''
+          required: false
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          description: ''
+          required: false
+          schema:
+            type: integer
+        - name: status
+          in: query
+          description: 订单状态 1待付款 2待接单 3已接单 4派送中 5已完成 6已取消
+          required: false
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultPageResult'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  total: 0
+                  records:
+                    - {}
+      security: []
+  /user/order/orderDetail/{id}:
+    get:
+      summary: 查询订单详情
+      deprecated: false
+      description: 查询订单详情
+      tags:
+        - 用户端订单相关接口
+      parameters:
+        - name: id
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultOrderVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  id: 0
+                  number: ''
+                  status: 0
+                  userId: 0
+                  addressBookId: 0
+                  orderTime: ''
+                  checkoutTime: ''
+                  payMethod: 0
+                  payStatus: 0
+                  amount: 0
+                  remark: ''
+                  userName: ''
+                  phone: ''
+                  address: ''
+                  consignee: ''
+                  cancelReason: ''
+                  rejectionReason: ''
+                  cancelTime: ''
+                  estimatedDeliveryTime: ''
+                  deliveryStatus: 0
+                  deliveryTime: ''
+                  packAmount: 0
+                  tablewareNumber: 0
+                  tablewareStatus: 0
+                  orderDishes: ''
+                  orderDetailList:
+                    - id: 0
+                      name: ''
+                      orderId: 0
+                      dishId: 0
+                      setmealId: 0
+                      dishFlavor: ''
+                      number: 0
+                      amount: 0
+                      image: ''
+      security: []
+  /user/order/cancel/{id}:
+    put:
+      summary: 取消订单
+      deprecated: false
+      description: 用户取消订单
+      tags:
+        - 用户端订单相关接口
+      parameters:
+        - name: id
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /user/order/repetition/{id}:
+    post:
+      summary: 再来一单
+      deprecated: false
+      description: 再来一单
+      tags:
+        - 用户端订单相关接口
+      parameters:
+        - name: id
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /user/order/reminder/{id}:
+    get:
+      summary: 客户催单
+      deprecated: false
+      description: 客户催单
+      tags:
+        - 用户端订单相关接口
+      parameters:
+        - name: id
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /user/setmeal/list:
+    get:
+      summary: 根据分类id查询套餐
+      deprecated: false
+      description: 条件查询
+      tags:
+        - C端-套餐浏览接口
+      parameters:
+        - name: categoryId
+          in: query
+          description: ''
+          required: false
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultListSetmeal'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  - id: 0
+                    categoryId: 0
+                    name: ''
+                    price: 0
+                    status: 0
+                    description: ''
+                    image: ''
+                    createTime: ''
+                    updateTime: ''
+                    createUser: 0
+                    updateUser: 0
+      security: []
+  /user/setmeal/dish/{id}:
+    get:
+      summary: 根据套餐id查询包含的菜品列表
+      deprecated: false
+      description: 根据套餐id查询包含的菜品列表
+      tags:
+        - C端-套餐浏览接口
+      parameters:
+        - name: id
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultListDishItemVO'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  - name: ''
+                    copies: 0
+                    image: ''
+                    description: ''
+      security: []
+  /user/category/list:
+    get:
+      summary: 查询分类
+      deprecated: false
+      description: 查询分类
+      tags:
+        - C端-分类接口
+      parameters:
+        - name: type
+          in: query
+          description: ''
+          required: false
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultListCategory'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  - id: 0
+                    type: 0
+                    name: ''
+                    sort: 0
+                    status: 0
+                    createTime: ''
+                    updateTime: ''
+                    createUser: 0
+                    updateUser: 0
+      security: []
+  /user/addressBook/list:
+    get:
+      summary: 查询当前登录用户的所有地址信息
+      deprecated: false
+      description: 查询当前登录用户的所有地址信息
+      tags:
+        - C端地址簿接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultListAddressBook'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  - id: 0
+                    userId: 0
+                    consignee: ''
+                    phone: ''
+                    sex: ''
+                    provinceCode: ''
+                    provinceName: ''
+                    cityCode: ''
+                    cityName: ''
+                    districtCode: ''
+                    districtName: ''
+                    detail: ''
+                    label: ''
+                    isDefault: 0
+      security: []
+  /user/addressBook:
+    post:
+      summary: 新增地址
+      deprecated: false
+      description: 新增地址
+      tags:
+        - C端地址簿接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressBook'
+              description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+    put:
+      summary: 根据id修改地址
+      deprecated: false
+      description: 根据id修改地址
+      tags:
+        - C端地址簿接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressBook'
+              description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+    delete:
+      summary: 根据id删除地址
+      deprecated: false
+      description: 根据id删除地址
+      tags:
+        - C端地址簿接口
+      parameters:
+        - name: id
+          in: query
+          description: ''
+          required: false
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /user/addressBook/{id}:
+    get:
+      summary: 根据id查询地址
+      deprecated: false
+      description: ''
+      tags:
+        - C端地址簿接口
+      parameters:
+        - name: id
+          in: path
+          description: ''
+          required: true
+          schema:
+            type: integer
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultAddressBook'
+              example:
+                code: 0
+                msg: ''
+                data:
+                  id: 0
+                  userId: 0
+                  consignee: ''
+                  phone: ''
+                  sex: ''
+                  provinceCode: ''
+                  provinceName: ''
+                  cityCode: ''
+                  cityName: ''
+                  districtCode: ''
+                  districtName: ''
+                  detail: ''
+                  label: ''
+                  isDefault: 0
+      security: []
+  /user/addressBook/default:
+    put:
+      summary: 设置默认地址
+      deprecated: false
+      description: 设置默认地址
+      tags:
+        - C端地址簿接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressBook'
+              description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+    get:
+      summary: 查询默认地址
+      deprecated: false
+      description: 查询默认地址
+      tags:
+        - C端地址簿接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultAddressBook'
+              example:
+                code: 0
+                msg: ''
+                data:
+                  id: 0
+                  userId: 0
+                  consignee: ''
+                  phone: ''
+                  sex: ''
+                  provinceCode: ''
+                  provinceName: ''
+                  cityCode: ''
+                  cityName: ''
+                  districtCode: ''
+                  districtName: ''
+                  detail: ''
+                  label: ''
+                  isDefault: 0
+      security: []
+  /user/shoppingCart/add:
+    post:
+      summary: 添加购物车
+      deprecated: false
+      description: 添加购物车
+      tags:
+        - C端购物车相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShoppingCartDTO'
+              description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /user/shoppingCart/list:
+    get:
+      summary: 查看购物车
+      deprecated: false
+      description: 查看购物车
+      tags:
+        - C端购物车相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultListShoppingCart'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data:
+                  - id: 0
+                    name: ''
+                    userId: 0
+                    dishId: 0
+                    setmealId: 0
+                    dishFlavor: ''
+                    number: 0
+                    amount: 0
+                    image: ''
+                    createTime: ''
+      security: []
+  /user/shoppingCart/clean:
+    delete:
+      summary: 清空购物车
+      deprecated: false
+      description: 清空购物车
+      tags:
+        - C端购物车相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+  /user/shoppingCart/sub:
+    post:
+      summary: 删除购物车中一个商品
+      deprecated: false
+      description: 删除购物车中一个商品
+      tags:
+        - C端购物车相关接口
+      parameters:
+        - name: token
+          in: header
+          description: ''
+          example: '{{token}}'
+          schema:
+            type: string
+            default: '{{token}}'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShoppingCartDTO'
+              description: ''
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Result'
+                description: ''
+              example:
+                code: 0
+                msg: ''
+                data: {}
+      security: []
+components:
+  schemas:
+    Result:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          type: object
+          properties: {}
+          description: 数据
+    DishFlavor:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        dishId:
+          type: integer
+          description: 菜品id
+          format: int64
+        name:
+          type: string
+          description: 口味名称
+        value:
+          type: string
+          description: 口味数据list
+    DishDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        name:
+          type: string
+          description: 菜品名称
+        categoryId:
+          type: integer
+          description: 菜品分类id
+          format: int64
+        price:
+          type: number
+          description: 菜品价格
+        image:
+          type: string
+          description: 图片
+        description:
+          type: string
+          description: 描述信息
+        status:
+          type: integer
+          description: 0 停售 1 起售
+        flavors:
+          type: array
+          items:
+            $ref: '#/components/schemas/DishFlavor'
+            description: 菜品口味
+          description: 口味
+          default: new ArrayList<>()
+    List:
+      type: object
+      properties: {}
+    PageResult:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: 总记录数
+          format: int64
+        records:
+          type: array
+          items:
+            $ref: '#/components/schemas/List'
+            description: java.util.List
+          description: 当前页数据集合
+    ResultPageResult:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/PageResult'
+          description: 数据
+    DishVO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        name:
+          type: string
+          description: 菜品名称
+        categoryId:
+          type: integer
+          description: 菜品分类id
+          format: int64
+        price:
+          type: number
+          description: 菜品价格
+        image:
+          type: string
+          description: 图片
+        description:
+          type: string
+          description: 描述信息
+        status:
+          type: integer
+          description: 0 停售 1 起售
+        updateTime:
+          type: string
+          description: 更新时间
+        categoryName:
+          type: string
+          description: 分类名称
+        flavors:
+          type: array
+          items:
+            $ref: '#/components/schemas/DishFlavor'
+            description: 菜品口味
+          description: 菜品关联的口味
+          default: new ArrayList<>()
+    ResultDishVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/DishVO'
+          description: 数据
+    Dish:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        name:
+          type: string
+          description: 菜品名称
+        categoryId:
+          type: integer
+          description: 菜品分类id
+          format: int64
+        price:
+          type: number
+          description: 菜品价格
+        image:
+          type: string
+          description: 图片
+        description:
+          type: string
+          description: 描述信息
+        status:
+          type: integer
+          description: 0 停售 1 起售
+        createTime:
+          type: string
+          description: ''
+        updateTime:
+          type: string
+          description: ''
+        createUser:
+          type: integer
+          description: ''
+          format: int64
+        updateUser:
+          type: integer
+          description: ''
+          format: int64
+    ResultListDish:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Dish'
+            description: 菜品
+          description: 数据
+    ResultInteger:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          type: integer
+          description: 数据
+    OrderStatisticsVO:
+      type: object
+      properties:
+        toBeConfirmed:
+          type: integer
+          description: 待接单数量
+        confirmed:
+          type: integer
+          description: 待派送数量
+        deliveryInProgress:
+          type: integer
+          description: 派送中数量
+    ResultOrderStatisticsVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/OrderStatisticsVO'
+          description: 数据
+    OrderDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        name:
+          type: string
+          description: 名称
+        orderId:
+          type: integer
+          description: 订单id
+          format: int64
+        dishId:
+          type: integer
+          description: 菜品id
+          format: int64
+        setmealId:
+          type: integer
+          description: 套餐id
+          format: int64
+        dishFlavor:
+          type: string
+          description: 口味
+        number:
+          type: integer
+          description: 数量
+        amount:
+          type: number
+          description: 金额
+        image:
+          type: string
+          description: 图片
+    OrderVO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        number:
+          type: string
+          description: 订单号
+        status:
+          type: integer
+          description: 订单状态 1待付款 2待接单 3已接单 4派送中 5已完成 6已取消 7退款
+        userId:
+          type: integer
+          description: 下单用户id
+          format: int64
+        addressBookId:
+          type: integer
+          description: 地址id
+          format: int64
+        orderTime:
+          type: string
+          description: 下单时间
+        checkoutTime:
+          type: string
+          description: 结账时间
+        payMethod:
+          type: integer
+          description: 支付方式 1微信，2支付宝
+        payStatus:
+          type: integer
+          description: 支付状态 0未支付 1已支付 2退款
+        amount:
+          type: number
+          description: 实收金额
+        remark:
+          type: string
+          description: 备注
+        userName:
+          type: string
+          description: 用户名
+        phone:
+          type: string
+          description: 手机号
+        address:
+          type: string
+          description: 地址
+        consignee:
+          type: string
+          description: 收货人
+        cancelReason:
+          type: string
+          description: 订单取消原因
+        rejectionReason:
+          type: string
+          description: 订单拒绝原因
+        cancelTime:
+          type: string
+          description: 订单取消时间
+        estimatedDeliveryTime:
+          type: string
+          description: 预计送达时间
+        deliveryStatus:
+          type: integer
+          description: 配送状态  1立即送出  0选择具体时间
+        deliveryTime:
+          type: string
+          description: 送达时间
+        packAmount:
+          type: integer
+          description: 打包费
+        tablewareNumber:
+          type: integer
+          description: 餐具数量
+        tablewareStatus:
+          type: integer
+          description: 餐具数量状态  1按餐量提供  0选择具体数量
+        orderDishes:
+          type: string
+          description: 订单菜品信息
+        orderDetailList:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderDetail'
+            description: 订单明细
+          description: 订单详情
+    ResultOrderVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/OrderVO'
+          description: 数据
+    OrdersConfirmDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        status:
+          type: integer
+          description: 订单状态 1待付款 2待接单 3 已接单 4 派送中 5 已完成 6 已取消 7 退款
+    OrdersRejectionDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        rejectionReason:
+          type: string
+          description: 订单拒绝原因
+    OrdersCancelDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        cancelReason:
+          type: string
+          description: 订单取消原因
+    ResultString:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          type: string
+          description: 数据
+    TurnoverReportVO:
+      type: object
+      properties:
+        dateList:
+          type: string
+          description: 日期，以逗号分隔，例如：2022-10-01,2022-10-02,2022-10-03
+        turnoverList:
+          type: string
+          description: 营业额，以逗号分隔，例如：406.0,1520.0,75.0
+    ResultTurnoverReportVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/TurnoverReportVO'
+          description: 数据
+    UserReportVO:
+      type: object
+      properties:
+        dateList:
+          type: string
+          description: 日期，以逗号分隔，例如：2022-10-01,2022-10-02,2022-10-03
+        totalUserList:
+          type: string
+          description: 用户总量，以逗号分隔，例如：200,210,220
+        newUserList:
+          type: string
+          description: 新增用户，以逗号分隔，例如：20,21,10
+    ResultUserReportVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/UserReportVO'
+          description: 数据
+    OrderReportVO:
+      type: object
+      properties:
+        dateList:
+          type: string
+          description: 日期，以逗号分隔，例如：2022-10-01,2022-10-02,2022-10-03
+        orderCountList:
+          type: string
+          description: 每日订单数，以逗号分隔，例如：260,210,215
+        validOrderCountList:
+          type: string
+          description: 每日有效订单数，以逗号分隔，例如：20,21,10
+        totalOrderCount:
+          type: integer
+          description: 订单总数
+        validOrderCount:
+          type: integer
+          description: 有效订单数
+        orderCompletionRate:
+          type: number
+          description: 订单完成率
+    ResultOrderReportVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/OrderReportVO'
+          description: 数据
+    SalesTop10ReportVO:
+      type: object
+      properties:
+        nameList:
+          type: string
+          description: 商品名称列表，以逗号分隔，例如：鱼香肉丝,宫保鸡丁,水煮鱼
+        numberList:
+          type: string
+          description: 销量列表，以逗号分隔，例如：260,215,200
+    ResultSalesTop10ReportVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/SalesTop10ReportVO'
+          description: 数据
+    SetmealDish:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        setmealId:
+          type: integer
+          description: 套餐id
+          format: int64
+        dishId:
+          type: integer
+          description: 菜品id
+          format: int64
+        name:
+          type: string
+          description: 菜品名称 （冗余字段）
+        price:
+          type: number
+          description: 菜品原价
+        copies:
+          type: integer
+          description: 份数
+    SetmealDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        categoryId:
+          type: integer
+          description: 分类id
+          format: int64
+        name:
+          type: string
+          description: 套餐名称
+        price:
+          type: number
+          description: 套餐价格
+        status:
+          type: integer
+          description: 状态 0:停用 1:启用
+        description:
+          type: string
+          description: 描述信息
+        image:
+          type: string
+          description: 图片
+        setmealDishes:
+          type: array
+          items:
+            $ref: '#/components/schemas/SetmealDish'
+            description: 套餐菜品关系
+          description: 套餐菜品关系
+          default: new ArrayList<>()
+    SetmealVO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        categoryId:
+          type: integer
+          description: 分类id
+          format: int64
+        name:
+          type: string
+          description: 套餐名称
+        price:
+          type: number
+          description: 套餐价格
+        status:
+          type: integer
+          description: 状态 0:停用 1:启用
+        description:
+          type: string
+          description: 描述信息
+        image:
+          type: string
+          description: 图片
+        updateTime:
+          type: string
+          description: 更新时间
+        categoryName:
+          type: string
+          description: 分类名称
+        setmealDishes:
+          type: array
+          items:
+            $ref: '#/components/schemas/SetmealDish'
+            description: 套餐菜品关系
+          description: 套餐和菜品的关联关系
+          default: new ArrayList<>()
+    ResultSetmealVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/SetmealVO'
+          description: 数据
+    CategoryDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 主键
+          format: int64
+        type:
+          type: integer
+          description: 类型 1 菜品分类 2 套餐分类
+        name:
+          type: string
+          description: 分类名称
+        sort:
+          type: integer
+          description: 排序
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        type:
+          type: integer
+          description: '类型: 1菜品分类 2套餐分类'
+        name:
+          type: string
+          description: 分类名称
+        sort:
+          type: integer
+          description: 顺序
+        status:
+          type: integer
+          description: 分类状态 0标识禁用 1表示启用
+        createTime:
+          type: string
+          description: 创建时间
+        updateTime:
+          type: string
+          description: 更新时间
+        createUser:
+          type: integer
+          description: 创建人
+          format: int64
+        updateUser:
+          type: integer
+          description: 修改人
+          format: int64
+    ResultListCategory:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+            description: com.sky.entity.Category
+          description: 数据
+    EmployeeLoginVO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 主键值
+          format: int64
+        userName:
+          type: string
+          description: 用户名
+        name:
+          type: string
+          description: 姓名
+        token:
+          type: string
+          description: jwt令牌
+    ResultEmployeeLoginVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/EmployeeLoginVO'
+          description: 数据
+    EmployeeLoginDTO:
+      type: object
+      properties:
+        username:
+          type: string
+          description: 用户名
+        password:
+          type: string
+          description: 密码
+    EmployeeDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        username:
+          type: string
+          description: ''
+        name:
+          type: string
+          description: ''
+        phone:
+          type: string
+          description: ''
+        sex:
+          type: string
+          description: ''
+        idNumber:
+          type: string
+          description: ''
+    Employee:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        username:
+          type: string
+          description: ''
+        name:
+          type: string
+          description: ''
+        password:
+          type: string
+          description: ''
+        phone:
+          type: string
+          description: ''
+        sex:
+          type: string
+          description: ''
+        idNumber:
+          type: string
+          description: ''
+        status:
+          type: integer
+          description: ''
+        createTime:
+          type: string
+          description: '@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")'
+        updateTime:
+          type: string
+          description: '@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")'
+        createUser:
+          type: integer
+          description: ''
+          format: int64
+        updateUser:
+          type: integer
+          description: ''
+          format: int64
+    ResultEmployee:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/Employee'
+          description: 数据
+    BusinessDataVO:
+      type: object
+      properties:
+        turnover:
+          type: number
+          description: 营业额
+        validOrderCount:
+          type: integer
+          description: 有效订单数
+        orderCompletionRate:
+          type: number
+          description: 订单完成率
+        unitPrice:
+          type: number
+          description: 平均客单价
+        newUsers:
+          type: integer
+          description: 新增用户数
+    ResultBusinessDataVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/BusinessDataVO'
+          description: 数据
+    OrderOverViewVO:
+      type: object
+      properties:
+        waitingOrders:
+          type: integer
+          description: 待接单数量
+        deliveredOrders:
+          type: integer
+          description: 待派送数量
+        completedOrders:
+          type: integer
+          description: 已完成数量
+        cancelledOrders:
+          type: integer
+          description: 已取消数量
+        allOrders:
+          type: integer
+          description: 全部订单
+    ResultOrderOverViewVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/OrderOverViewVO'
+          description: 数据
+    DishOverViewVO: &ref_0
+      type: object
+      properties:
+        sold:
+          type: integer
+          description: 已启售数量
+        discontinued:
+          type: integer
+          description: 已停售数量
+    ResultDishOverViewVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/DishOverViewVO'
+          description: 数据
+    SetmealOverViewVO: *ref_0
+    ResultSetmealOverViewVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/SetmealOverViewVO'
+          description: 数据
+    ResultListDishVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/DishVO'
+            description: com.sky.vo.DishVO
+          description: 数据
+    UserLoginVO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        openid:
+          type: string
+          description: ''
+        token:
+          type: string
+          description: ''
+    ResultUserLoginVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/UserLoginVO'
+          description: 数据
+    UserLoginDTO:
+      type: object
+      properties:
+        code:
+          type: string
+          description: ''
+    OrderSubmitVO:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 订单id
+          format: int64
+        orderNumber:
+          type: string
+          description: 订单号
+        orderAmount:
+          type: number
+          description: 订单金额
+        orderTime:
+          type: string
+          description: 下单时间
+    ResultOrderSubmitVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/OrderSubmitVO'
+          description: 数据
+    OrdersSubmitDTO:
+      type: object
+      properties:
+        addressBookId:
+          type: integer
+          description: 地址簿id
+          format: int64
+        payMethod:
+          type: integer
+          description: 付款方式
+        remark:
+          type: string
+          description: 备注
+        estimatedDeliveryTime:
+          type: string
+          description: 预计送达时间
+        deliveryStatus:
+          type: integer
+          description: 配送状态  1立即送出  0选择具体时间
+        tablewareNumber:
+          type: integer
+          description: 餐具数量
+        tablewareStatus:
+          type: integer
+          description: 餐具数量状态  1按餐量提供  0选择具体数量
+        packAmount:
+          type: integer
+          description: 打包费
+        amount:
+          type: number
+          description: 总金额
+    OrderPaymentVO:
+      type: object
+      properties:
+        nonceStr:
+          type: string
+          description: 随机字符串
+        paySign:
+          type: string
+          description: 签名
+        timeStamp:
+          type: string
+          description: 时间戳
+        signType:
+          type: string
+          description: 签名算法
+        packageStr:
+          type: string
+          description: 统一下单接口返回的 prepay_id 参数值
+    ResultOrderPaymentVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/OrderPaymentVO'
+          description: 数据
+    OrdersPaymentDTO:
+      type: object
+      properties:
+        orderNumber:
+          type: string
+          description: 订单号
+        payMethod:
+          type: integer
+          description: 付款方式
+    Setmeal:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        categoryId:
+          type: integer
+          description: 分类id
+          format: int64
+        name:
+          type: string
+          description: 套餐名称
+        price:
+          type: number
+          description: 套餐价格
+        status:
+          type: integer
+          description: 状态 0:停用 1:启用
+        description:
+          type: string
+          description: 描述信息
+        image:
+          type: string
+          description: 图片
+        createTime:
+          type: string
+          description: ''
+        updateTime:
+          type: string
+          description: ''
+        createUser:
+          type: integer
+          description: ''
+          format: int64
+        updateUser:
+          type: integer
+          description: ''
+          format: int64
+    ResultListSetmeal:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Setmeal'
+            description: 套餐
+          description: 数据
+    DishItemVO:
+      type: object
+      properties:
+        name:
+          type: string
+          description: 菜品名称
+        copies:
+          type: integer
+          description: 份数
+        image:
+          type: string
+          description: 菜品图片
+        description:
+          type: string
+          description: 菜品描述
+    ResultListDishItemVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/DishItemVO'
+            description: com.sky.vo.DishItemVO
+          description: 数据
+    AddressBook:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        userId:
+          type: integer
+          description: 用户id
+          format: int64
+        consignee:
+          type: string
+          description: 收货人
+        phone:
+          type: string
+          description: 手机号
+        sex:
+          type: string
+          description: 性别 0 女 1 男
+        provinceCode:
+          type: string
+          description: 省级区划编号
+        provinceName:
+          type: string
+          description: 省级名称
+        cityCode:
+          type: string
+          description: 市级区划编号
+        cityName:
+          type: string
+          description: 市级名称
+        districtCode:
+          type: string
+          description: 区级区划编号
+        districtName:
+          type: string
+          description: 区级名称
+        detail:
+          type: string
+          description: 详细地址
+        label:
+          type: string
+          description: 标签
+        isDefault:
+          type: integer
+          description: 是否默认 0否 1是
+    ResultListAddressBook:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AddressBook'
+            description: 地址簿
+          description: 数据
+    ResultAddressBook:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          $ref: '#/components/schemas/AddressBook'
+          description: 数据
+    ShoppingCartDTO:
+      type: object
+      properties:
+        dishId:
+          type: integer
+          description: ''
+          format: int64
+        setmealId:
+          type: integer
+          description: ''
+          format: int64
+        dishFlavor:
+          type: string
+          description: ''
+    ShoppingCart:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ''
+          format: int64
+        name:
+          type: string
+          description: 名称
+        userId:
+          type: integer
+          description: 用户id
+          format: int64
+        dishId:
+          type: integer
+          description: 菜品id
+          format: int64
+        setmealId:
+          type: integer
+          description: 套餐id
+          format: int64
+        dishFlavor:
+          type: string
+          description: 口味
+        number:
+          type: integer
+          description: 数量
+        amount:
+          type: number
+          description: 金额
+        image:
+          type: string
+          description: 图片
+        createTime:
+          type: string
+          description: ''
+    ResultListShoppingCart:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: 编码：1成功，0和其它数字为失败
+        msg:
+          type: string
+          description: 错误信息
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ShoppingCart'
+            description: 购物车
+          description: 数据
+  responses: {}
+  securitySchemes: {}
+servers:
+  - url: http://localhost:8080
+    description: 开发环境
+security: []
