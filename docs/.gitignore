@@ -5,7 +5,11 @@
 /initialization/*
 !/initialization/设计手稿.md
 !/initialization/组织仓库设置.md
-!/initialization/重构后的角色-路由-资源矩阵.md
+
+# 规则架构文档 
+!/initialization/*/
+
+
 # 每次量化的条件快照、原始结果和单次报告只保存在本机，不提交GitHub。
 # GitHub只提交 /eval/reports/ 下不含业务明细的聚合结论。
 /eval/results/

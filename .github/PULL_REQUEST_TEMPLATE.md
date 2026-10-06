@@ -3,6 +3,7 @@
 - OpenSpec change：
 - 对应业务/技术模块：
 - 兼容或替代的旧接口：无 / 填写路径
+- 包/构建身份变化：无 / 填写根包、legacy 边界、groupId/artifactId
 
 ## 一、业务梳理
 
