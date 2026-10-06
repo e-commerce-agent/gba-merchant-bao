@@ -6,6 +6,12 @@
 
 后端 MUST 以认证、商户、商品、库存、订单、物流、会话、知识库、文档任务、Agent 和评测等业务域组织模块；协议转换、业务规则和持久化访问必须有清晰职责边界，Agent 编排不能复制交易域规则。迁移期间旧餐饮代码 MUST 通过明确的兼容边界接入，不能继续扩大跨域直接依赖。
 
+后端工程 MUST 保留在仓库根目录 `api/`；新项目根包 MUST 为 `com.gba.merchantbao`，旧三模块代码 MUST 统一收敛到 `com.gba.merchantbao.legacy`。入口、包声明、扫描配置、Mapper XML、日志和测试引用 MUST 保持一致，不保留两套可编译的重复旧模块源码。
+
+#### Scenario: Package identity is unified
+- **WHEN** 构建重命名后的商户宝后端
+- **THEN** 新基础组件由 `com.gba.merchantbao` 根包扫描，旧 `/admin` 和 `/user` 由其 legacy 子包提供，构建不依赖 `com.countmaske` 包或旧三模块 POM
+
 #### Scenario: Domain service owns business rules
 - **WHEN** Agent Tool 或 HTTP Controller 需要查询订单、库存或物流
 - **THEN** 调用对应业务域服务并复用其租户、用户归属和隐私规则，不能绕过服务直接访问 Mapper 或数据库
@@ -84,6 +90,22 @@ Redis、RabbitMQ、对象存储、向量数据库和关系数据库 MUST 按职�
 
 每个完成迁移的技术模块 MUST 同时提供与其边界匹配的单元、集成或契约测试，并输出带请求关联标识的结构化日志；测试失败、迁移失败和外部依赖不可用时必须能定位到模块和请求。
 
+测试源码 MUST 随实现提交。完整验收 MUST 使用 Testcontainers 在 Docker Desktop 的 Linux 容器引擎中自动创建和清理 MySQL/Redis 隔离测试容器，并通过随机端口注入连接；MUST NOT 使用本机 MySQL 或固定业务 Redis。Docker 不可用时 MUST 明确失败并提示启动 Docker Desktop，不能通过永久禁用或自动跳过把完整验收报告为成功。
+
+测试 MUST 独立于开发/生产 Compose，MUST NOT 调用业务 Compose、复用业务容器、固定宿主端口或挂载业务数据目录/命名卷；MUST 禁用容器复用。测试日志 MUST 写入 `api/target/test-logs`，不能进入开发或生产日志目录。开发中间件的固定端口由后续使用该中间件的 change 登记。
+
+#### Scenario: Development middleware is already running
+- **WHEN** 开发 Compose 的 MySQL/Redis 已使用固定端口和持久化数据卷，随后运行完整自动化测试
+- **THEN** Testcontainers 创建独立容器并使用随机宿主端口，不连接现有业务实例或挂载其数据，测试结束只清理自身资源
+
+#### Scenario: A reviewer runs the complete automated suite
+- **WHEN** 审阅者启动 Docker Desktop 后执行 `mvn -f api/pom.xml clean verify`
+- **THEN** 已提交的单元、契约和 MySQL/Redis 集成测试自动执行，容器生命周期及端口由 Testcontainers 管理，报告包含实际执行结果且没有因外部依赖缺失的跳过
+
+#### Scenario: Docker is unavailable during complete verification
+- **WHEN** 完整验收无法访问 Docker 引擎
+- **THEN** 命令失败并提示启动 Docker Desktop 后重跑，任务和 PR 验证记录不能标记完整验收通过
+
 #### Scenario: A module is marked complete
 - **WHEN** 一个技术模块提交为可联调状态
 - **THEN** 构建产物包含该模块的测试结果、接口契约校验结果和日志字段检查结果，且结果可关联到对应提交或变更
@@ -151,3 +173,15 @@ Redis、RabbitMQ、对象存储、向量数据库和关系数据库 MUST 按职�
 #### Scenario: A phone-bearing record is returned or logged
 - **WHEN** 接口、应用日志或审计记录包含手机号
 - **THEN** 输出经过 `maskPhone` 的值，原始手机号不进入普通响应或日志
+
+### Requirement: Backend documentation and runtime files shall have explicit locations
+
+后端维护文档 MUST 按主题放在 `api/docs/`，根 README 提供导航。包结构文档位于 `api/docs/architecture/packages.md`，测试文档位于 `api/docs/testing/README.md`。开发日志 MUST 默认放在后端工作目录的 `.runtime/logs`，生产 MUST 通过 `LOG_DIR` 指定外部目录；运行文件不进入 Git。迁移后的空旧包和退役模块目录 MUST 清理，独有本地文件保留到忽略的 `.runtime/legacy-backup`。
+
+#### Scenario: A developer runs Maven verification
+- **WHEN** 从仓库根目录运行 `mvn -f api/pom.xml clean verify`
+- **THEN** 应用日志写入 `api/target/test-logs`，测试报告写入 target 的 Surefire/Failsafe 目录，后端根目录不新增日志或专题文档
+
+#### Scenario: Retired source directories are cleaned
+- **WHEN** 旧三模块的源码已经迁移到 legacy 并通过回归
+- **THEN** 空旧包和三个退役模块的物理目录不再存在，仍需保留的个人配置/草稿仅位于忽略的本地备份目录

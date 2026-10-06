@@ -19,10 +19,11 @@ spring:
     out-of-order: false
     baseline-on-migrate: false
     baseline-version: 0
-  redis:
-    host: ${merchant.redis.host}
-    port: ${merchant.redis.port}
-    database: ${merchant.redis.database}
+  data:
+    redis:
+      host: ${merchant.redis.host}
+      port: ${merchant.redis.port}
+      database: ${merchant.redis.database}
 
 springdoc:
   api-docs:
@@ -31,24 +32,23 @@ springdoc:
   swagger-ui:
     enabled: ${merchant.openapi.enabled:true}
     path: /swagger-ui.html
-  packages-to-scan: com.countmaske.merchant,com.countmaske.merchantassistant.api
+  packages-to-scan: com.gba.merchantbao.legacy,com.gba.merchantbao.api
 
 mybatis:
   #mapper配置文件
   mapper-locations: classpath:mapper/*.xml
-  type-aliases-package: com.countmaske.merchant.entity
+  type-aliases-package: com.gba.merchantbao.legacy.entity
   configuration:
     #开启驼峰命名
     map-underscore-to-camel-case: true
 
 logging:
+  file:
+    path: ${LOG_DIR:.runtime/logs}
   level:
-    com:
-      countmaske:
-        merchant:
-          mapper: debug
-          service: info
-          controller: info
+    com.gba.merchantbao.legacy.mapper: debug
+    com.gba.merchantbao.legacy.service: info
+    com.gba.merchantbao.legacy.controller: info
 
 merchant:
   openapi:

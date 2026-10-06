@@ -2,6 +2,10 @@ spring:
   flyway:
     enabled: true
 
+logging:
+  file:
+    path: ${LOG_DIR}
+
 merchant:
   openapi:
     enabled: false

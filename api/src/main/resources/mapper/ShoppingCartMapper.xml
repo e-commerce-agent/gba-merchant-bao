@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
-<mapper namespace="com.countmaske.merchant.mapper.ShoppingCartMapper">
+<mapper namespace="com.gba.merchantbao.legacy.mapper.ShoppingCartMapper">
 
-    <select id="list" resultType="com.countmaske.merchant.entity.ShoppingCart">
+    <select id="list" resultType="com.gba.merchantbao.legacy.entity.ShoppingCart">
         select * from shopping_cart
         <where>
            <if test="userId != null">

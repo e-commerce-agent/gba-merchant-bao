@@ -45,6 +45,23 @@
 
 ## 7. 集成验收
 
-- [x] 7.1 在干净环境执行从构建、启动、Flyway V1/V2 演练到 OpenAPI 导出的完整流程；验证：`mvn -f api/pom.xml clean verify`、迁移演练和 `/v3/api-docs.yaml` 校验全部通过。
+- [x] 7.1 在干净环境执行从构建、启动、Flyway V1/V2 演练到 OpenAPI 导出的完整流程；验证：`mvn -f api/pom.xml clean verify`、迁移演练和 `/v3/api-docs.yaml` 校验全部通过，MySQL/Redis 集成测试实际执行，无外部依赖跳过。2026-10-06 Docker Desktop 复验：23 个测试，0 失败、0 错误、0 跳过；结果见 Flyway 迁移交付记录。
 - [x] 7.2 复核变更 diff，确认只修改本 change 允许的基础代码和配置，未提前实现登录或 Agent 业务模块；验证：源码、POM、数据库迁移和文档审查无 Redis 登录会话、RabbitMQ/Milvus/LangChain4j 空依赖、量化结果或未登记的破坏性改表。
 - [x] 7.3 执行 `openspec validate "refactor-foundation-stack-and-migrations" --type change --strict` 并修复所有错误；验证：change 校验通过，proposal、spec、design、tasks 四类工件均为完成状态。
+
+## 8. 统一项目命名和可交付容器测试
+
+- [x] 8.1 将新根包迁为 `com.gba.merchantbao`，旧三模块合并为其 `legacy` 子包，入口移到新根包并清理重复旧模块源码/POM；同步包声明、扫描配置、Mapper XML、日志类别和 Maven 身份；验证：全量编译通过，活动源码不存在旧包引用，旧路由保留。
+- [x] 8.2 将测试源码纳入 Git，修复测试资料路径，提供审阅者可重复执行的快速测试和完整验收命令；验证：测试未被 gitignore 排除，干净克隆无需个人 dev 配置即可运行快速测试。
+
+  实施记录：测试源码已在 `api/src/test`，忽略规则、资料路径、独立 test 配置和运行文档已修复，快速及完整测试通过。`git add` 请求被拒绝，文件尚未暂存/提交，本项先勾选完成；提交时必须包含测试源码。
+    手动commit 并推送到远程仓库并合并
+- [x] 8.3 以 Testcontainers 自动管理 MySQL/Redis，使用随机端口和独立 test profile，将 Redis 草稿改为带断言的集成测试；完整验收移除静默跳过策略，Docker 不可用时明确失败并提示启动 Docker Desktop；验证：代码不连接本机数据库，快速测试通过，完整验收容器执行结果由 7.1 记录。
+- [x] 8.4 更新包结构说明、测试运行记录和 Draft PR 描述，明确真实验证结果和尚未完成项；验证：OpenSpec 严格校验通过，PR 文案不把跳过或未执行的检查描述为成功。
+
+## 9. 容器隔离与后端目录治理
+
+- [x] 9.1 明确测试独立于开发/生产 Compose，显式关闭容器复用，继续使用随机宿主端口和隔离数据；验证：测试源码没有 Compose 调用、固定宿主端口、业务数据卷/网络绑定，完整测试通过，开发固定端口留给后续模块 change。
+- [x] 9.2 删除空旧包和三个退役模块的物理目录，先将独有本地配置/草稿保留到忽略的 `.runtime/legacy-backup`；验证：活动配置保留，五个旧目录不存在，备份不进入 Git。
+- [x] 9.3 文档迁入 `api/docs/architecture`、`api/docs/testing` 并建立 README 导航；将开发日志归 `.runtime/logs`、测试日志归 `target/test-logs`、生产日志由 `LOG_DIR` 外部配置；验证：所有文档引用一致，完整测试实际写新日志路径，根目录不再出现原专题文件或 logs。
+- [x] 9.4 复验并更新交付记录及 Draft PR 描述，保留用户手动 commit/push/PR 的分工；验证：完整测试、目录检查及 OpenSpec 严格校验通过，记录真实结果，不执行 Git 写操作或远程 PR 操作。

@@ -3,5 +3,30 @@ spring:
     locations: classpath:db/migration,classpath:db/devdata
 
 merchant:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    host: 127.0.0.1
+    port: 1
+    database: container_required
+    username: test
+    password: test
+  redis:
+    host: 127.0.0.1
+    port: 1
+    database: 0
+  websocket:
+    enabled: false
+  alioss:
+    endpoint: https://oss-cn-shenzhen.aliyuncs.com
+    access-key-id: test-only
+    access-key-secret: test-only
+    bucket-name: test-only
+  wechat:
+    appid: test-only
+    secret: test-only
+  shop:
+    address: test-only
+  baidu:
+    ak: test-only
   openapi:
     enabled: true

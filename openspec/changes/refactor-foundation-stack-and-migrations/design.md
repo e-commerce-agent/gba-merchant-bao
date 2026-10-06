@@ -26,9 +26,15 @@
 
 ### 1. 采用单 Maven 应用和按业务域分包
 
-目标结构为 `com.countmaske.merchantassistant` 下的 `common`、`config`、`auth`、`merchant`、`product`、`inventory`、`order`、`shipment`、`chat`、`knowledge`、`document`、`agent`、`evaluation`、`task` 和 `infrastructure`。每个业务域自带 controller/service/mapper/entity/dto，Controller 只做协议转换和校验，Service 持有业务规则，Mapper 只负责持久化，Agent 只能调用领域 Service。
+后端 Maven 工程位于仓库根目录 `api/`。新项目根包为 `com.gba.merchantbao`，其下按需建立 `common`、`config`、`auth`、`merchant`、`product`、`inventory`、`order`、`shipment`、`chat`、`knowledge`、`document`、`agent`、`evaluation`、`task` 和 `infrastructure`。原 `com.countmaske.merchantassistant` 的基础组件迁入新根包；原 `com.countmaske.merchant` 的旧餐饮代码统一迁入 `com.gba.merchantbao.legacy`，不能把这里的 legacy 当作新商户业务域。入口 `MerchantApplication` 放在新根包，自动扫描新代码及 legacy；MyBatis XML、扫描配置、日志类别和测试引用同步迁移。Maven groupId 为 `com.gba`，artifactId 保持 `gba-merchant-bao`。
 
-选择单应用是因为当前只有一个部署单元，三模块没有形成稳定业务边界；按域分包仍保留未来拆分的可能。保留 `merchant-common`、`merchant-pojo`、`merchant-server` 作为短期迁移输入，分阶段移动类和资源，最后再删除空模块，避免一次重命名造成不可审计的破坏。
+根包下当前的 `api` 包只承载基础 HTTP 样例 Controller、请求对象和异常映射，`common.api` 承载公共响应模型；它们不是额外 Maven 模块。后续业务接口放在各业务域自己的 controller/dto 下。每个业务域自带 controller/service/mapper/entity/dto，Controller 只做协议转换和校验，Service 持有业务规则，Mapper 只负责持久化，Agent 只能调用领域 Service。
+
+选择单应用是因为当前只有一个部署单元，三模块没有形成稳定业务边界；按域分包仍保留未来拆分的可能。三模块源码已合并到 `api/src/main`，核对没有遗漏后删除 Git 中重复的 `merchant-common`、`merchant-pojo`、`merchant-server` 源码和 POM，旧实现继续通过 legacy 运行，历史版本仍可由 Git 查询。
+
+迁移完成后同时删除 `api/src/main/java/com/countmaske`、`api/src/test/java/com/countmaske` 的空目录和三个退役模块的物理目录。旧目录中的构建缓存可直接清理；独有的个人配置和旧测试草稿移到 Git 忽略的 `api/.runtime/legacy-backup`，不把旧目录作为隐藏的活动模块继续保留。
+
+后端维护文档按主题集中：包结构 `api/docs/architecture/packages.md`，自动化测试 `api/docs/testing/README.md`；`api/README.md` 提供导航。业务规划和变更交付记录继续归仓库级 `docs/`、`openspec/` 管理。后端根目录不持续堆放专题 Markdown。
 
 替代方案是继续扩充三 Maven 模块或直接拆微服务；前者延续空泛共享层，后者会同时引入网络、部署和数据边界，均不适合当前基础 change。
 
@@ -63,6 +69,14 @@
 日志采用 SLF4J + Logback、MDC 和统一异常处理：Filter 接收或生成 `X-Request-Id`，响应头和 JSON 使用相同值；日志至少包含时间、级别、模块、requestId、actor/tenant（存在时）、事件、耗时和稳定错误码，敏感信息脱敏。应用日志、审计事件和未来 LLM 调用记录分开，默认不引入集中式日志产品。
 
 测试分为 JUnit 5 + Mockito + AssertJ 的 Service 单元测试、Spring Boot/Testcontainers 的 MySQL/Flyway 集成测试和 OpenAPI 契约校验。Redis、RabbitMQ、Milvus 只有在某模块真正依赖时才启动对应容器。模块完成门槛是测试结果、迁移结果、OpenAPI 快照和日志字段检查都能关联到提交或 change。
+
+测试源码 `api/src/test` 随实现进入 Git，不再忽略 `*Test.java` 或 `**/test/`。用户只需启动 Docker Desktop 的 Linux 容器引擎；Testcontainers 自动创建和清理独立 MySQL/Redis 容器，并注入随机映射端口。应用测试启用独立 `test` profile，不读取个人 dev 凭据，不连接宿主机 MySQL，不复用固定业务容器。旧缓存当前实际依赖 Redis，故本次验证其已有行为，但不新增登录会话能力。
+
+完整 `mvn -f api/pom.xml clean verify` 必须执行容器集成测试；Docker 不可用时明确失败并提示启动 Docker Desktop，不使用 `disabledWithoutDocker=true` 或 `@Disabled` 静默跳过。可用 `mvn -f api/pom.xml test` 运行快速单元和契约测试，但该结果不能声明完整验收通过。MySQL/Redis 集成测试使用 Maven Failsafe 的 `*IT` 命名，报告写入 `target/failsafe-reports`。
+
+测试容器不调用或复用开发/生产 `docker-compose.yaml`，不指定业务容器名、固定宿主端口，不挂载业务 bind mount、命名数据卷或业务网络，不启用容器复用。`withExposedPorts(6379)` 表示容器内部端口，宿主端口使用 `getMappedPort(6379)` 随机分配。MySQL 的容器数据也由测试生命周期清理。共用 Docker 引擎意味着共用 CPU、内存和镜像缓存，不意味着共用数据库或 Redis 数据；自动化测试在开发 Docker Desktop 上运行。后续登录等模块单独登记开发 Compose 的固定端口，本 change 不定义这些端口。
+
+日志位置通过 `logging.file.path`/`LOG_DIR` 配置。Maven Surefire/Failsafe 将 `LOG_DIR` 强制设置为 `${project.build.directory}/test-logs`，测试不会写开发或生产日志目录。开发默认 `.runtime/logs`，运行应用时工作目录设为 `api/`，对应 `api/.runtime/logs`；生产 profile 要求通过环境变量 `LOG_DIR` 指定外部日志目录或部署挂载目录。历史 `api/logs` 移入本地运行目录，不纳入版本控制。
 
 ### 6. 以技术模块为交付和依赖边界
 
