@@ -1,0 +1,7 @@
+spring:
+  flyway:
+    enabled: true
+
+merchant:
+  openapi:
+    enabled: false

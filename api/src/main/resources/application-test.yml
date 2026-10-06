@@ -1,0 +1,7 @@
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/devdata
+
+merchant:
+  openapi:
+    enabled: true

@@ -1,0 +1,77 @@
+server:
+  port: 8080
+
+spring:
+  profiles:
+    active: dev
+  main:
+    allow-circular-references: true
+  datasource:
+    driver-class-name: ${merchant.datasource.driver-class-name}
+    url: jdbc:mysql://${merchant.datasource.host}:${merchant.datasource.port}/${merchant.datasource.database}?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${merchant.datasource.username}
+    password: ${merchant.datasource.password}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+    clean-disabled: true
+    out-of-order: false
+    baseline-on-migrate: false
+    baseline-version: 0
+  redis:
+    host: ${merchant.redis.host}
+    port: ${merchant.redis.port}
+    database: ${merchant.redis.database}
+
+springdoc:
+  api-docs:
+    enabled: ${merchant.openapi.enabled:true}
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: ${merchant.openapi.enabled:true}
+    path: /swagger-ui.html
+  packages-to-scan: com.countmaske.merchant,com.countmaske.merchantassistant.api
+
+mybatis:
+  #mapper配置文件
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.countmaske.merchant.entity
+  configuration:
+    #开启驼峰命名
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com:
+      countmaske:
+        merchant:
+          mapper: debug
+          service: info
+          controller: info
+
+merchant:
+  openapi:
+    enabled: true
+  jwt:
+    # 设置jwt签名加密时使用的秘钥
+    admin-secret-key: itcast
+    # 设置jwt过期时间
+    admin-ttl: 7200000
+    # 设置前端传递过来的令牌名称
+    admin-token-name: token
+    user-secret-key: itheima
+    user-ttl: 7200000
+    user-token-name: authentication
+  alioss:
+    endpoint:${merchant.alioss.endpoint}
+    access-key-id:${merchant.alioss.access-key-id}
+    access-key-secret:${merchant.alioss.access-key-secret}
+    bucket-name:${merchant.alioss.bucket-name}
+  wechat:
+    appid: ${merchant.wechat.appid}
+    secret: ${merchant.wechat.secret}
+  shop:
+    address: ${merchant.shop.address}
+  baidu:
+    ak: ${merchant.baidu.ak}

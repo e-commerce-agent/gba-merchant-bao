@@ -1,0 +1,81 @@
+openapi: 3.1.0
+info:
+  title: Merchant Assistant API
+  version: v1
+  description: Versioned foundation API; legacy routes remain compatibility endpoints.
+paths:
+  /api/v1/health:
+    get:
+      operationId: getFoundationHealth
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      responses:
+        '200':
+          description: success
+        '500':
+          description: internal server error
+  /api/v1/echo:
+    post:
+      operationId: echoFoundationMessage
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FoundationEchoRequest'
+      responses:
+        '200':
+          description: success
+        '400':
+          description: validation error
+        '401':
+          description: unauthorized
+        '403':
+          description: forbidden
+        '500':
+          description: internal server error
+  /user/shop/status:
+    get:
+      operationId: legacyUserShopStatus
+      deprecated: true
+      responses:
+        '200':
+          description: legacy response envelope
+        '401':
+          description: legacy authentication boundary
+components:
+  parameters:
+    RequestId:
+      name: X-Request-Id
+      in: header
+      required: false
+      schema:
+        type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    FoundationEchoRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          maxLength: 128
+    ApiResponse:
+      type: object
+      required: [code, message, requestId]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data: {}
+        requestId:
+          type: string
