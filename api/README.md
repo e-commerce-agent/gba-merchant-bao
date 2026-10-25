@@ -21,3 +21,4 @@ mvn -f api/pom.xml clean verify
 ## 目录约定
 
 `src/` 保存实现和测试，`docs/` 保存后端维护文档，`target/` 保存构建产物、测试报告和测试日志，`.runtime/` 保存忽略的本地运行文件。开发运行的工作目录设为 `api/`，默认日志在 `.runtime/logs`；生产通过 `LOG_DIR` 指定外部路径。各业务模块的开发配置、中间件固定端口和启动说明随对应 change 交付。
+

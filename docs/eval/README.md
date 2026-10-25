@@ -6,7 +6,7 @@ docs/eval/runs/<run-id>/
 └── report.md
 
 `docs/eval/runs/`只保存在本地并由`.gitignore`整体忽略，不需要为了提交GitHub再处理原始结果脱敏。
-完成一次对比后，只把样本数、测试条件、指标定义和基线/改造后数字整理到`docs/eval/reports/<module>-<date>.md`。
+完成一次对比后，只把样本数、测试条件、指标定义和基线 + 改造后数字整理到`docs/eval/reports/<module>-<date>.md`。
 聚合报告不得包含手机号、订单明细、完整Prompt、密钥、原始请求响应或数据库导出。
 
 #### 量化控制变量
