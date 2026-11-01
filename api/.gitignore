@@ -8,3 +8,5 @@
 **/application-dev.yml
 **/application-dev.yaml
 
+# 忽略prod profile环境的配置
+docs/prod-profile/
