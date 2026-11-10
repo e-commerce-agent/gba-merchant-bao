@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gba.merchantbao.product.mapper.ProductMapper">
+  <sql id="columns">id,merchant_id,category_id,product_code,name,brand,description,status,created_at,updated_at</sql>
+  <insert id="insert">
+    INSERT INTO product (<include refid="columns"/>) VALUES
+      (#{id},#{merchantId},#{categoryId},#{productCode},#{name},#{brand},#{description},#{status},#{createdAt},#{updatedAt})
+  </insert>
+  <update id="updateBasics">
+    UPDATE product SET category_id=#{categoryId},name=#{name},brand=#{brand},description=#{description},updated_at=#{now}
+    WHERE merchant_id=#{merchantId} AND id=#{productId}
+  </update>
+  <update id="updateStatus">
+    UPDATE product SET status=#{target},updated_at=#{now}
+    WHERE merchant_id=#{merchantId} AND id=#{productId} AND status=#{expected}
+  </update>
+  <select id="find" resultType="com.gba.merchantbao.product.entity.ProductRow" flushCache="true" useCache="false">
+    SELECT <include refid="columns"/> FROM product WHERE merchant_id=#{merchantId} AND id=#{productId}
+  </select>
+  <select id="page" resultType="com.gba.merchantbao.product.entity.ProductRow" flushCache="true" useCache="false">
+    <bind name="pageSize" value="size > 100 ? 100 : (size &lt; 1 ? 1 : size)"/>
+    SELECT <include refid="columns"/> FROM product
+    WHERE merchant_id=#{merchantId}
+    <if test="status != null">AND status=#{status}</if>
+    <if test="categoryId != null">AND category_id=#{categoryId}</if>
+    <if test="beforeTime != null and beforeId != null">
+      AND (updated_at &lt; #{beforeTime} OR (updated_at=#{beforeTime} AND id &lt; #{beforeId}))
+    </if>
+    ORDER BY updated_at DESC,id DESC LIMIT #{pageSize}
+  </select>
+  <select id="codeTaken" resultType="boolean" flushCache="true" useCache="false">
+    SELECT EXISTS(SELECT 1 FROM product WHERE merchant_id=#{merchantId} AND product_code=#{productCode}
+      <if test="excludeId != null">AND id &lt;&gt; #{excludeId}</if>)
+  </select>
+  <select id="skuExistsForProduct" resultType="boolean" flushCache="true" useCache="false">
+    SELECT EXISTS(SELECT 1 FROM product_sku WHERE merchant_id=#{merchantId} AND product_id=#{productId}
+      AND status IN <foreach item="s" collection="statuses" open="(" separator="," close=")">#{s}</foreach>)
+  </select>
+</mapper>

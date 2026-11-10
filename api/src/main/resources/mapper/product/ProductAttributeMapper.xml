@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gba.merchantbao.product.mapper.ProductAttributeMapper">
+  <sql id="columns">id,merchant_id,product_id,attr_name,attr_value,searchable,created_at,updated_at</sql>
+  <insert id="insert">
+    INSERT INTO product_attribute (<include refid="columns"/>) VALUES
+      (#{id},#{merchantId},#{productId},#{attrName},#{attrValue},#{searchable},#{createdAt},#{updatedAt})
+  </insert>
+  <delete id="deleteForProduct">
+    DELETE FROM product_attribute WHERE merchant_id=#{merchantId} AND product_id=#{productId}
+  </delete>
+  <select id="listForProduct" resultType="com.gba.merchantbao.product.entity.ProductAttributeRow" flushCache="true" useCache="false">
+    SELECT <include refid="columns"/> FROM product_attribute
+    WHERE merchant_id=#{merchantId} AND product_id=#{productId} ORDER BY attr_name ASC,id ASC
+  </select>
+  <select id="listPublicForProduct" resultType="com.gba.merchantbao.product.entity.ProductAttributeRow" flushCache="true" useCache="false">
+    SELECT a.id,a.merchant_id,a.product_id,a.attr_name,a.attr_value,a.searchable,a.created_at,a.updated_at
+    FROM product_attribute a JOIN product p ON p.merchant_id=a.merchant_id AND p.id=a.product_id
+    WHERE a.merchant_id=#{merchantId} AND a.product_id=#{productId} AND p.status='PUBLISHED'
+    ORDER BY a.attr_name ASC,a.id ASC
+  </select>
+</mapper>

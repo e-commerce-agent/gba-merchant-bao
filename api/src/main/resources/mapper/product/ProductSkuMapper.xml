@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gba.merchantbao.product.mapper.ProductSkuMapper">
+  <sql id="columns">id,merchant_id,product_id,sku_code,title,price,attributes_json,status,created_at,updated_at</sql>
+  <insert id="insert">
+    INSERT INTO product_sku (<include refid="columns"/>) VALUES
+      (#{id},#{merchantId},#{productId},#{skuCode},#{title},#{price},#{attributesJson},#{status},#{createdAt},#{updatedAt})
+  </insert>
+  <update id="update">
+    UPDATE product_sku SET title=#{title},price=#{price},attributes_json=#{attributesJson},status=#{status},updated_at=#{now}
+    WHERE merchant_id=#{merchantId} AND id=#{skuId}
+  </update>
+  <select id="find" resultType="com.gba.merchantbao.product.entity.ProductSkuRow" flushCache="true" useCache="false">
+    SELECT <include refid="columns"/> FROM product_sku WHERE merchant_id=#{merchantId} AND id=#{skuId}
+  </select>
+  <select id="listForProduct" resultType="com.gba.merchantbao.product.entity.ProductSkuRow" flushCache="true" useCache="false">
+    SELECT <include refid="columns"/> FROM product_sku
+    WHERE merchant_id=#{merchantId} AND product_id=#{productId}
+    <if test="status != null">AND status=#{status}</if>
+    ORDER BY price ASC,id ASC
+  </select>
+  <select id="codeTaken" resultType="boolean" flushCache="true" useCache="false">
+    SELECT EXISTS(SELECT 1 FROM product_sku WHERE merchant_id=#{merchantId} AND sku_code=#{skuCode}
+      <if test="excludeId != null">AND id &lt;&gt; #{excludeId}</if>)
+  </select>
+</mapper>

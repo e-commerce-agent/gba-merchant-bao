@@ -34,6 +34,15 @@ api/src/main/java/com/gba/merchantbao/
   chat/vo/             独立会话/消息/运行响应
   chat/config/         有界流式资源、Springdoc 分组
   chat/exception/      对话错误码与 HTTP 适配
+  product/             商品模块（分类、商品/SPU、SKU、属性）
+  product/controller/  公开商城与员工维护 HTTP 入口
+  product/service/     ProductQueryService 读取与 ProductCommandService 维护编排
+  product/mapper/      四表 MyBatis Mapper（SQL 全部带商户范围）
+  product/entity/      分类/商品/SKU/属性数据库 Row
+  product/dto/         请求 DTO 与校验声明
+  product/vo/          公开与员工视图模型
+  product/exception/   商品错误码与 HTTP 适配
+  product/config/      Springdoc 分组
   legacy/              保留的旧餐饮项目实现
 ```
 

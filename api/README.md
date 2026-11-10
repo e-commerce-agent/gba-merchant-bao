@@ -16,6 +16,7 @@
 - [Agent curl/fetch 与凭证说明](docs/agent/manual-verification.md) / [Apifox 验收步骤](docs/agent/apifox-verification.md)
 - [Agent 验收记录与待验收项](docs/agent/verification.md)
 - [Agent Springdoc 快照（Apifox 导入）](../docs/api/agent-conversation-v1.openapi.yaml)
+- [商品模块数据/契约/授权说明](docs/product/module.md)
 - [物流需求](docs/shipment/requirements.md) / [REST + SOAP 双契约](docs/shipment/api-design.md)
 - [物流数据设计与 Flyway 编号](docs/shipment/data-design.md) / [联调与 SOAP 演示](docs/shipment/manual-verification.md)
 - [物流实现与验收记录](docs/shipment/verification.md)
