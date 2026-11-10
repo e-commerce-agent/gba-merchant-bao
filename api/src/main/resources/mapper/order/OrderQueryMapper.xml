@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gba.merchantbao.order.mapper.OrderQueryMapper">
+  <sql id="columns">id, merchant_id, order_no, customer_id, status, pay_status, total_amount, paid_amount, currency, placed_at, created_at, updated_at, version</sql>
+  <select id="findById" resultType="com.gba.merchantbao.order.entity.OrderRow" flushCache="true" useCache="false">
+    SELECT <include refid="columns"/> FROM trade_order WHERE merchant_id = #{merchantId} AND id = #{orderId}
+  </select>
+  <select id="findOwnedById" resultType="com.gba.merchantbao.order.entity.OrderRow" flushCache="true" useCache="false">
+    SELECT <include refid="columns"/> FROM trade_order
+    WHERE merchant_id = #{merchantId} AND id = #{orderId} AND customer_id = #{customerId}
+  </select>
+  <select id="findByCustomer" resultType="com.gba.merchantbao.order.entity.OrderRow" flushCache="true" useCache="false">
+    SELECT <include refid="columns"/> FROM trade_order
+    WHERE merchant_id = #{merchantId} AND customer_id = #{customerId}
+    ORDER BY placed_at DESC, id DESC
+    LIMIT #{limit} OFFSET #{offset}
+  </select>
+  <select id="countByCustomer" resultType="long" flushCache="true" useCache="false">
+    SELECT COUNT(*) FROM trade_order WHERE merchant_id = #{merchantId} AND customer_id = #{customerId}
+  </select>
+  <select id="findByMerchant" resultType="com.gba.merchantbao.order.entity.OrderRow" flushCache="true" useCache="false">
+    SELECT <include refid="columns"/> FROM trade_order
+    WHERE merchant_id = #{merchantId}
+    ORDER BY placed_at DESC, id DESC
+    LIMIT #{limit} OFFSET #{offset}
+  </select>
+  <select id="countByMerchant" resultType="long" flushCache="true" useCache="false">
+    SELECT COUNT(*) FROM trade_order WHERE merchant_id = #{merchantId}
+  </select>
+</mapper>

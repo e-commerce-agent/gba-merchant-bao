@@ -73,7 +73,7 @@ class FoundationApplicationIT {
                 + "('M_3C_DEMO', 'M_ISOLATION_TEST') ORDER BY merchant_code", String.class))
                 .containsExactly("M_3C_DEMO", "M_ISOLATION_TEST");
         assertThat(jdbc.queryForList("SELECT version FROM flyway_schema_history WHERE type='SQL' AND version IS NOT NULL "
-                + "AND success=1 ORDER BY installed_rank", String.class)).containsExactly("1", "2", "3", "4", "5");
+                + "AND success=1 ORDER BY installed_rank", String.class)).containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
         assertThat(jdbc.queryForList("SELECT script FROM flyway_schema_history WHERE success=0", String.class)).isEmpty();
         assertThat(jdbc.queryForList("SELECT script FROM flyway_schema_history WHERE version IS NULL AND success=1", String.class))
                 .contains("R__010_local_test_tenants.sql");

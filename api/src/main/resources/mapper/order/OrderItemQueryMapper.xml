@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gba.merchantbao.order.mapper.OrderItemQueryMapper">
+  <sql id="columns">id, merchant_id, order_id, product_id, sku_id, product_name_snapshot, sku_attrs_snapshot, unit_price, quantity, amount, created_at, updated_at</sql>
+  <select id="findByOrder" resultType="com.gba.merchantbao.order.entity.OrderItemRow" flushCache="true" useCache="false">
+    SELECT <include refid="columns"/> FROM trade_order_item
+    WHERE merchant_id = #{merchantId} AND order_id = #{orderId}
+    ORDER BY id
+  </select>
+</mapper>

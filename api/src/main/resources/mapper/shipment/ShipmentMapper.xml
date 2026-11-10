@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gba.merchantbao.shipment.mapper.ShipmentMapper">
+  <sql id="columns">id, merchant_id, order_id, order_no, status, carrier_name, carrier_code, tracking_no, estimated_delivery_at, delivered_at, created_at, updated_at</sql>
+  <sql id="track_columns">id, shipment_id, merchant_id, event_time, status, description, location, created_at</sql>
+  <select id="findByOrder" resultType="com.gba.merchantbao.shipment.entity.ShipmentRow" flushCache="true" useCache="false">
+    SELECT <include refid="columns"/> FROM shipment
+    WHERE merchant_id = #{merchantId} AND order_id = #{orderId}
+  </select>
+  <select id="findByOrderNo" resultType="com.gba.merchantbao.shipment.entity.ShipmentRow" flushCache="true" useCache="false">
+    SELECT <include refid="columns"/> FROM shipment
+    WHERE merchant_id = #{merchantId} AND order_no = #{orderNo}
+  </select>
+  <select id="findTracks" resultType="com.gba.merchantbao.shipment.entity.ShipmentTrackRow" flushCache="true" useCache="false">
+    SELECT <include refid="track_columns"/> FROM shipment_track
+    WHERE merchant_id = #{merchantId} AND shipment_id = #{shipmentId}
+    ORDER BY event_time ASC, id ASC
+  </select>
+</mapper>

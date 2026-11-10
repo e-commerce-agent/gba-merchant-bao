@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gba.merchantbao.inventory.mapper.InventoryMapper">
+
+    <resultMap id="InventoryMap" type="com.gba.merchantbao.inventory.po.InventoryPO">
+        <id column="id" property="id"/>
+        <result column="merchant_id" property="merchantId"/>
+        <result column="sku_id" property="skuId"/>
+        <result column="available_qty" property="availableQty"/>
+        <result column="reserved_qty" property="reservedQty"/>
+        <result column="version" property="version"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectByMerchantAndSku" resultMap="InventoryMap">
+        SELECT id, merchant_id, sku_id, available_qty, reserved_qty, version, create_time, update_time
+        FROM inventory
+        WHERE merchant_id = #{merchantId}
+          AND sku_id = #{skuId}
+    </select>
+
+    <update id="updateStockWithVersion">
+        UPDATE inventory
+        SET available_qty = #{availableQty},
+            reserved_qty  = #{reservedQty},
+            version       = version + 1,
+            update_time   = CURRENT_TIMESTAMP
+        WHERE merchant_id = #{merchantId}
+          AND sku_id = #{skuId}
+          AND version = #{version}
+    </update>
+
+    <select id="selectPageByMerchant" resultMap="InventoryMap">
+        SELECT id, merchant_id, sku_id, available_qty, reserved_qty, version, create_time, update_time
+        FROM inventory
+        WHERE merchant_id = #{merchantId}
+        ORDER BY id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByMerchant" resultType="long">
+        SELECT COUNT(*)
+        FROM inventory
+        WHERE merchant_id = #{merchantId}
+    </select>
+
+</mapper>

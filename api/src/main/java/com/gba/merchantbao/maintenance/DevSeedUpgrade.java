@@ -16,7 +16,8 @@ import java.util.*;
 /** Explicit maintenance entry point; deliberately not a Spring bean or startup hook. */
 public final class DevSeedUpgrade {
     public static final Set<String> OLD = Set.of("R__local_test_tenants.sql", "R__auth_demo_accounts.sql");
-    public static final Set<String> NEW = Set.of("R__010_local_test_tenants.sql", "R__020_auth_demo_accounts.sql", "R__030_chat_demo.sql");
+    public static final Set<String> NEW = Set.of("R__010_local_test_tenants.sql", "R__020_auth_demo_accounts.sql",
+            "R__030_chat_demo.sql", "R__040_shipment_demo_data.sql", "R__050_order_demo_orders.sql");
     public static final String[] LOCATIONS = {"classpath:db/migration", "classpath:db/seed/common",
             "classpath:db/seed/nonprod", "classpath:db/devdata"};
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -65,10 +66,15 @@ public final class DevSeedUpgrade {
             var state = info.getState();
             String script = info.getScript();
             if (info.getVersion() != null) {
-                if (state == MigrationState.PENDING && (("4".equals(info.getVersion().getVersion())
-                        && "V4__auth_accounts.sql".equals(script)) || ("5".equals(info.getVersion().getVersion())
-                        && "V5__agent_conversation.sql".equals(script)))) pendingVersions.add(info.getVersion().getVersion());
-                else if (state != MigrationState.SUCCESS || !versions.add(info.getVersion().getVersion()))
+                String version = info.getVersion().getVersion();
+                boolean knownPending = (state == MigrationState.PENDING
+                        && ("4".equals(version) && "V4__auth_accounts.sql".equals(script)
+                        || "5".equals(version) && "V5__agent_conversation.sql".equals(script)
+                        || "6".equals(version) && "V6__shipment_tables.sql".equals(script)
+                        || "7".equals(version) && "V7__order_tables.sql".equals(script)
+                        || "8".equals(version) && "V8__inventory_tables.sql".equals(script)));
+                if (knownPending) pendingVersions.add(version);
+                else if (state != MigrationState.SUCCESS || !versions.add(version))
                     throw rejected("Unexpected versioned migration state");
             } else if (OLD.contains(script)) {
                 if (script.equals("R__local_test_tenants.sql")) knownOldTenant = true;
@@ -83,10 +89,13 @@ public final class DevSeedUpgrade {
                 else throw rejected("New repeatable is not Pending or Success");
             } else throw rejected("Unknown migration outside the rename allowlist");
         }
-        if (!(versions.equals(Set.of("1", "2", "3", "4", "5")) && pendingVersions.isEmpty())
-                && !(versions.equals(Set.of("1", "2", "3", "4")) && pendingVersions.equals(Set.of("5")))
-                && !(versions.equals(Set.of("1", "2", "3")) && pendingVersions.equals(Set.of("4", "5"))))
-            throw rejected("Expected successful V1 through V5, or the approved pending V4/V5 suffix");
+        if (!(versions.equals(Set.of("1", "2", "3", "4", "5", "6", "7", "8")) && pendingVersions.isEmpty())
+                && !(versions.equals(Set.of("1", "2", "3", "4", "5", "6", "7")) && pendingVersions.equals(Set.of("8")))
+                && !(versions.equals(Set.of("1", "2", "3", "4", "5", "6")) && pendingVersions.equals(Set.of("7", "8")))
+                && !(versions.equals(Set.of("1", "2", "3", "4", "5")) && pendingVersions.equals(Set.of("6", "7", "8")))
+                && !(versions.equals(Set.of("1", "2", "3", "4")) && pendingVersions.equals(Set.of("5", "6", "7", "8")))
+                && !(versions.equals(Set.of("1", "2", "3")) && pendingVersions.equals(Set.of("4", "5", "6", "7", "8"))))
+            throw rejected("Expected successful V1 through V8, or a supported historical V3/V4/V5/V6/V7 database with only the next pending");
         if (pendingVersions.contains("4") && knownOldAccounts)
             throw rejected("Historical auth seed without successful V4 is not a supported V3 database");
         var validation = flyway.validateWithResult();
@@ -99,11 +108,14 @@ public final class DevSeedUpgrade {
                         && retire.contains(script);
                 boolean approvedPending = "RESOLVED_REPEATABLE_MIGRATION_NOT_APPLIED".equals(invalid.errorDetails.errorCode.toString())
                         && pending.contains(script);
-                boolean approvedVersion = "RESOLVED_VERSIONED_MIGRATION_NOT_APPLIED".equals(invalid.errorDetails.errorCode.toString())
-                        && pendingVersions.contains(invalid.version)
+                boolean approvedPendingVersion = "RESOLVED_VERSIONED_MIGRATION_NOT_APPLIED".equals(invalid.errorDetails.errorCode.toString())
                         && (("4".equals(invalid.version) && "auth accounts".equals(invalid.description))
-                            || ("5".equals(invalid.version) && "agent conversation".equals(invalid.description)));
-                if (!approvedMissing && !approvedPending && !approvedVersion)
+                        || ("5".equals(invalid.version) && "agent conversation".equals(invalid.description))
+                        || ("6".equals(invalid.version) && "shipment tables".equals(invalid.description))
+                        || ("7".equals(invalid.version) && "order tables".equals(invalid.description))
+                        || ("8".equals(invalid.version) && "inventory tables".equals(invalid.description)))
+                        && pendingVersions.contains(invalid.version);
+                if (!approvedMissing && !approvedPending && !approvedPendingVersion)
                     throw rejected("Validation differs from the two approved repeatable renames");
             }
         }
@@ -173,7 +185,8 @@ public final class DevSeedUpgrade {
         if (!repaired.retire().isEmpty() || !new HashSet<>(repaired.pending()).equals(NEW)
                 || !repaired.pendingVersions().equals(reviewed.pendingVersions()))
             throw rejected("Unexpected post-repair history");
-        if (flyway.migrate().migrationsExecuted != NEW.size() + reviewed.pendingVersions().size()) throw rejected("Unexpected migration count");
+        if (flyway.migrate().migrationsExecuted != repaired.pending().size() + reviewed.pendingVersions().size())
+            throw rejected("Unexpected migration count");
         flyway.validate();
         if (!inspect().complete()) throw rejected("Transition did not finish");
         assertPreserved(before);

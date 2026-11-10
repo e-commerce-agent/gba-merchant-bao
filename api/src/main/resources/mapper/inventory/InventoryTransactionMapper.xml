@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gba.merchantbao.inventory.mapper.InventoryTransactionMapper">
+
+    <resultMap id="TransactionMap" type="com.gba.merchantbao.inventory.po.InventoryTransactionPO">
+        <id column="id" property="id"/>
+        <result column="merchant_id" property="merchantId"/>
+        <result column="sku_id" property="skuId"/>
+        <result column="biz_type" property="bizType"/>
+        <result column="biz_id" property="bizId"/>
+        <result column="change_available" property="changeAvailable"/>
+        <result column="change_reserved" property="changeReserved"/>
+        <result column="before_available" property="beforeAvailable"/>
+        <result column="after_available" property="afterAvailable"/>
+        <result column="before_reserved" property="beforeReserved"/>
+        <result column="after_reserved" property="afterReserved"/>
+        <result column="idempotent_key" property="idempotentKey"/>
+        <result column="operator_id" property="operatorId"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.gba.merchantbao.inventory.po.InventoryTransactionPO"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO inventory_transaction
+        (merchant_id, sku_id, biz_type, biz_id,
+         change_available, change_reserved,
+         before_available, after_available,
+         before_reserved, after_reserved,
+         idempotent_key, operator_id, remark)
+        VALUES
+        (#{merchantId}, #{skuId}, #{bizType}, #{bizId},
+         #{changeAvailable}, #{changeReserved},
+         #{beforeAvailable}, #{afterAvailable},
+         #{beforeReserved}, #{afterReserved},
+         #{idempotentKey}, #{operatorId}, #{remark})
+    </insert>
+
+    <select id="selectByMerchantAndSku" resultMap="TransactionMap">
+        SELECT id, merchant_id, sku_id, biz_type, biz_id,
+               change_available, change_reserved,
+               before_available, after_available,
+               before_reserved, after_reserved,
+               idempotent_key, operator_id, remark, create_time
+        FROM inventory_transaction
+        WHERE merchant_id = #{merchantId}
+          AND sku_id = #{skuId}
+        ORDER BY id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+</mapper>

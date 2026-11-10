@@ -34,6 +34,10 @@ merchant:
     database: 0
   websocket:
     enabled: false
+  shipment:
+    webservice:
+      # SOAP WebService 服务间凭证（课程演示；与仓库根 .env 的 SHIPMENT_WS_TOKEN 对应）。
+      service-token: ${SHIPMENT_WS_TOKEN:}
   alioss:
     endpoint: https://oss-cn-shenzhen.aliyuncs.com
     access-key-id: local-unused

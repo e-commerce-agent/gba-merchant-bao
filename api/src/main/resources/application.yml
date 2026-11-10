@@ -35,7 +35,7 @@ springdoc:
   swagger-ui:
     enabled: ${merchant.openapi.enabled:true}
     path: /swagger-ui.html
-  packages-to-scan: com.gba.merchantbao.legacy,com.gba.merchantbao.api,com.gba.merchantbao.auth.controller,com.gba.merchantbao.chat.controller,com.gba.merchantbao.product.controller
+  packages-to-scan: com.gba.merchantbao.legacy,com.gba.merchantbao.api,com.gba.merchantbao.auth.controller,com.gba.merchantbao.chat.controller,com.gba.merchantbao.shipment.controller, com.gba.merchantbao.product.controller
 
 mybatis:
   #mapper配置文件
@@ -78,6 +78,11 @@ merchant:
     jwt:
       issuer: merchantbao
       audience: api-v1
+  shipment:
+    webservice:
+      # SOAP WebService 独立信任域的服务间凭证（课程演示 + 模拟外部承运商对接）。
+      # 未配置时 SOAP 端点拒绝全部查询；凭证不进前端、不进仓库明文。
+      service-token: ${SHIPMENT_WS_TOKEN:}
   alioss:
     endpoint:${merchant.alioss.endpoint}
     access-key-id:${merchant.alioss.access-key-id}

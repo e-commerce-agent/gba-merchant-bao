@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.gba.merchantbao.inventory.mapper.IdempotentMapper">
+
+    <resultMap id="IdempotentMap" type="com.gba.merchantbao.inventory.po.IdempotentRecordPO">
+        <id column="id" property="id"/>
+        <result column="idempotent_key" property="idempotentKey"/>
+        <result column="merchant_id" property="merchantId"/>
+        <result column="biz_type" property="bizType"/>
+        <result column="status" property="status"/>
+        <result column="error_msg" property="errorMsg"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.gba.merchantbao.inventory.po.IdempotentRecordPO"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO inventory_idempotent
+        (idempotent_key, merchant_id, biz_type, status, create_time, update_time)
+        VALUES
+        (#{idempotentKey}, #{merchantId}, #{bizType}, #{status}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    </insert>
+
+    <select id="selectByIdempotentKey" resultMap="IdempotentMap">
+        SELECT id, idempotent_key, merchant_id, biz_type, status, error_msg, create_time, update_time
+        FROM inventory_idempotent
+        WHERE idempotent_key = #{idempotentKey}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE inventory_idempotent
+        SET status     = #{status},
+            error_msg  = #{errorMsg},
+            update_time = CURRENT_TIMESTAMP
+        WHERE idempotent_key = #{idempotentKey}
+    </update>
+
+    <update id="casFailedToProcessing">
+        UPDATE inventory_idempotent
+        SET status     = 'PROCESSING',
+            error_msg  = NULL,
+            update_time = CURRENT_TIMESTAMP
+        WHERE idempotent_key = #{idempotentKey}
+          AND status = 'FAILED'
+    </update>
+
+</mapper>

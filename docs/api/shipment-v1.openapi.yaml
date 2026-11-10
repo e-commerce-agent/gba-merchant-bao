@@ -1,0 +1,194 @@
+openapi: 3.1.0
+info:
+  title: Merchant Shipment API
+  description: 物流契约评审稿实现快照：1 只读操作。SOAP WebService（/services/shipment?wsdl）为独立信任域，不进入本文档。错误复用公共段，12xxx
+    预留。IDs 字符串化、时间 UTC、所有响应 no-store。
+  version: v1
+servers:
+- url: /
+tags:
+- name: shipment-v1
+  description: "Read-only shipment query; Bearer access required. Errors reuse the\
+    \ common segments: 400/10001, 401/10002, 403/10003, 404/10004 (missing, cross-tenant\
+    \ and foreign orders are indistinguishable), 500/10500. IDs are strings and times\
+    \ are UTC. Tracking numbers are never a lookup key."
+paths:
+  /api/v1/orders/{orderId}/shipment:
+    get:
+      tags:
+      - shipment-v1
+      summary: 按订单查询物流
+      description: 消费者限本人订单，员工限本商户订单；归属由服务端按可信 Actor 校验。订单不存在、跨租户、非本人统一 404/10004。无物流记录时（订单模块就绪后）返回
+        status=NOT_SHIPPED 且空轨迹。estimatedDeliveryAt 仅数据提供时返回。
+      operationId: getOrderShipment
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseShipmentView"
+        "500":
+          description: 10500 非预期错误
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShipmentErrorEnvelope"
+        "403":
+          description: 10003 角色越权
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShipmentErrorEnvelope"
+        "404":
+          description: 10004 订单不存在/跨租户/非本人（不可区分）
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShipmentErrorEnvelope"
+        "400":
+          description: 10001 参数无效
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShipmentErrorEnvelope"
+        "401":
+          description: 10002 会话无效
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShipmentErrorEnvelope"
+      security:
+      - bearerAuth: []
+components:
+  schemas:
+    ApiResponseShipmentView:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/ShipmentView"
+        requestId:
+          type: string
+    ShipmentView:
+      type: object
+      properties:
+        orderId:
+          type: string
+        orderNo:
+          type: string
+        status:
+          type: string
+          enum:
+          - NOT_SHIPPED
+          - IN_TRANSIT
+          - DELIVERED
+        carrierName:
+          type: string
+        carrierCode:
+          type: string
+        trackingNo:
+          type: string
+        estimatedDeliveryAt:
+          type: string
+          format: date-time
+        deliveredAt:
+          type: string
+          format: date-time
+        tracks:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackView"
+    TrackView:
+      type: object
+      properties:
+        eventTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+    ShipmentErrorEnvelope:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data: {}
+        requestId:
+          type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      in: header
+      scheme: bearer
+      bearerFormat: JWT

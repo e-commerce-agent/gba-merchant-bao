@@ -9,3 +9,7 @@ skills-lock.json
 
 # OpenSpec 的临时工作产物和本地运行文件；正式 change/spec/config 仍可提交。
 openspec/changes/*/artifacts/
+
+# 前端本地依赖与构建产物：本地安装/打包，不进仓库
+/view/node_modules/
+/view/dist/

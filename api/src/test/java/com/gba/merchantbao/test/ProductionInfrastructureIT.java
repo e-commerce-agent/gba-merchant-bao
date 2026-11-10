@@ -43,7 +43,7 @@ class ProductionInfrastructureIT {
                 .baselineVersion("1").baselineOnMigrate(false).cleanDisabled(true)
                 .validateOnMigrate(true).outOfOrder(false).load();
         flyway.migrate();
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("5");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("8");
         assertThat(flyway.info().applied()).allSatisfy(info ->
                 assertThat(info.getState()).isEqualTo(org.flywaydb.core.api.MigrationState.SUCCESS));
         flyway.validate();
@@ -96,7 +96,7 @@ class ProductionInfrastructureIT {
         var history = mysql.execInContainer("sh", "-c", "MYSQL_PWD=\"$MYSQL_ROOT_PASSWORD\" mysql -N -uroot "
                 + "gba -e 'SELECT version FROM flyway_schema_history WHERE success=1 ORDER BY installed_rank DESC LIMIT 1'");
         successful(history);
-        assertThat(history.getStdout().trim()).isEqualTo("5");
+        assertThat(history.getStdout().trim()).isEqualTo("8");
     }
 
     @Test
