@@ -1,8 +1,8 @@
 # 技术问题与决策记录
 
-更新：2026-11-06。本页记录认证实现中已有代码、测试或维护记录可追溯的问题；“设计约束”“隔离测试构造故障”“实际开发库维护”分别标明，不把它们包装成线上事故。认证面试只选 AUTH-01、AUTH-02 两个主讲难点，其余保留为备查。
+认证更新：2026-11-06；Agent 追加：2026-11-10。本页记录认证与 Agent 实现中已有代码、测试或维护记录可追溯的问题；“设计约束”“隔离测试构造故障”“实际开发库维护”分别标明，不把它们包装成线上事故。认证面试只选 AUTH-01、AUTH-02；Agent 面试只选 AGENT-01、AGENT-02，其余保留为备查。
 
-共同来源：[实现 PR #12](https://github.com/e-commerce-agent/gba-merchant-bao/pull/12)、[最终验收](../../api/docs/auth/verification.md)、[四层面试卡片](auth.md)、[归档设计](../../openspec/changes/archive/2026-11-06-add-redis-auth-sessions/design.md)。全部数字对应代码规则或具名测试；本模块没有线上性能指标。
+共同来源：认证 [实现 PR #12](https://github.com/e-commerce-agent/gba-merchant-bao/pull/12)、[验收](../../api/docs/auth/verification.md)；Agent [实现 PR #15](https://github.com/e-commerce-agent/gba-merchant-bao/pull/15)、[验收](../../api/docs/agent/verification.md)。全部数字对应代码规则、具名测试或本机维护记录；没有线上性能指标。
 
 | 编号 / 类型 | 问题或现象 | 原因与处理 | 证据 / commit | 面试主讲 |
 | --- | --- | --- | --- | --- |
@@ -23,9 +23,19 @@
 | AUTH-15 / 构建与包迁移 | 移动包后旧 class/SQL 可残留，扫描/XML/Springdoc 引用可能失效 | 29 类迁移时同步所有引用，clean verify 清除生成残留，逐类核对方法体未变；不将只改目录等同于验收完成 | 44 单元/契约 + 62 IT 全过，[包结构](../../api/docs/architecture/packages.md)；`7f09f0b` | 否 |
 | AUTH-16 / 测试边界 | 定向测试成功可能被误认为全量成功；固定开发端口会污染业务卷 | Docker 不可用失败，完整 clean verify 实际执行 Failsafe，动态端口/可销毁容器/报告仅 target | [测试说明](../../api/docs/testing/README.md)、最终验收 106 项；没有 Apifox/浏览器/性能测试结论；`7f09f0b` | 否 |
 | AUTH-17 / 文档与版本策略 | 归档目录增加一级后相对链接失效；本地主规格被仓库忽略 | 修正归档 design 的相对链接；同步 14 条主规格并逐段对比。保持 openspec/.gitignore 的 `/specs/` 规则，提交归档 delta 作为可追溯来源 | 本次 docs/auth-interview；新 commit 和 mini PR 尚待作者创建 | 否 |
+| AGENT-01 / 预算策略 | 长会话可能超过模型上下文；简单截断可能损坏当前问题或只留下半轮 | 先预留 maxOutputTokens，再扣 system/当前输入；以 UTF-8 字节数+每条消息4作近似，从最新完整成功轮次向前选，受条数与剩余预算双限；固定输入超限明确拒绝 | AgentContext#assemble；AgentContextTest#budgetReservesOutputAndNeverTruncatesCurrentInputOrUsesHalfARound；`abc38b2` / PR #15 | 是 |
+| AGENT-02 / API 选型 | 高层编排可能把当前必须显式控制的消息/运行生命周期藏到框架抽象里 | 本期用 OpenAiStreamingChatModel 低层 streaming API 交给 SDK 处理协议，应用保留持久化、Actor、deadline、取消与终态控制。RAG/Function Calling 尚未实现，不预判后续必须或不能使用 AiServices | OpenAiAgentModel#stream、ChatService#accept/#execute/#finish；`abc38b2` / PR #15 | 是 |
+| AGENT-03 / 并发设计 | 单机 synchronized 无法协调同一会话落到不同后端实例的请求 | 以 MySQL active_run_id 与 run_deadline_at 作为共享运行权，短事务内竞争，模型调用不持有事务；过期后按 runId 恢复 | ChatService#accept/#finish；ChatServiceIT 两个执行上下文共享隔离库；`abc38b2` / PR #15 | 否 |
+| AGENT-04 / 幂等顺序 | 相同请求在运行中重试会被 busy 拒绝，若先检查状态则难以返回原运行 | 先按 clientMessageId 查记录并核对正文，再检查归档/busy；同 key 同文返回旧运行，同 key 改文 409，唯一索引兜底并发 | ChatService#accept、ChatAcceptanceIT；`abc38b2`、`b86f2ce` / PR #15 | 否 |
+| AGENT-05 / 终态竞争 | 取消、超时、完成和迟到模型回调可能同时更新助手状态或误释放新 run | 终态事务校验 active_run_id、deadline 和 message/run 归属；只有条件更新成功才释放运行权，done 在提交后发送 | ChatService#finish、ChatRunExecution；ChatServiceIT、ChatAcceptanceIT；`abc38b2`、`b86f2ce` / PR #15 | 否 |
+| AGENT-06 / 取消资源 | 首个模型 delta 到来前尚未取得 SDK StreamingHandle，只取消 handle 可能无法中止连接 | 每次调用独立持有可关闭 HTTP transport；取消同时触发可用的 streaming handle 与 transport.shutdownNow，并忽略迟到回调 | OpenAiAgentModel#stream、AgentModelProtocolTest、ChatAcceptanceIT；`abc38b2`、`b86f2ce` / PR #15 | 否 |
+| AGENT-07 / 异步上下文 | Servlet 安全过滤器结束后线程上下文可能已清理，模型工作线程不能假设 ThreadLocal 仍有 Actor/requestId | 在接受请求时取得可信 Actor/requestId 并显式传入执行对象；使用有界执行器/队列及 admission 限制，不跨异步边界依赖过滤器线程状态 | ChatController#send、ChatService#execute、ChatRunExecution；ChatAcceptanceIT；`abc38b2`、`b86f2ce` / PR #15 | 否 |
+| AGENT-08 / 协议兼容 | 兼容服务可能使用非 Bearer 鉴权头，base-url 也可能重复拼接终端路径 | 使用 SDK 的 api-key/customHeaders 配置，base-url 保持 API 根路径；本地 HTTP stub 验证最终 `/chat/completions`、鉴权头、消息角色和流式解析 | OpenAiAgentModel#stream、AgentModelProtocolTest；`abc38b2` / PR #15 | 否 |
+| AGENT-09 / 交付验收 | 自动化测试和真实模型联调容易被误写成已完成 Apifox 客户端验收 | 保留 6.1/6.2 未勾选；截至 2026-11-10 总计27/29。已导入两个契约，但环境、凭据引用和协议用例实际执行未完成 | tasks.md、api/docs/agent/apifox-verification.md、api/docs/agent/verification.md；`b86f2ce` / PR #15 | 否 |
+| AGENT-10 / 迁移汇合 | V5 已经在开发库执行，后续模块若也使用 V5，改写本迁移会破坏已记录的 Flyway 校验和 | 已执行 V5 保持不变；冲突时协调尚未执行的迁移编号并通过前向迁移演进，不用 repair 掩盖两份不同迁移 | `V5__agent_conversation.sql`、Flyway 开发库记录；`520862d` / PR #15 | 否 |
 
 ## 证据保存约定
 
-每次追加问题时注明：问题类型、实际触发条件、发现工具/用例、修复或设计决策、验证结果、限制、commit 和 PR。代码中的 TTL/位数是参数，类中的测试数量是用例数量，Maven 总耗时是构建时间；均不能替换成并发数、接口耗时或线上成功率。
+每次追加问题时注明：问题类型、实际触发条件、发现工具/用例、修复或设计决策、验证结果、限制、commit 和 PR。代码中的 TTL/位数是参数，类中的测试数量是用例数量，Maven 总耗时是构建时间；均不能替换成并发数、接口耗时或线上成功率。Agent 的两个主讲点详见 [面试卡片](agent.md)；剩余条目是备查，不包装成线上事故。
 
 原始测试 XML、脚本输出、开发备份按现有忽略规则保留，仓库只保存脱敏摘要与可运行步骤。没有原始观测依据时写“未测”，不补估计值；后续真实压测或生产问题另行追加，不回写成当前实现已经测得的收益。
