@@ -3,6 +3,7 @@ package com.gba.merchantbao.product.service;
 import com.gba.merchantbao.auth.security.Actor;
 import com.gba.merchantbao.common.id.IdGenerator;
 import com.gba.merchantbao.product.dto.ProductRequests;
+import com.gba.merchantbao.product.cache.ProductCacheStore;
 import com.gba.merchantbao.product.entity.ProductAttributeRow;
 import com.gba.merchantbao.product.entity.ProductCategoryRow;
 import com.gba.merchantbao.product.entity.ProductRow;
@@ -13,6 +14,7 @@ import com.gba.merchantbao.product.mapper.ProductCategoryMapper;
 import com.gba.merchantbao.product.mapper.ProductMapper;
 import com.gba.merchantbao.product.mapper.ProductSkuMapper;
 import com.gba.merchantbao.product.service.ProductQueryService.Scope;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,15 +41,24 @@ public class ProductCommandService {
     private final ProductCategoryMapper categories;
     private final IdGenerator ids;
     private final Clock clock;
+    private final ObjectProvider<ProductCacheStore> cache;
 
     public ProductCommandService(ProductMapper products, ProductSkuMapper skus, ProductAttributeMapper attributes,
-                                 ProductCategoryMapper categories, IdGenerator ids, Clock clock) {
+                                 ProductCategoryMapper categories, IdGenerator ids, Clock clock,
+                                 ObjectProvider<ProductCacheStore> cache) {
         this.products = products;
         this.skus = skus;
         this.attributes = attributes;
         this.categories = categories;
         this.ids = ids;
         this.clock = clock;
+        this.cache = cache;
+    }
+
+    /** Every successful catalog write invalidates the merchant's cached public views in O(1). */
+    private void invalidate(long merchantId) {
+        var store = cache.getIfAvailable();
+        if (store != null) store.bump(merchantId);
     }
 
     // ---------- categories ----------
@@ -65,6 +76,7 @@ public class ProductCommandService {
         var row = new ProductCategoryRow(ids.nextId(), merchantId, parentId, body.name(), body.sortNo(),
                 "ACTIVE", now, now);
         if (categories.insert(row) != 1) throw ProductError.conflict();
+        invalidate(merchantId);
         return row;
     }
 
@@ -84,6 +96,7 @@ public class ProductCommandService {
         if (categories.nameTaken(merchantId, existing.parentId(), name, categoryId)) throw ProductError.conflict();
         if (categories.update(categoryId, merchantId, existing.parentId(), name, sortNo, status, now()) != 1)
             throw ProductError.missing();
+        invalidate(merchantId);
         return categories.find(merchantId, categoryId);
     }
 
@@ -98,6 +111,7 @@ public class ProductCommandService {
         var row = new ProductRow(ids.nextId(), merchantId, body.categoryId(), body.productCode(), body.name(),
                 body.brand(), body.description(), DRAFT, now, now);
         if (products.insert(row) != 1) throw ProductError.conflict();
+        invalidate(merchantId);
         return row;
     }
 
@@ -113,6 +127,7 @@ public class ProductCommandService {
         String description = body.description() != null ? body.description() : existing.description();
         if (products.updateBasics(productId, merchantId, categoryId, name, brand, description, now()) != 1)
             throw ProductError.missing();
+        invalidate(merchantId);
         return products.find(merchantId, productId);
     }
 
@@ -133,6 +148,7 @@ public class ProductCommandService {
         skus.listForProduct(merchantId, productId, ProductQueryService.SKU_ACTIVE).forEach(
                 sku -> skus.update(sku.id(), merchantId, sku.title(), sku.price(), sku.attributesJson(),
                         SKU_DISCONTINUED, now()));
+        invalidate(merchantId);
         return products.find(merchantId, productId);
     }
 
@@ -140,6 +156,7 @@ public class ProductCommandService {
         long merchantId = staff(actor).merchantId();
         requireProduct(merchantId, productId);
         if (products.updateStatus(productId, merchantId, expected, target, now()) != 1) throw ProductError.conflict();
+        invalidate(merchantId);
         return products.find(merchantId, productId);
     }
 
@@ -157,6 +174,7 @@ public class ProductCommandService {
                     row.searchable(), now, now);
             if (attributes.insert(record) != 1) throw ProductError.conflict();
         }
+        invalidate(merchantId);
         return attributes.listForProduct(merchantId, productId);
     }
 
@@ -171,6 +189,7 @@ public class ProductCommandService {
         var row = new ProductSkuRow(ids.nextId(), merchantId, productId, body.skuCode(), body.title(),
                 body.price(), writeSpecAttributes(body.attributes()), body.status(), now, now);
         if (skus.insert(row) != 1) throw ProductError.conflict();
+        invalidate(merchantId);
         return row;
     }
 
@@ -185,6 +204,7 @@ public class ProductCommandService {
         String json = body.attributes() != null ? writeSpecAttributes(body.attributes()) : existing.attributesJson();
         String status = body.status() != null ? body.status() : existing.status();
         if (skus.update(skuId, merchantId, title, price, json, status, now()) != 1) throw ProductError.missing();
+        invalidate(merchantId);
         return skus.find(merchantId, skuId);
     }
 

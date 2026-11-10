@@ -52,3 +52,10 @@
 - 单元：`ProductRequestsTest` 校验 DTO（未知字段拒绝、长度、价格、状态、编码格式）。
 - 集成（Testcontainers MySQL，Docker 缺失时按仓库惯例失败快显）：`ProductPersistenceIT` 覆盖四表租户隔离、发布可见性过滤、编码唯一冲突、属性整组替换、游标分页与 `@Sql` fixture 双租户数据。
 - dev 演示数据与 fixture 分离；种子幂等、固定业务编码、缺依赖时明确失败。
+
+## Redis 商品缓存（高并发落点，2026-11-10 追加）
+
+- 只覆盖匿名公开读（公开商品/SKU 详情、无 cursor 首页），不改动 auth 域任何代码与数据。
+- 版本化失效：条目键含 `gba:product:ver:{merchantId}` 的当前版本；任何商品域写操作后 `INCR` 版本，O(1) 使旧条目不可达，TTL 15 分钟兜底。
+- 可靠性：所有 Redis 操作 try/catch 降级为回源数据库；`merchant.product.cache-enabled` 可关闭（test profile 关闭）。
+- 一致性：员工/消费者登录读与 Agent `ProductQueryService` 事实查询不读缓存，避免管理端看到过期状态。

@@ -3,6 +3,7 @@ package com.gba.merchantbao.product.service;
 import com.gba.merchantbao.auth.entity.Tenant;
 import com.gba.merchantbao.auth.security.Actor;
 import com.gba.merchantbao.auth.service.TenantResolver;
+import com.gba.merchantbao.product.cache.ProductCacheStore;
 import com.gba.merchantbao.product.entity.ProductAttributeRow;
 import com.gba.merchantbao.product.entity.ProductCategoryRow;
 import com.gba.merchantbao.product.entity.ProductRow;
@@ -18,6 +19,7 @@ import com.gba.merchantbao.product.vo.ProductViews.ProductView;
 import com.gba.merchantbao.product.vo.ProductViews.PublicProductView;
 import com.gba.merchantbao.product.vo.ProductViews.PublicSkuView;
 import com.gba.merchantbao.product.vo.ProductViews.SkuView;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -42,14 +44,17 @@ public class ProductQueryService {
     private final ProductAttributeMapper attributes;
     private final ProductCategoryMapper categories;
     private final TenantResolver tenants;
+    private final ObjectProvider<ProductCacheStore> cache;
 
     public ProductQueryService(ProductMapper products, ProductSkuMapper skus, ProductAttributeMapper attributes,
-                               ProductCategoryMapper categories, TenantResolver tenants) {
+                               ProductCategoryMapper categories, TenantResolver tenants,
+                               ObjectProvider<ProductCacheStore> cache) {
         this.products = products;
         this.skus = skus;
         this.attributes = attributes;
         this.categories = categories;
         this.tenants = tenants;
+        this.cache = cache;
     }
 
     /** Resolved merchant facts for the future read-only product Tool; identity comes from the caller's trusted context. */
@@ -61,6 +66,12 @@ public class ProductQueryService {
     // ---------- public mall (anonymous, store slug resolves the tenant) ----------
 
     public PageView<PublicProductView> publicPage(String merchantCode, Long categoryId, String cursor, int size) {
+        ProductCacheStore store = cache.getIfAvailable();
+        boolean cacheable = store != null && cursor == null;
+        if (cacheable) {
+            var hit = store.readPage(resolveMerchantId(store, merchantCode), categoryId);
+            if (hit != null) return new PageView<>(hit.items(), hit.nextCursor(), hit.hasMore());
+        }
         long merchantId = requireStore(merchantCode);
         var position = ProductCursor.decodePublic(cursor);
         var before = position == null ? null : LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(Long.parseLong(position[0])), ZoneOffset.UTC);
@@ -70,23 +81,38 @@ public class ProductQueryService {
         if (hasMore) rows = rows.subList(0, size);
         var items = rows.stream().map(this::publicView).toList();
         String nextCursor = hasMore ? ProductCursor.encodePublic(rows.getLast().updatedAt(), rows.getLast().id()) : null;
+        if (cacheable) store.putPage(merchantId, categoryId, ProductCacheStore.PageEntry.of(items, nextCursor, hasMore));
         return new PageView<>(items, nextCursor, hasMore);
     }
 
     public PublicProductView publicProduct(String merchantCode, long productId) {
+        ProductCacheStore store = cache.getIfAvailable();
+        if (store != null) {
+            var hit = store.readProduct(resolveMerchantId(store, merchantCode), productId);
+            if (hit != null) return hit;
+        }
         long merchantId = requireStore(merchantCode);
         var row = products.find(merchantId, productId);
         if (row == null || !PUBLISHED.equals(row.status())) throw ProductError.missing();
-        return publicView(row);
+        var view = publicView(row);
+        if (store != null) store.putProduct(merchantId, productId, view);
+        return view;
     }
 
     public PublicSkuView publicSku(String merchantCode, long skuId) {
+        ProductCacheStore store = cache.getIfAvailable();
+        if (store != null) {
+            var hit = store.readSku(resolveMerchantId(store, merchantCode), skuId);
+            if (hit != null) return hit;
+        }
         long merchantId = requireStore(merchantCode);
         var row = skus.find(merchantId, skuId);
         if (row == null || !SKU_ACTIVE.equals(row.status())) throw ProductError.missing();
         var product = products.find(merchantId, row.productId());
         if (product == null || !PUBLISHED.equals(product.status())) throw ProductError.missing();
-        return PublicSkuView.from(row, attributeMap(attributes.listForProduct(merchantId, row.productId())));
+        var view = PublicSkuView.from(row, attributeMap(attributes.listForProduct(merchantId, row.productId())));
+        if (store != null) store.putSku(merchantId, skuId, view);
+        return view;
     }
 
     // ---------- authenticated reads (consumer sees published, staff sees all) ----------
@@ -173,8 +199,20 @@ public class ProductQueryService {
 
     long requireStore(String merchantCode) {
         if (merchantCode == null || merchantCode.isBlank()) throw ProductError.missing();
+        ProductCacheStore store = cache.getIfAvailable();
+        if (store != null) {
+            Long cached = store.readMerchantId(merchantCode);
+            if (cached != null) return cached;
+        }
         Tenant tenant = tenants.resolveActive(merchantCode).orElseThrow(ProductError::missing);
+        if (store != null) store.putMerchantId(merchantCode, tenant.id());
         return tenant.id();
+    }
+
+    /** Best-effort merchantId for a cache read; falls back to the DB lookup when the mapping is not cached yet. */
+    private long resolveMerchantId(ProductCacheStore store, String merchantCode) {
+        Long cached = store.readMerchantId(merchantCode);
+        return cached != null ? cached : requireStore(merchantCode);
     }
 
     private PublicProductView publicView(ProductRow row) {

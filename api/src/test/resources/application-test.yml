@@ -49,3 +49,5 @@ merchant:
     ak: test-only
   openapi:
     enabled: true
+  product:
+    cache-enabled: false

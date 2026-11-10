@@ -5,6 +5,7 @@
 管理 3C 商品及其可售规格：分类（两级）、商品/SPU、SKU、结构化兼容性属性；提供公开商城查询、登录读取与商户员工维护接口，并向后续 Agent 商品 Tool 输出 `ProductQueryService` 只读事实。库存、订单、物流依赖本模块冻结的 SKU 标识与商户归属。
 
 - change：`openspec/changes/add-product-module/`
+- 缓存：`product/cache/ProductCacheStore`（Redis，公开读路径；写操作 O(1) 版本失效）
 - 迁移：`db/migration/V8__product_module.sql`
 - dev 演示数据：`db/devdata/R__050_product_demo.sql`（仅 dev；编号 050，依赖 010/020）
 - 测试 fixture：`src/test/resources/db/fixture/product_catalog.sql`（`@Sql` 显式加载）
@@ -19,6 +20,16 @@
 | product_attribute | 可筛选/兼容性属性，一属性名一行，多值分号分隔 | `(merchant_id,product_id,attr_name)` 唯一 |
 
 规则：结构化筛选属性存 `product_attribute`；SKU 展示组合存 `attributes_json`；不建专用列，不把全部属性塞 JSON；价格定点小数禁浮点；停售商品自动停售其全部 ACTIVE SKU；停售 SKU 不可恢复销售。
+
+## Redis 缓存（高并发主落点）
+
+公开商城读路径是本模块的高并发落点，缓存只在 product 域内，不改动 auth 任何逻辑：
+
+- 缓存对象：公开商品详情、公开 SKU 详情、无 cursor 的公开首页（按 store+category）；`merchantCode → merchantId` 映射另缓存 60 秒
+- 键规范：条目 `gba:product:e:{merchantId}:v{ver}:{kind}:{id}`，版本 `gba:product:ver:{merchantId}`，映射 `gba:product:store:{code}`
+- 失效：任何商户写操作（分类增改、商品增改、上下架、停售、属性替换、SKU 增改）`INCR` 该商户版本号，旧条目自然失效（TTL 15 分钟兜底），无需遍历删除
+- 降级：Redis 不可用/超时/JSON 损坏一律当作未命中回源数据库，缓存永不成为依赖；`merchant.product.cache-enabled=false` 可整体关闭（测试环境已关闭）
+- 一致性边界：缓存只覆盖匿名公开读；员工/消费者已登录读、Agent 事实查询始终直读数据库，保证管理端与 Agent 看到最新状态
 
 ## 接口契约
 

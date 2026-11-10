@@ -65,3 +65,15 @@
 #### Scenario: Agent queries product facts
 - **WHEN** 后续商品 Tool 以可信商户上下文调用 `ProductQueryService`
 - **THEN** 返回该商户可见范围内的商品名称、SKU 规格与兼容性属性；无可见记录时返回空或不存在，不泄露其他商户数据
+
+## Requirement: Public catalog reads are cached with merchant-scoped invalidation
+
+公开商城的商品列表、商品详情与 SKU 详情 SHALL 在启用缓存时优先读取 Redis；缓存未命中或 Redis 不可用时 MUST 回源数据库并正常返回，不得因缓存故障产生 5xx。任何商品域写操作成功后 MUST 使该商户所有公开缓存条目失效。已登录读与 Agent 事实查询 MUST 不读缓存。
+
+#### Scenario: 写操作后公开详情立即反映新状态
+- **WHEN** 员工发布商品后立即匿名请求该商品详情
+- **THEN** 返回 PUBLISHED 状态的最新内容（版本号已自增，旧缓存不可达）
+
+#### Scenario: Redis 不可用
+- **WHEN** Redis 连接失败时匿名请求公开列表
+- **THEN** 返回数据库查询结果与 200，日志记录降级，无异常抛出
