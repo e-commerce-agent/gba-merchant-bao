@@ -30,8 +30,12 @@ public class AuthSecurityFilter extends OncePerRequestFilter {
     public static String bearer(HttpServletRequest request){String h=request.getHeader("Authorization");return h!=null&&h.startsWith("Bearer ")?h.substring(7):null;}
     private static String path(HttpServletRequest r){return r.getRequestURI().substring(r.getContextPath().length());}
     public static boolean anonymous(HttpServletRequest r){
-        String p=path(r);return (r.getMethod().equals("GET")&&p.equals("/api/v1/health")) || (r.getMethod().equals("POST")&&(p.equals("/api/v1/auth/staff/login")||p.matches("/api/v1/stores/[^/]+/auth/(sms-codes|consumer/login)")));
+        String p=path(r);
+        if(r.getMethod().equals("GET")&&(p.equals("/api/v1/health")||p.startsWith("/api/v1/public/")))return true;
+        return r.getMethod().equals("POST")&&(p.equals("/api/v1/auth/staff/login")||p.matches("/api/v1/stores/[^/]+/auth/(sms-codes|consumer/login)"));
     }
+    /** Catalog writes are merchant staff only; role checks precede body deserialization. */
+    private static final java.util.regex.Pattern PRODUCT_WRITE=java.util.regex.Pattern.compile("/api/v1/(products|product-categories|skus)(/.*)?");
     @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain)throws ServletException,IOException {
         long started=System.nanoTime();Actor auditActor=null;
         response.setHeader("Cache-Control","no-store");
@@ -50,6 +54,7 @@ public class AuthSecurityFilter extends OncePerRequestFilter {
                     // Role authorization precedes body deserialization.
                     if(path.startsWith("/api/v1/staff-accounts"))AccountService.requireRole(actor,AccountRole.MERCHANT_STAFF);
                     if(path.startsWith("/api/v1/consumer-accounts"))AccountService.requireRole(actor,AccountRole.CONSUMER);
+                    if(!request.getMethod().equals("GET")&&PRODUCT_WRITE.matcher(path).matches())AccountService.requireRole(actor,AccountRole.MERCHANT_STAFF);
                 }
                 SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(principal,null,List.of(new SimpleGrantedAuthority("ROLE_"+role))));
             }

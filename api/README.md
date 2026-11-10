@@ -16,6 +16,7 @@
 - [Agent curl/fetch 与凭证说明](docs/agent/manual-verification.md) / [Apifox 验收步骤](docs/agent/apifox-verification.md)
 - [Agent 验收记录与待验收项](docs/agent/verification.md)
 - [Agent Springdoc 快照（Apifox 导入）](../docs/api/agent-conversation-v1.openapi.yaml)
+- [商品模块数据/契约/授权说明](docs/product/module.md)
 - [自动化测试、容器隔离和日志目录](docs/testing/README.md)
 - [本地持久联调与 IDEA/Apifox](docs/deployment/local-development.md)
 - [Flyway 空库与旧库接管](docs/deployment/flyway-baseline.md)

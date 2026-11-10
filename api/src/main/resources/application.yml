@@ -35,7 +35,7 @@ springdoc:
   swagger-ui:
     enabled: ${merchant.openapi.enabled:true}
     path: /swagger-ui.html
-  packages-to-scan: com.gba.merchantbao.legacy,com.gba.merchantbao.api,com.gba.merchantbao.auth.controller,com.gba.merchantbao.chat.controller
+  packages-to-scan: com.gba.merchantbao.legacy,com.gba.merchantbao.api,com.gba.merchantbao.auth.controller,com.gba.merchantbao.chat.controller,com.gba.merchantbao.product.controller
 
 mybatis:
   #mapper配置文件
