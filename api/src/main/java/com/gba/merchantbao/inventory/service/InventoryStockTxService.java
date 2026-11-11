@@ -1,5 +1,6 @@
 package com.gba.merchantbao.inventory.service;
 
+import com.gba.merchantbao.common.id.IdGenerator;
 import com.gba.merchantbao.inventory.common.error.InventoryErrorCode;
 import com.gba.merchantbao.inventory.common.exception.InventoryBizException;
 import com.gba.merchantbao.inventory.common.exception.VersionConflictException;
@@ -28,6 +29,7 @@ public class InventoryStockTxService {
 
     private final InventoryMapper inventoryMapper;
     private final InventoryTransactionMapper transactionMapper;
+    private final IdGenerator idGenerator;
 
     /**
      * 执行一次库存变更（单事务）。
@@ -50,7 +52,7 @@ public class InventoryStockTxService {
         if (current == null && InventoryService.BIZ_ADJUST.equals(bizType)
                 && changeAvailable > 0 && changeReserved == 0) {
             try {
-                inventoryMapper.insertZeroStock(merchantId, skuId);
+                inventoryMapper.insertZeroStock(idGenerator.nextId(), merchantId, skuId);
             } catch (DuplicateKeyException | PessimisticLockingFailureException concurrentCreation) {
                 // Roll back this transaction; the next retry reads the winning creator's row.
                 throw new VersionConflictException();
@@ -85,6 +87,7 @@ public class InventoryStockTxService {
         }
 
         InventoryTransactionPO log = new InventoryTransactionPO();
+        log.setId(idGenerator.nextId());
         log.setMerchantId(merchantId);
         log.setSkuId(skuId);
         log.setBizType(bizType);

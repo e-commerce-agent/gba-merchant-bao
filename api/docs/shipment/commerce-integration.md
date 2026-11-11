@@ -29,4 +29,4 @@ mvn -f api/pom.xml '-Dtest=OrderQueryServiceTest,ShipmentQueryServiceTest,Shipme
 
 静态核对：`product/inventory/order/shipment` 下没有跨域 Mapper import；订单 Controller 仍只有列表/详情 GET，物流 Controller 仍只有按订单查物流 GET；`git diff --check` 与 `openspec validate align-commerce-module-integration --strict` 通过。
 
-第 6 节的迁移路径综合验证、完整 `clean verify` 以及第 7 节的本地 dev 升级验收另行执行；本记录只覆盖第 5 节。订单与物流仍仅提供既有查询入口，没有下单、支付、取消或发货写接口。
+新增第 6 节统一库存主键为雪花 ID；迁移路径综合验证及完整 `clean verify` 顺延到第 7 节，本地 dev 升级验收顺延到第 8 节并另行执行。本记录只覆盖第 5 节；库存主键规则见 [库存模块](../inventory/README.md)。订单与物流仍仅提供既有查询入口，没有下单、支付、取消或发货写接口。

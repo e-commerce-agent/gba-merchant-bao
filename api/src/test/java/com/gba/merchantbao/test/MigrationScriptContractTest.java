@@ -13,6 +13,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MigrationScriptContractTest {
 
     @Test
+    void inventoryMigrationRequiresApplicationAssignedPrimaryKeys() throws IOException {
+        String migration = resource("db/migration/V7__inventory_tables.sql");
+        assertThat(migration).doesNotContainIgnoringCase("AUTO_INCREMENT");
+        assertThat(migration).containsPattern("(?m)^\\s*id\\s+BIGINT\\s+NOT NULL\\s+COMMENT");
+        assertThat(migration).contains("uk_merchant_sku", "fk_inventory_sku",
+                "fk_inventory_transaction_sku", "uk_idempotent_key");
+    }
+
+    @Test
     void frozenMigrationsAndSeedsKeepTheirRecordedDigests() throws Exception {
         var expected = Map.ofEntries(
                 Map.entry("V1__legacy_schema_baseline.sql", "694EE44ECC087FA5246AB4A11BD7A9A9469675C5A3F7A10D7C23866ACE573107"),

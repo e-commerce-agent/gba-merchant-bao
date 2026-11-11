@@ -8,6 +8,10 @@
 
 ## 适用边界
 
+当前 V7 库存三表已统一为应用分配雪花主键，R050 显式固定 ID 及其身份 guard 见 [dev 数据登记](../../src/main/resources/db/devdata/README.md)。此修订只适用于尚未执行新 V7 的约定基线；如果目标已执行旧自增 V7，必须停止并另行评审向前迁移。本工具不能通过 repair/history/checksum 改写来适配这类结构差异，也不重编号已有库存。`align-commerce-module-integration` 第 6 节只做代码与隔离验证，第 7、8 节的综合验收与本地升级另行执行。
+
+应用使用多个副本时，每个存活进程（含滚动发布重叠）分别设置不同的 `MERCHANT_ID_WORKER_ID`，实例内共用已有单例生成器；默认 0 仅适用于单实例 dev。重启复用 worker 前确认时钟已越过该 worker 最后使用的时间，保持既有 epoch。共享 MySQL 的自增同样支持多副本，雪花统一不代替集群验收、租户授权或业务幂等；详见 [库存主键与多副本运行](../inventory/README.md#主键与多副本运行)。
+
 本次只升级根 `docker-compose.yml` 管理的 `gba-dev` MySQL 8.0.34 / `gba_dev` 库，保留 `gba-dev_mysql_data`、`gba-dev_redis_data` 命名卷。工具从实际容器读取库账号及 loopback 端口（默认 MySQL 3307，Redis 6380），不打印口令。根 `.env` 与实际 dev YAML 的连接应一致；改 .env 不会自动改变已有卷的数据库账号。
 
 每个已执行旧 R 的开发库各操作一次，新开发者空库无需 repair。生产仍只加载 migration/common，应用使用 DML 账号、关闭 Flyway；独立迁移成功才启动新版应用，不执行本次开发种子 repair。生产滚动发布、Nginx、真实短信接入不属于此工具范围。

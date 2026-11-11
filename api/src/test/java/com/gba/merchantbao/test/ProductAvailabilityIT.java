@@ -78,8 +78,8 @@ class ProductAvailabilityIT {
         jdbc.update("DELETE FROM inventory_transaction");
         jdbc.update("DELETE FROM inventory_idempotent");
         jdbc.update("DELETE FROM inventory");
-        jdbc.update("INSERT INTO inventory(merchant_id,sku_id,available_qty,reserved_qty,version) VALUES (?,?,10,0,0)", DEMO, SKU);
-        jdbc.update("INSERT INTO inventory(merchant_id,sku_id,available_qty,reserved_qty,version) VALUES (?,?,5,0,0)", ISO, ISO_SKU);
+        jdbc.update("INSERT INTO inventory(id,merchant_id,sku_id,available_qty,reserved_qty,version) VALUES (2600000000000501,?,?,10,0,0)", DEMO, SKU);
+        jdbc.update("INSERT INTO inventory(id,merchant_id,sku_id,available_qty,reserved_qty,version) VALUES (2600000000000503,?,?,5,0,0)", ISO, ISO_SKU);
         jdbc.update("UPDATE product SET status='PUBLISHED' WHERE id IN (?,2600000000000203)", PRODUCT);
         jdbc.update("UPDATE product SET status='UNPUBLISHED' WHERE id=?", HIDDEN_PRODUCT);
         jdbc.update("UPDATE product_sku SET status='ACTIVE'");

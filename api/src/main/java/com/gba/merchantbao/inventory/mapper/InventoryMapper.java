@@ -14,7 +14,8 @@ public interface InventoryMapper {
                                   @Param("skuIds") List<Long> skuIds);
 
     /** First positive adjustment only; uk_merchant_sku arbitrates concurrent creation. */
-    int insertZeroStock(@Param("merchantId") Long merchantId, @Param("skuId") Long skuId);
+    int insertZeroStock(@Param("id") Long id, @Param("merchantId") Long merchantId,
+                        @Param("skuId") Long skuId);
 
     /**
      * 按租户 + SKU 查库存（所有读写都必须带 merchantId，禁止跨租户访问）

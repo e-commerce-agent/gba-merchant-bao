@@ -24,8 +24,8 @@
     </resultMap>
 
     <insert id="insertZeroStock">
-        INSERT INTO inventory (merchant_id, sku_id, available_qty, reserved_qty, version)
-        VALUES (#{merchantId}, #{skuId}, 0, 0, 0)
+        INSERT INTO inventory (id, merchant_id, sku_id, available_qty, reserved_qty, version)
+        VALUES (#{id}, #{merchantId}, #{skuId}, 0, 0, 0)
     </insert>
 
     <select id="selectByMerchantAndSku" resultMap="InventoryMap">

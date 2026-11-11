@@ -10,6 +10,8 @@ V2/V3 不会替旧业务表补 merchant_id，不会把旧餐饮数据转换成�
 
 V5 之后当前 dev V5 基线的新增结构按依赖排序：V6 商品目录、V7 库存、V8 只读订单、V9 物流。V6–V9 仅结构 DDL，跨域复合外键约束库存/SKU、订单项/商品 SKU、运单/订单及轨迹/运单的同商户关系。R040–R070 依次提供商品、库存、订单、物流演示数据；编号、稳定 ID 和重跑边界见 [dev 演示数据登记](../../src/main/resources/db/devdata/README.md)。当前 change 只支持本地尚在 V5 的 dev 库与新库，不兼容已执行旧 V6–V9 顺序的其他库；维护工具会拒绝旧布局。
 
+库存 V7 的三张表 `inventory`、`inventory_transaction`、`inventory_idempotent` 使用无默认值、无 AUTO_INCREMENT 的 BIGINT 主键。运行时服务注入现有单例 IdGenerator，INSERT 前分配雪花 ID；dev R050 和测试 fixture 显式写固定 ID。本次修订只适用于尚未执行该 V7 的新库/已约定 V5 基线；已应用 V7（包括旧自增版）的库必须停止并另行评审向前迁移，不能靠修 checksum、repair、改 history 或重编号现有记录适配。本 change 不新增 V10，也不自动改造已有库。部署副本的 worker 与重启约定见 [库存模块](../inventory/README.md#主键与多副本运行)。
+
 ## 仅接管已核验旧库
 
 1. 确认实例、库名、负责人和停写窗口，先 [备份结构＋数据](backup-recovery.md)，在隔离库恢复验证。
@@ -51,4 +53,4 @@ migrate 随后执行 V2–V9。核对 history 中 BASELINE1、SQL2–9 均成功
 空库 history 应是 SQL1–9，而不是 BASELINE1。后续日常流程只 validate/migrate，不再 baseline。
 失败时按备份恢复或向前修复处理，绝不能通过 clean、删卷、repair 来掩盖差异。
 
-FlywayMigrationIT 保留了 V1 构造旧结构→普通 migrate 拒绝→显式 baseline1→追加迁移→旧行保留的测试。本 change 第 6 组将同步其中遗留的 V8 断言并扩展冻结 V5 升级路径；当前第 1、2 组定向验证不包含该类，也不替代真实旧库人工结构核验。
+FlywayMigrationIT 保留了 V1 构造旧结构→普通 migrate 拒绝→显式 baseline1→追加迁移→旧行保留的测试。本 change 第 7 组将同步其中遗留的 V8 断言并扩展冻结 V5 升级路径；第 6 组只验证库存主键及相关定向回归，不替代迁移路径综合验收或真实旧库人工结构核验。第 8 组才执行本地 dev 升级。

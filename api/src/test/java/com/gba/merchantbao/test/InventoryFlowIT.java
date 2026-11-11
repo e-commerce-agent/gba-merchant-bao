@@ -4,6 +4,7 @@ import com.gba.merchantbao.auth.enums.AccountRole;
 import com.gba.merchantbao.auth.security.AuthPrincipal;
 import com.gba.merchantbao.auth.security.Actor;
 import com.gba.merchantbao.auth.service.SessionService;
+import com.gba.merchantbao.common.id.IdGenerator;
 import com.gba.merchantbao.inventory.common.exception.InventoryBizException;
 import com.gba.merchantbao.inventory.mapper.InventoryMapper;
 import com.gba.merchantbao.inventory.mapper.InventoryTransactionMapper;
@@ -74,6 +75,7 @@ class InventoryFlowIT {
     @Autowired org.mybatis.spring.SqlSessionTemplate sqlSession;
     @MockitoSpyBean InventoryMapper inventoryMapper;
     @MockitoSpyBean InventoryTransactionMapper transactionMapper;
+    @MockitoSpyBean IdGenerator idGenerator;
 
     @BeforeEach void resetFixtures() {
         jdbc.update("DELETE FROM inventory_transaction WHERE merchant_id IN (?,?)", DEMO_TENANT, ISOLATION_TENANT);
@@ -334,7 +336,7 @@ class InventoryFlowIT {
         assertThat(adjust(staff, "IT-RETRY-OK", UNPUBLISHED_SKU, 4).getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(stock(UNPUBLISHED_SKU)).containsEntry("available_qty", 4).containsEntry("version", 1);
         assertThat(ledgerCount()).isOne();
-        verify(inventoryMapper, times(2)).insertZeroStock(DEMO_TENANT, UNPUBLISHED_SKU);
+        verify(inventoryMapper, times(2)).insertZeroStock(anyLong(), eq(DEMO_TENANT), eq(UNPUBLISHED_SKU));
 
         doReturn(0).when(inventoryMapper).updateStockWithVersion(eq(DEMO_TENANT), eq(DEMO_SKU), anyInt(), anyInt(), anyInt());
         var before = stock(DEMO_SKU);
@@ -352,10 +354,72 @@ class InventoryFlowIT {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory WHERE sku_id=?", Integer.class, UNPUBLISHED_SKU)).isZero();
         assertThat(ledgerCount()).isZero();
         assertThat(jdbc.queryForObject("SELECT status FROM inventory_idempotent WHERE idempotent_key='IT-ATOMIC'", String.class)).isEqualTo("FAILED");
+        long acquiredId = jdbc.queryForObject("SELECT id FROM inventory_idempotent WHERE idempotent_key='IT-ATOMIC'", Long.class);
         reset(transactionMapper);
         assertThat(adjust(staff, "IT-ATOMIC", UNPUBLISHED_SKU, 4).getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(stock(UNPUBLISHED_SKU)).containsEntry("available_qty", 4).containsEntry("version", 1);
         assertThat(ledgerCount()).isOne();
+        assertThat(jdbc.queryForList("SELECT id FROM inventory_idempotent WHERE idempotent_key='IT-ATOMIC'", Long.class))
+                .containsExactly(acquiredId);
+    }
+
+    @Test void allNewInventoryRowsPersistIdsFromTheInjectedGeneratorAndReplayPreservesThem() throws Exception {
+        String staff = staffToken();
+        long acquiredId = 2700000000000701L, stockId = 2700000000000521L, ledgerId = 2700000000000693L;
+        // Deliberately nonconsecutive: allocated-but-unused IDs need never be recycled.
+        doReturn(acquiredId, stockId, ledgerId, 2700000000000799L).when(idGenerator).nextId();
+        assertThat(adjust(staff, "IT-IDS", UNPUBLISHED_SKU, 6).getStatusCode()).isEqualTo(HttpStatus.OK);
+        var stockBefore = jdbc.queryForMap("SELECT * FROM inventory WHERE sku_id=?", UNPUBLISHED_SKU);
+        var ledgerBefore = jdbc.queryForList("SELECT * FROM inventory_transaction WHERE idempotent_key='IT-IDS'");
+        assertThat(stockBefore).containsEntry("id", stockId);
+        assertThat(ledgerBefore).singleElement().satisfies(row -> assertThat(row).containsEntry("id", ledgerId));
+        assertThat(jdbc.queryForList("SELECT id FROM inventory_idempotent WHERE idempotent_key='IT-IDS'", Long.class))
+                .containsExactly(acquiredId);
+        assertThat(adjust(staff, "IT-IDS", UNPUBLISHED_SKU, 6).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(jdbc.queryForMap("SELECT * FROM inventory WHERE sku_id=?", UNPUBLISHED_SKU)).isEqualTo(stockBefore);
+        assertThat(jdbc.queryForList("SELECT * FROM inventory_transaction WHERE idempotent_key='IT-IDS'")).isEqualTo(ledgerBefore);
+        assertThat(jdbc.queryForList("SELECT id FROM inventory_idempotent WHERE idempotent_key='IT-IDS'", Long.class))
+                .containsExactly(acquiredId);
+        verify(idGenerator, times(4)).nextId();
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {0, 1, 2})
+    void generatorFailureAtEachInsertCannotLeavePartialStockLedgerOrSuccess(int successfulAllocations) throws Exception {
+        String staff = staffToken();
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        doAnswer(invocation -> {
+            int allocation = calls.getAndIncrement();
+            if (allocation >= successfulAllocations) throw new IllegalStateException("forced ID allocation failure");
+            return 2700000000000800L + allocation;
+        }).when(idGenerator).nextId();
+        var response = adjust(staff, "IT-ID-FAIL", UNPUBLISHED_SKU, 4);
+        assertError(response, 500, 13999);
+        assertThat(response.getBody()).doesNotContain("forced ID allocation failure");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory WHERE sku_id=?", Integer.class, UNPUBLISHED_SKU)).isZero();
+        assertThat(ledgerCount()).isZero();
+        assertThat(jdbc.queryForList("SELECT status FROM inventory_idempotent WHERE idempotent_key='IT-ID-FAIL'", String.class))
+                .containsExactly(successfulAllocations == 0 ? new String[0] : new String[]{"FAILED"});
+        reset(idGenerator);
+        assertThat(adjust(staff, "IT-ID-FAIL", UNPUBLISHED_SKU, 4).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(stock(UNPUBLISHED_SKU)).containsEntry("available_qty", 4).containsEntry("version", 1);
+        assertThat(ledgerCount()).isOne();
+        if (successfulAllocations > 0) {
+            assertThat(jdbc.queryForList("SELECT id FROM inventory_idempotent WHERE idempotent_key='IT-ID-FAIL'", Long.class))
+                    .containsExactly(2700000000000800L);
+        }
+    }
+
+    @Test void generatorFailureDuringLedgerAllocationRollsBackAnExistingStockUpdate() throws Exception {
+        String staff = staffToken();
+        var before = stock(DEMO_SKU);
+        doReturn(2700000000000801L).doThrow(new IllegalStateException("forced ID allocation failure"))
+                .when(idGenerator).nextId();
+        assertError(reserve(staff, "IT-ID-EXISTING", DEMO_SKU, 2), 500, 13999);
+        assertThat(stock(DEMO_SKU)).isEqualTo(before);
+        assertThat(ledgerCount()).isZero();
+        assertThat(jdbc.queryForObject("SELECT status FROM inventory_idempotent WHERE idempotent_key='IT-ID-EXISTING'", String.class))
+                .isEqualTo("FAILED");
     }
 
     @Test void successfulReplayStillRequiresCurrentIdentityAndCatalogState() throws Exception {
@@ -472,23 +536,23 @@ class InventoryFlowIT {
     @Test
     void inventoryAndLedgerRequireSameMerchantCatalogSkuWithoutCascadeDelete() {
         long ledgerSku = 2600000000000302L; // No stock row: the ledger FK must protect this SKU itself.
-        jdbc.update("INSERT INTO inventory_transaction (merchant_id, sku_id, biz_type, change_available, change_reserved, " +
+        jdbc.update("INSERT INTO inventory_transaction (id, merchant_id, sku_id, biz_type, change_available, change_reserved, " +
                         "before_available, after_available, before_reserved, after_reserved, operator_id) " +
-                        "VALUES (?, ?, 'ADJUST', 1, 0, 0, 1, 0, 0, 'schema-it')",
+                        "VALUES (2600000000000601, ?, ?, 'ADJUST', 1, 0, 0, 1, 0, 0, 'schema-it')",
                 DEMO_TENANT, ledgerSku);
         assertThat(org.assertj.core.api.Assertions.catchThrowable(() -> jdbc.update(
-                "INSERT INTO inventory (merchant_id,sku_id,available_qty,reserved_qty,version) VALUES (?,?,1,0,0)",
+                "INSERT INTO inventory (id,merchant_id,sku_id,available_qty,reserved_qty,version) VALUES (2600000000000599,?,?,1,0,0)",
                 DEMO_TENANT, 999999999L))).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
         assertThat(org.assertj.core.api.Assertions.catchThrowable(() -> jdbc.update(
-                "INSERT INTO inventory (merchant_id,sku_id,available_qty,reserved_qty,version) VALUES (?,?,1,0,0)",
+                "INSERT INTO inventory (id,merchant_id,sku_id,available_qty,reserved_qty,version) VALUES (2600000000000599,?,?,1,0,0)",
                 ISOLATION_TENANT, DEMO_SKU))).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
         assertThat(org.assertj.core.api.Assertions.catchThrowable(() -> jdbc.update(
-                "INSERT INTO inventory_transaction (merchant_id,sku_id,biz_type,change_available,change_reserved,before_available,after_available,before_reserved,after_reserved) " +
-                        "VALUES (?,?,'ADJUST',1,0,0,1,0,0)", DEMO_TENANT, 999999999L)))
+                "INSERT INTO inventory_transaction (id,merchant_id,sku_id,biz_type,change_available,change_reserved,before_available,after_available,before_reserved,after_reserved) " +
+                        "VALUES (2600000000000699,?,?,'ADJUST',1,0,0,1,0,0)", DEMO_TENANT, 999999999L)))
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
         assertThat(org.assertj.core.api.Assertions.catchThrowable(() -> jdbc.update(
-                "INSERT INTO inventory_transaction (merchant_id,sku_id,biz_type,change_available,change_reserved,before_available,after_available,before_reserved,after_reserved) " +
-                        "VALUES (?,?,'ADJUST',1,0,0,1,0,0)", ISOLATION_TENANT, DEMO_SKU)))
+                "INSERT INTO inventory_transaction (id,merchant_id,sku_id,biz_type,change_available,change_reserved,before_available,after_available,before_reserved,after_reserved) " +
+                        "VALUES (2600000000000699,?,?,'ADJUST',1,0,0,1,0,0)", ISOLATION_TENANT, DEMO_SKU)))
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
         assertThat(org.assertj.core.api.Assertions.catchThrowable(() -> jdbc.update(
                 "DELETE FROM product_sku WHERE id=?", ledgerSku)))

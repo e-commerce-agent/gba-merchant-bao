@@ -21,16 +21,15 @@
         <result column="create_time" property="createTime"/>
     </resultMap>
 
-    <insert id="insert" parameterType="com.gba.merchantbao.inventory.po.InventoryTransactionPO"
-            useGeneratedKeys="true" keyProperty="id">
+    <insert id="insert" parameterType="com.gba.merchantbao.inventory.po.InventoryTransactionPO">
         INSERT INTO inventory_transaction
-        (merchant_id, sku_id, biz_type, biz_id,
+        (id, merchant_id, sku_id, biz_type, biz_id,
          change_available, change_reserved,
          before_available, after_available,
          before_reserved, after_reserved,
          idempotent_key, operator_id, remark)
         VALUES
-        (#{merchantId}, #{skuId}, #{bizType}, #{bizId},
+        (#{id}, #{merchantId}, #{skuId}, #{bizType}, #{bizId},
          #{changeAvailable}, #{changeReserved},
          #{beforeAvailable}, #{afterAvailable},
          #{beforeReserved}, #{afterReserved},

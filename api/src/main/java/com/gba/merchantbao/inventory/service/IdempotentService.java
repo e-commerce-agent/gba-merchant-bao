@@ -1,5 +1,6 @@
 package com.gba.merchantbao.inventory.service;
 
+import com.gba.merchantbao.common.id.IdGenerator;
 import com.gba.merchantbao.inventory.mapper.IdempotentMapper;
 import com.gba.merchantbao.inventory.po.IdempotentRecordPO;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 public class IdempotentService {
 
     private final IdempotentMapper idempotentMapper;
+    private final IdGenerator idGenerator;
 
     /**
      * 尝试占领该幂等键。
@@ -29,6 +31,7 @@ public class IdempotentService {
      */
     public boolean tryAcquire(String idempotentKey, Long merchantId, String bizType) {
         IdempotentRecordPO record = new IdempotentRecordPO();
+        record.setId(idGenerator.nextId());
         record.setIdempotentKey(idempotentKey);
         record.setMerchantId(merchantId);
         record.setBizType(bizType);

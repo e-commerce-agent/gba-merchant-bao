@@ -34,6 +34,44 @@
 - **WHEN** 本商户 SKU 已停售，员工对已有库存负向调整或释放、扣减已有预占
 - **THEN** 服务按现有数量、幂等和权限规则允许收尾操作，同时继续拒绝新增预占
 
+### Requirement: Inventory primary keys shall use the shared application Snowflake generator
+
+`inventory`、`inventory_transaction`、`inventory_idempotent` 的 id MUST 使用应用分配的 BIGINT 主键，MUST NOT 使用 AUTO_INCREMENT、数据库默认生成或 generated-key 回填。运行时新记录 MUST 在 INSERT 前由服务端通过现有单例 `common.id.IdGenerator` 分配 ID，并显式写入；不得为库存另建生成算法，也不得从客户端接受内部主键。
+
+#### Scenario: A first positive adjustment creates stock and its audit records
+- **WHEN** 合法员工首次正向调整本商户有效 SKU 的库存
+- **THEN** 新库存、变动流水及新幂等记录均保存服务端显式分配的 ID；库存与流水仍原子提交，三表结构均不含 auto_increment
+
+### Requirement: Inventory ID changes shall preserve transaction and idempotency behavior
+
+主键统一 MUST 保持可信 merchantId、同商户 SKU 关联、商户/SKU 唯一键、数量/version、事务重试、流水原子性及既有幂等键范围和成功重放行为。失败或重复键竞争允许消耗未落库的 ID，不要求连续；ID MUST NOT 被当作资源权限、业务幂等键或严格提交顺序。
+
+#### Scenario: Concurrent creation and successful idempotent replay use explicit IDs
+- **WHEN** 并发首次调整同一商户 SKU，或重放已成功的幂等请求
+- **THEN** 商户/SKU 唯一键和现有重试机制保证只有一条库存、每次成功操作一条流水，成功重放不新增流水或幂等记录；未落库 ID 可被丢弃
+
+#### Scenario: The shared generator fails during an inventory write
+- **WHEN** ID 生成因时钟回退、序列耗尽或其他错误而失败
+- **THEN** 请求按既有错误契约失败，不回退到自增或另一生成器，不留下部分库存/流水提交，也不将本次失败标记为幂等 SUCCESS
+
+### Requirement: Inventory seeds and fixtures shall provide stable explicit IDs
+
+dev seed 与 test fixture MUST 使用各自独立登记的固定显式 ID，作为可复现数据的例外；受控重跑 MUST 只补缺失并保留人工值，固定 ID/自然键归属冲突 MUST 明确失败。不得为了统一生成策略重编号既有真实记录。
+
+#### Scenario: Inventory seeds and fixtures run without database-generated IDs
+- **WHEN** 在隔离数据库加载修订后的 R050 或库存相关 fixture、测试 SQL 并受控重复执行适用种子
+- **THEN** 所有库存三表 INSERT 显式提供 ID，固定标识与商户/SKU 归属一致，重复种子不覆盖数量/version，冲突明确失败，测试不依赖自增起点或 ID 连续性
+
+### Requirement: Application replicas shall follow the existing Snowflake worker contract
+
+多个同一单体应用副本经 Nginx 共享 MySQL 和中间件时，各存活实例 MUST 配置不同的 `MERCHANT_ID_WORKER_ID`，包括滚动发布中并存的新旧实例；每个实例内部 MUST 复用现有单例 IdGenerator，遵守既有 epoch、worker 范围及重启/时钟约束。不得将默认 worker 0 复制到所有实例，也不得将雪花主键替代租户过滤、Actor 授权或业务幂等。
+
+本 requirement 只规定和验证主键配置及生成行为，不要求本 change 部署真实 Nginx 集群、引入自动 worker 租约或实现分库合并。后续 RAG、文档异步任务及会话使用各自领域标识，Function Calling 经可信身份调用现有 Service，不将库存内部主键作为集成前提。
+
+#### Scenario: Distinct workers generate IDs concurrently in the same millisecond
+- **WHEN** 受控测试以不同 workerId 的生成器模拟两个同时存活的应用实例，在同一毫秒并发生成 ID
+- **THEN** 生成的 ID 不重复，库存写入沿用同一生成器接口与显式主键契约，不依赖数据库回填
+
 ### Requirement: Public catalog routes shall use the shared store locator convention
 
 商品公开查询 MUST 以 `/api/v1/stores/{storeSlug}` 为基路径，提供 GET `/products`、`/products/{productId}`、`/skus/{skuId}`，替代旧 `/public` 商品路径且不保留别名。storeSlug MUST 按认证既有编码规则定位 ACTIVE 商户，初期复用 `merchant_code`，不新增 slug 字段；员工登录、SOAP 的 merchantCode 及内部 merchantId 语义保持不变。
@@ -128,9 +166,15 @@
 
 在当前 V5 数据库基线上，版本化结构迁移 MUST 先创建商品目录，再创建依赖商品 SKU 的库存、订单和物流结构；dev repeatable seeds MUST 在租户与账号后依次加载商品、库存、订单和物流。测试 fixture MUST 使用匹配的商品/SKU/订单标识；test/prod MUST NOT 加载 dev 演示业务数据。
 
+库存雪花主键调整 MUST 在此兼容范围内修改尚未执行的新 V7，保持 V1–V5 与 R010/020/030 不变，不为此新增 V10。若本地目标已应用 V7 或不再符合 V5 基线，MUST 停止该目标的升级并另行评审向前迁移，不得 repair、改 history/checksum 或删除业务卷。
+
 #### Scenario: Fresh dev database starts from the current V5 baseline
 - **WHEN** 本地 dev 数据库的 Flyway 历史仅成功到 V5，且应用按约定激活 dev 启动
-- **THEN** Flyway 按有序的 V6 商品、V7 库存、V8 订单、V9 物流结构迁移和租户/账号后的相依 dev seed 完成初始化，应用可继续启动
+- **THEN** Flyway 按有序的 V6 商品、V7 库存、V8 订单、V9 物流结构迁移和租户/账号后的相依 dev seed 完成初始化，库存三表无自增且种子有显式 ID，应用可继续启动
+
+#### Scenario: The local target no longer matches the unexecuted inventory migration assumption
+- **WHEN** 本地升级前只读核对发现目标已应用 V7 或其他新迁移，不再是本 change 约定的 V5 基线
+- **THEN** 停止该目标的升级并另行评审，不执行修订后的 V7、不改写 history/checksum 或真实记录主键
 
 #### Scenario: Seed identities link the commerce demonstration flow
 - **WHEN** dev 完成全部业务演示种子

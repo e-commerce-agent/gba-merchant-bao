@@ -25,6 +25,7 @@ envelope，业务错误码走 13xxx 段。
   （RR 快照下同一事务重读无效），重试 3 次仍冲突返回 13003。
 - **租户隔离**：所有 SQL 带 `merchant_id` 谓词；跨租户与不存在统一 404/13001。
 - **流水留痕**：`inventory_transaction` 记录变更前后值、幂等键、操作人（accountId）。
+- **主键**：`inventory`、`inventory_transaction`、`inventory_idempotent` 运行时共用 Spring 单例 `common.id.IdGenerator`；创建前分配雪花 ID，Mapper 显式 INSERT id，不使用数据库自增或 generated-key 回填。HTTP 不接收这些内部主键。
 - **目录引用**：写操作经商品域 `ProductReferenceService.findSku` 查询本商户 SKU 的商品归属及状态，不跨域访问商品 Mapper，也不依赖商品公开聚合、Redis 或库存查询。未知与跨商户 SKU 统一 404/13001。
 - **发布前备货**：DRAFT/UNPUBLISHED 商品的 ACTIVE SKU 可备货；不改变商品发布状态。停售 SKU 的正向 adjust 与 reserve 返回 409/13008；已有库存的负向 adjust，以及已有预占的 release/deduct 仍按原数量规则处理。
 - **首次调整**：只有正向 adjust 可在缺行时从 0 初始化；初始化、带 version 的数量更新和流水在同一个事务提交。首次成功后 version=1、预占=0、流水 before=0；后续每次成功 version 加 1。负向 adjust 或 reserve/release/deduct 缺行返回 404/13001。
@@ -35,13 +36,14 @@ envelope，业务错误码走 13xxx 段。
 
 ## 验证
 
-`ProductReferenceServiceTest` 覆盖目录状态和归属边界；`InventoryFlowIT` 在隔离 Testcontainers MySQL/Redis 及真实 Spring 上下文中验证未发布商品备货、停售收尾、首次/并发调整、幂等重放、乐观锁重试、流水失败原子回滚及 HTTP 权限。
+`ProductReferenceServiceTest` 覆盖目录状态和归属边界；`InventoryFlowIT` 在隔离 Testcontainers MySQL/Redis 及真实 Spring 上下文中验证未发布商品备货、停售收尾、首次/并发调整、幂等重放、乐观锁重试、流水失败原子回滚及 HTTP 权限，并检查三类记录确实保存注入生成器分配的 ID、FAILED 重试复用原幂等记录，以及分配失败时的事务回滚。`InventorySchemaIT` 检查三表主键元数据与省略 id 的拒绝行为。
 
 ```powershell
-mvn -f api/pom.xml '-Dtest=ProductReferenceServiceTest,InventoryFlowIT' clean test
+mvn -f api/pom.xml '-Dtest=MigrationScriptContractTest,SnowflakeIdGeneratorTest,ProductReferenceServiceTest' '-Dit.test=InventorySchemaIT,InventoryFlowIT' test-compile surefire:test failsafe:integration-test failsafe:verify
 ```
 
 需要 Docker Linux 容器引擎；不会连接本地 dev 数据库。
+第 6 节库存雪花主键的实际命令、结果和范围见 [定向验收记录](snowflake-verification.md)。
 
 ## Flyway 编号
 
@@ -49,7 +51,12 @@ mvn -f api/pom.xml '-Dtest=ProductReferenceServiceTest,InventoryFlowIT' clean te
 
 库存及流水都用 `(merchant_id, sku_id)` 引用同商户 SKU，限制删除父 SKU，不级联删除流水。当前顺序只兼容新库及本地尚在 V5 的 dev 基线，不兼容已执行旧 V6–V9 布局的其他库。演示库存覆盖 SKU `2500000000000301–307/309`，含有货、缺货、预占和停售保留量；完整 ID 对照及补种步骤见 [dev 数据登记](../../src/main/resources/db/devdata/README.md)。
 
-## 已知留待事项
+## 主键与多副本运行
 
-- 主键沿用 AUTO_INCREMENT（模块内部自增）；API 输出如需字符串 ID 由 VO 层处理。
-- 主键/雪花与商品、订单模块的 ID 约定统一时再整体调整。
+运行时的雪花 ID 与 seed/fixture 的固定 ID 用途不同。R050 使用 `2500000000000501–507/509`；测试 fixture 使用独立的 `260...` 空间，具体登记见 [dev 数据说明](../../src/main/resources/db/devdata/README.md)。固定 ID 和 `(merchant_id,sku_id)` 归属冲突须在种子写入前报错。重跑只补缺失库存，保留数量/version；不重编号已有真实记录，不伪造流水。
+
+首次库存创建仍由商户/SKU 唯一键裁定，成功幂等重放不新增业务记录，FAILED 重试沿用原幂等行。重复 INSERT、并发竞争、事务回滚可能消耗未落库的 ID；允许跳号，不回收，不用 ID 连续性或大小推断业务成功、提交顺序。时钟回退或序列耗尽等生成器故障沿既有错误契约失败（HTTP 500/13999），不回退到自增、时间戳或局部计数；事务内库存/流水一起回滚，已取得执行权的幂等行标记 FAILED。
+
+前后端分离的单体后端可以启动多个副本，由 Nginx 反向代理、负载均衡，共用 MySQL/Redis。共享 MySQL 写入时，自增本身也能支持多个应用副本；本次雪花统一是工程约定，不代表完成集群验收。每个同时存活的副本必须独立配置 `MERCHANT_ID_WORKER_ID`（0–1023），包含滚动发布期间的新旧进程；实例内各模块复用同一个生成器。默认 0 只供单实例 dev，不能照搬到所有副本。保持固定 epoch，重启/复用 worker 前确认时钟已超过该 worker 最后使用时间；具体算法与故障约定见 [认证主键契约](../auth/data-design.md#主键与-api-id)。当前没有自动 worker 租约服务。
+
+全局 ID 不替代商户过滤、Actor 授权、业务幂等或 MQ 去重。后续 RAG 的文档/切片、Function Calling 的领域参数、RabbitMQ 的异步任务、Redis ChatMemory 的会话/消息均使用各自领域标识，经既有 Service 访问；本次不新增这些模块或接口。库存业务定位仍使用可信 merchantId + skuId。

@@ -1,10 +1,10 @@
 -- Inventory module tables: SKU stock with optimistic-lock version, stock transaction ledger
 -- and the idempotency table backing INSERT-based acquire.
 -- Numbering: V7, after product V6 and before order V8 and shipment V9.
--- Primary keys stay AUTO_INCREMENT for this module; ids never leave the API as numbers.
+-- Runtime IDs are assigned by the shared application IdGenerator; fixtures supply explicit IDs.
 
 CREATE TABLE IF NOT EXISTS inventory (
-    id              BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+    id              BIGINT       NOT NULL COMMENT '应用分配雪花主键',
     merchant_id     BIGINT       NOT NULL COMMENT '租户ID，多租户隔离字段',
     sku_id          BIGINT       NOT NULL COMMENT '关联 product_sku.id',
     available_qty   INT          NOT NULL DEFAULT 0 COMMENT '可售库存（可直接售卖的数量）',
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS inventory (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'SKU库存表';
 
 CREATE TABLE IF NOT EXISTS inventory_transaction (
-    id               BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+    id               BIGINT       NOT NULL COMMENT '应用分配雪花主键',
     merchant_id      BIGINT       NOT NULL COMMENT '租户ID',
     sku_id           BIGINT       NOT NULL COMMENT '关联 product_sku.id',
     biz_type         VARCHAR(32)  NOT NULL COMMENT '业务类型：ADJUST/RESERVE/RELEASE/DEDUCT',
@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS inventory_transaction (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '库存变动流水表';
 
 CREATE TABLE IF NOT EXISTS inventory_idempotent (
-    id             BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+    id             BIGINT       NOT NULL COMMENT '应用分配雪花主键',
     idempotent_key VARCHAR(128) NOT NULL COMMENT '幂等唯一键',
     merchant_id    BIGINT       NOT NULL COMMENT '租户ID',
     biz_type       VARCHAR(32)  NOT NULL COMMENT '业务类型：ADJUST/RESERVE/RELEASE/DEDUCT',

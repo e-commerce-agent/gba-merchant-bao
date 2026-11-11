@@ -93,6 +93,8 @@ class DevSeedMigrationIT {
     @org.junit.jupiter.params.provider.CsvSource({
             "R__040_product_demo.sql, UPDATE product SET product_code='MANUAL-CODE' WHERE id=2500000000000201, dev_seed_product_identity_conflict",
             "R__040_product_demo.sql, UPDATE product_attribute SET id=999 WHERE id=2500000000000401, dev_seed_product_identity_conflict",
+            "R__050_inventory_demo.sql, UPDATE inventory SET id=999 WHERE id=2500000000000501, dev_seed_inventory_identity_conflict",
+            "R__050_inventory_demo.sql, UPDATE inventory SET sku_id=2500000000000308 WHERE id=2500000000000501, dev_seed_inventory_identity_conflict",
             "R__060_order_demo_orders.sql, UPDATE trade_order SET customer_id=2100000000000202 WHERE id=2100000000000301, dev_seed_order_identity_conflict",
             "R__060_order_demo_orders.sql, UPDATE trade_order_item SET sku_id=2500000000000302 WHERE id=2100000000000311, dev_seed_order_item_identity_conflict",
             "R__070_shipment_demo_data.sql, UPDATE shipment SET tracking_no='MANUAL-WAYBILL' WHERE id=3000000000000301, dev_seed_shipment_identity_conflict",
@@ -104,6 +106,18 @@ class DevSeedMigrationIT {
         var before = tool.snapshot();
         assertThatThrownBy(() -> execute("db/devdata/" + seed)).hasStackTraceContaining(error);
         assertThat(tool.snapshot()).isEqualTo(before);
+    }
+
+    @Test void inventorySeedRejectsAStableIdOwnedByAnotherMerchantBeforeAddingMissingRows() throws Exception {
+        structure(); execute("db/seed/nonprod/R__010_local_test_tenants.sql");
+        execute("db/devdata/R__040_product_demo.sql");
+        jdbc.update("INSERT INTO inventory(id,merchant_id,sku_id,available_qty,reserved_qty,version) "
+                + "VALUES(2500000000000501,1000000000000002,2500000000000309,9,0,3)");
+        var before = jdbc.queryForList("SELECT * FROM inventory ORDER BY id");
+        assertThatThrownBy(() -> execute("db/devdata/R__050_inventory_demo.sql"))
+                .hasStackTraceContaining("dev_seed_inventory_identity_conflict");
+        assertThat(jdbc.queryForList("SELECT * FROM inventory ORDER BY id")).isEqualTo(before);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory_transaction", Integer.class)).isZero();
     }
 
     @Test void shipmentSeedRequiresParentOrdersAndRejectsStolenTrackIdsBeforeWriting() throws Exception {
@@ -508,6 +522,10 @@ class DevSeedMigrationIT {
                 "WHERE s.order_no<>o.order_no OR (s.status='IN_TRANSIT' AND o.status<>'SHIPPED')", Integer.class)).isZero();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory i JOIN product_sku s ON s.merchant_id=i.merchant_id AND s.id=i.sku_id", Integer.class))
                 .isEqualTo(8);
+        assertThat(jdbc.queryForList("SELECT id FROM inventory ORDER BY sku_id", Long.class))
+                .containsExactly(2500000000000501L, 2500000000000502L, 2500000000000503L,
+                        2500000000000504L, 2500000000000505L, 2500000000000506L,
+                        2500000000000507L, 2500000000000509L);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory WHERE available_qty>0", Integer.class)).isGreaterThan(0);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory WHERE available_qty=0", Integer.class)).isGreaterThan(0);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory WHERE reserved_qty>0", Integer.class)).isGreaterThan(0);
