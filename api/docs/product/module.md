@@ -27,11 +27,12 @@ V7 库存及 V8 订单项通过同商户复合外键引用 SKU；订单项外键
 
 公开商城读路径是本模块的高并发落点，缓存只在 product 域内，不改动 auth 任何逻辑：
 
-- 缓存对象：公开商品详情、公开 SKU 详情、无 cursor 的公开首页（按 store+category）；`merchantCode → merchantId` 映射另缓存 60 秒
-- 键规范：条目 `gba:product:e:{merchantId}:v{ver}:{kind}:{id}`，版本 `gba:product:ver:{merchantId}`，映射 `gba:product:store:{code}`
+- 缓存对象：`ProductCatalog` 中的目录事实（商品、ACTIVE SKU、属性），以及无 cursor 的公开首页（按 store+category+size）；`merchantCode → merchantId` 映射另缓存 60 秒。缓存不保存 `inStock` 或库存数量。
+- 键规范：条目 `gba:product:catalog:v2:e:{merchantId}:v{ver}:{kind}:{id}`，版本 `gba:product:catalog:v2:ver:{merchantId}`，映射 `gba:product:store:{code}`；首页 id 为 `{categoryId或0}:size:{size}`。v2 命名空间使旧格式条目自然失效，不读取旧条目或执行全库清理。
 - 失效：任何商户写操作（分类增改、商品增改、上下架、停售、属性替换、SKU 增改）`INCR` 该商户版本号，旧条目自然失效（TTL 15 分钟兜底），无需遍历删除
 - 降级：Redis 不可用/超时/JSON 损坏一律当作未命中回源数据库，缓存永不成为依赖；`merchant.product.cache-enabled=false` 可整体关闭（测试环境已关闭）
 - 一致性边界：缓存只覆盖匿名公开读；员工/消费者已登录读、Agent 事实查询始终直读数据库，保证管理端与 Agent 看到最新状态
+- 库存实时性：公开请求即使命中目录缓存，仍按店铺解析出的 merchantId 和本次可见 SKU 集合调用 `InventoryAvailabilityQueryService.inStock`，一页只执行一次批量库存查询，再构造新的公开响应。库存写入无需失效商品目录缓存；库存数据库故障返回 503/10500，不伪装为缺货。
 
 ## 接口契约
 
@@ -40,6 +41,18 @@ V7 库存及 V8 订单项通过同商户复合外键引用 SKU；订单项外键
 - `GET /api/v1/public/stores/{merchantCode}/products`：PUBLISHED 分页；`size` 1–100 默认 20；`cursor` 不透明游标
 - `GET /api/v1/public/stores/{merchantCode}/products/{productId}`：详情（含 ACTIVE SKU 与属性）
 - `GET /api/v1/public/stores/{merchantCode}/skus/{skuId}`
+
+以上列表/商品详情内的每个 SKU，以及公开 SKU 详情，均包含必填布尔字段 `inStock`。它表示该店铺该 SKU 的当前可售库存是否大于零；库存缺行或可售量为零时为 `false`，即使仍有预占量也不算有货。它不承诺后续预占必定成功。
+
+先执行现有 ACTIVE 店铺、PUBLISHED 商品和 ACTIVE SKU 可见性规则，再读取库存。未发布/停售商品、停售 SKU、未知或其他商户资源遵循原有过滤/统一 404 语义；列表/详情不包含不可见 SKU。匿名访客和登录消费者均可调用这些公开接口，只获得有货/无货，不返回 `availableQty`、`reservedQty`、总量、version 或流水。员工精确库存仍需通过 `/api/v1/inventory` 的角色校验；本次未扩展登录管理响应和 Agent 事实字段。
+
+公开 SKU 响应示例（字段节选）：
+
+```json
+{"skuId":"2600000000000301","skuCode":"FIX-SKU-1","title":"Fixture SKU 一","price":"99.00","attributes":{"兼容机型":"iPhone 15;小米 14"},"inStock":true}
+```
+
+机读契约见 [product-v1.openapi.yaml](../../../docs/api/product-v1.openapi.yaml)，由隔离后端实际 Springdoc `product-v1` 分组导出；`ProductAvailabilityIT` 核对 `PublicSkuView.inStock` 的 boolean/required 定义、嵌套 SKU 引用及接口实测结果。
 
 登录读取（Bearer）：`GET /api/v1/products`、`GET /api/v1/products/{productId}`、`GET /api/v1/skus/{skuId}`、`GET /api/v1/product-categories`（员工管理视图，含 INACTIVE）。消费者只见 PUBLISHED/ACTIVE，员工见本商户全部状态。
 
@@ -70,4 +83,9 @@ V7 库存及 V8 订单项通过同商户复合外键引用 SKU；订单项外键
 
 - `ProductRequestsTest`：DTO 校验（无容器）。
 - `ProductPersistenceIT`（Testcontainers MySQL，需 Docker）：四表租户隔离、可见性过滤、编码唯一、状态流转与停售级联、`@Sql` fixture 的角色可见性/隔离/Agent 事实。
+- `InventoryAvailabilityQueryServiceTest`：批量商户范围、空集合、缺行映射和存储异常传播。
+- `ProductCacheStoreTest`：纯目录 JSON、v2 格式隔离、版本失效和 Redis 降级。
+- `ProductAvailabilityIT`（隔离 MySQL/Redis）：匿名/消费者公开布尔、不泄漏精确库存、缺行/零可售/预占、两租户及停售可见性、批量分页、缓存预热后的预占/释放实时性、Redis 故障回源和 MySQL 故障 503，并导出实际 OpenAPI 到 `api/target/product-v1.openapi.yaml`。
 - 本地无 Docker 时按仓库惯例 `mvn -f api/pom.xml test` 只跑单元测试；`verify` 需启动 Docker Desktop。
+
+2026-11-11 第 4 节验证：`mvn -f api/pom.xml '-Dtest=InventoryAvailabilityQueryServiceTest,ProductCacheStoreTest,ProductRequestsTest,ProductAvailabilityIT,ProductPersistenceIT,InventoryFlowIT' test` 共 45 项通过，无失败/错误/跳过；全部数据库操作发生于隔离 Testcontainers。IDEA 构建通过；未执行本地 dev 数据库升级或第 5 节及后续任务。

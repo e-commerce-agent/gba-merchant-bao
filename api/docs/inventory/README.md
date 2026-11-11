@@ -13,7 +13,7 @@ envelope，业务错误码走 13xxx 段。
 - `GET  /api/v1/inventory/{skuId}`：单个 SKU 库存（本商户）
 - `GET  /api/v1/inventory/page?pageNo&pageSize`：分页列表（pageSize 上限 100）
 
-全部库存 HTTP 路由仅供本商户员工使用，包括单 SKU 精确库存和分页查询；未认证返回 401，消费者访问沿用库存角色拒绝约定 400/13006，且不返回库存数据。请求格式、状态码和调用示例见 [库存接口说明](api-design.md)。公开商品的库存布尔聚合由关联 change 第 4 节单独实现。
+全部库存 HTTP 路由仅供本商户员工使用，包括单 SKU 精确库存和分页查询；未认证返回 401，消费者访问沿用库存角色拒绝约定 400/13006，且不返回库存数据。请求格式、状态码和调用示例见 [库存接口说明](api-design.md)。公开商品通过只依赖库存 Mapper 的 `InventoryAvailabilityQueryService.inStock(merchantId, skuIds)` 批量组合当前有货/无货，缺行或零可售为 false，不暴露精确库存；目录缓存命中后仍读取当前库存。详见 [商品模块](../product/module.md)。
 
 统一基路径为 `/api/v1/inventory`，旧商户前缀路径已停用。路径调整不改变多商户模型：商户仍来自可信 Actor，所有 `merchant_id` 字段及同商户关联约束保留，无需修改库存、商品、订单或物流表结构。
 

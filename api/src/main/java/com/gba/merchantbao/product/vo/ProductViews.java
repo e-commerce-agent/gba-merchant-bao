@@ -6,6 +6,7 @@ import com.gba.merchantbao.product.entity.ProductCategoryRow;
 import com.gba.merchantbao.product.entity.ProductRow;
 import com.gba.merchantbao.product.entity.ProductSkuRow;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -61,11 +62,10 @@ public final class ProductViews {
 
     /** Public SKU view: no internal status noise beyond sale availability. */
     public record PublicSkuView(ApiId skuId, String skuCode, String title, String price,
-                                Map<String, String> attributes) {
-        public static PublicSkuView from(ProductSkuRow row, Map<String, String> attributes) {
-            return new PublicSkuView(new ApiId(row.id()), row.skuCode(), row.title(), row.price().toPlainString(), attributes);
-        }
-    }
+                                Map<String, String> attributes,
+                                @Schema(description = "当前店铺可售库存是否大于零；缺少库存行或可售库存为零时为 false。仅公开 PUBLISHED 商品的 ACTIVE SKU，不暴露精确数量、预占量或流水。每次请求读取当前库存，不缓存库存状态。",
+                                        requiredMode = Schema.RequiredMode.REQUIRED)
+                                boolean inStock) { }
 
     public record AttributeView(ApiId productId, String attrName, String attrValue, boolean searchable) {
         public static AttributeView from(ProductAttributeRow row) {
