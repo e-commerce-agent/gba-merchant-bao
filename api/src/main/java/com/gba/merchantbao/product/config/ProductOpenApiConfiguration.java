@@ -19,7 +19,9 @@ public class ProductOpenApiConfiguration {
                     info.setTitle("Product module API");
                     info.setVersion("v1");
                     info.setDescription("""
-                            公开商城与商户商品目录。公开接口匿名访问，店铺编码解析 ACTIVE 商户，只返回 PUBLISHED 商品与 ACTIVE SKU；
+                            公开商城与商户商品目录。公开 GET /api/v1/stores/{storeSlug}/products、/products/{productId}、/skus/{skuId} 匿名访问；
+                            storeSlug 按认证编码规则解析 ACTIVE 商户，初期复用 merchantCode，只返回 PUBLISHED 商品与 ACTIVE SKU。
+                            公开请求忽略附带 token，不推进会话；原 /public 商品路径不再提供。员工登录与内部商家编码保持不变。
                             公开列表/详情内的 SKU 及 SKU 详情包含 inStock 布尔，当前可售库存大于零为 true，缺少库存行或可售为零为 false。
                             目录缓存不保存库存状态，每次请求组合当前库存；公开响应不暴露精确数量、预占量或流水，精确库存仅员工可读。
                             登录读取按角色过滤可见性，写操作仅限商户员工，身份一律来自服务端 Actor。

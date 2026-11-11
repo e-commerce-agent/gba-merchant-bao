@@ -34,6 +34,28 @@
 - **WHEN** 本商户 SKU 已停售，员工对已有库存负向调整或释放、扣减已有预占
 - **THEN** 服务按现有数量、幂等和权限规则允许收尾操作，同时继续拒绝新增预占
 
+### Requirement: Public catalog routes shall use the shared store locator convention
+
+商品公开查询 MUST 以 `/api/v1/stores/{storeSlug}` 为基路径，提供 GET `/products`、`/products/{productId}`、`/skus/{skuId}`，替代旧 `/public` 商品路径且不保留别名。storeSlug MUST 按认证既有编码规则定位 ACTIVE 商户，初期复用 `merchant_code`，不新增 slug 字段；员工登录、SOAP 的 merchantCode 及内部 merchantId 语义保持不变。
+
+系统 MUST 仅放行上述三个商品 GET 路径，不得放行整个 `/stores/**`。公开读取 MUST 仅按 URL 店铺定位，忽略 token、不推进会话；既有认证入口与员工权限继续有效。当前 OpenAPI、文档、后端测试和调用示例 MUST 与新路径一致；前端调用仅只读核对，差异 MUST 记录为队友接入事项，不修改前端代码。
+
+#### Scenario: Anonymous visitor reads the catalog through the shared store path
+- **WHEN** 未登录访客使用上述任一新路径请求 ACTIVE 店铺的公开商品或 SKU
+- **THEN** 服务按 storeSlug 解析商户并执行现有可见性、租户隔离和库存布尔组合规则；未知或停用店铺、不可见或跨店资源统一返回 404
+
+#### Scenario: A public request carries an invalid or another store's token
+- **WHEN** 访客查询 B 店公开商品，同时携带无效 token 或 A 店 token
+- **THEN** 服务仍按 URL 的 B 店公开范围读取，不因 token 改用 A 店或拒绝匿名读取，不建立认证身份或推进会话
+
+#### Scenario: Store paths outside the public catalog remain protected
+- **WHEN** 匿名主体请求未声明为公开入口的店铺私有资源，或尝试商品维护写操作
+- **THEN** 安全规则不因 `/stores/` 前缀而放行，继续执行现有认证与角色校验；原消费者短信和登录入口仍可按原规则访问
+
+#### Scenario: The exported contract replaces the old public catalog routes
+- **WHEN** 导出并检查本次商品 API 契约及对应调用地址
+- **THEN** 三个公开读取入口使用 `/api/v1/stores/{storeSlug}/...`，原带 `/public` 的商品路由不再注册或声明，员工登录和 SOAP 的 merchantCode 契约及数据库 `merchant_code` 不变
+
 ### Requirement: Product availability shall combine product visibility with stock availability
 
 商品面向消费者或匿名查询的可售状态 MUST 同时满足商品已发布、SKU 有效且本商户 SKU 存在可售库存；公开响应只给有货/无货状态，不暴露精确数量、预占量或库存流水。

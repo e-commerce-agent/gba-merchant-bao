@@ -2,14 +2,16 @@ openapi: 3.1.0
 info:
   title: Product module API
   description: |-
-    公开商城与商户商品目录。公开接口匿名访问，店铺编码解析 ACTIVE 商户，只返回 PUBLISHED 商品与 ACTIVE SKU；
+    公开商城与商户商品目录。公开 GET /api/v1/stores/{storeSlug}/products、/products/{productId}、/skus/{skuId} 匿名访问；
+    storeSlug 按认证编码规则解析 ACTIVE 商户，初期复用 merchantCode，只返回 PUBLISHED 商品与 ACTIVE SKU。
+    公开请求忽略附带 token，不推进会话；原 /public 商品路径不再提供。员工登录与内部商家编码保持不变。
     公开列表/详情内的 SKU 及 SKU 详情包含 inStock 布尔，当前可售库存大于零为 true，缺少库存行或可售为零为 false。
     目录缓存不保存库存状态，每次请求组合当前库存；公开响应不暴露精确数量、预占量或流水，精确库存仅员工可读。
     登录读取按角色过滤可见性，写操作仅限商户员工，身份一律来自服务端 Actor。
     ID 为十进制字符串，时间为 UTC ISO-8601，所有响应 no-store。错误码：10001 参数无效、10002 未认证、10003 越权、10004 不存在/跨商户统一不可见、10009 冲突、10500 内部错误。
   version: v1
 servers:
-- url: http://localhost:52981
+- url: http://localhost:62408
   description: Generated server url
 tags:
 - name: shipment-v1
@@ -1493,35 +1495,13 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ResultListAddressBook"
-  /api/v1/staff-accounts/{accountId}:
-    get:
-      tags:
-      - auth-v1
-      summary: 同租户员工
-      operationId: getStaffAccount
-      parameters:
-      - name: accountId
-        in: path
-        required: true
-        schema:
-          type: integer
-          format: int64
-      responses:
-        "200":
-          description: OK
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ApiResponseAccountView"
-      security:
-      - bearerAuth: []
-  /api/v1/public/stores/{merchantCode}/skus/{skuId}:
+  /api/v1/stores/{storeSlug}/skus/{skuId}:
     get:
       tags:
       - product-public-controller
       operationId: sku_1
       parameters:
-      - name: merchantCode
+      - name: storeSlug
         in: path
         required: true
         schema:
@@ -1539,13 +1519,13 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ApiResponsePublicSkuView"
-  /api/v1/public/stores/{merchantCode}/products:
+  /api/v1/stores/{storeSlug}/products:
     get:
       tags:
       - product-public-controller
       operationId: products_1
       parameters:
-      - name: merchantCode
+      - name: storeSlug
         in: path
         required: true
         schema:
@@ -1575,13 +1555,13 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ApiResponsePageViewPublicProductView"
-  /api/v1/public/stores/{merchantCode}/products/{productId}:
+  /api/v1/stores/{storeSlug}/products/{productId}:
     get:
       tags:
       - product-public-controller
       operationId: product_1
       parameters:
-      - name: merchantCode
+      - name: storeSlug
         in: path
         required: true
         schema:
@@ -1599,6 +1579,28 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ApiResponsePublicProductView"
+  /api/v1/staff-accounts/{accountId}:
+    get:
+      tags:
+      - auth-v1
+      summary: 同租户员工
+      operationId: getStaffAccount
+      parameters:
+      - name: accountId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseAccountView"
+      security:
+      - bearerAuth: []
   /api/v1/orders/{orderId}/shipment:
     get:
       tags:

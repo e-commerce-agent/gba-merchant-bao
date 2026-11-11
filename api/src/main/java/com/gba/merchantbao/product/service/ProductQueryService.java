@@ -3,6 +3,7 @@ package com.gba.merchantbao.product.service;
 import com.gba.merchantbao.auth.entity.Tenant;
 import com.gba.merchantbao.auth.security.Actor;
 import com.gba.merchantbao.auth.service.TenantResolver;
+import com.gba.merchantbao.auth.util.AuthInput;
 import com.gba.merchantbao.inventory.service.InventoryAvailabilityQueryService;
 import com.gba.merchantbao.product.cache.ProductCatalog;
 import com.gba.merchantbao.product.cache.ProductCacheStore;
@@ -33,7 +34,7 @@ import java.util.Map;
 
 /**
  * Product reads for the public mall, authenticated roles and the future Agent tool.
- * Public reads resolve the store by URL merchant code; authenticated reads scope every
+ * Public reads resolve the store by URL store slug; authenticated reads scope every
  * query with the trusted Actor merchant. Unpublished content never crosses public edges.
  */
 @Service
@@ -69,9 +70,9 @@ public class ProductQueryService {
 
     // ---------- public mall (anonymous, store slug resolves the tenant) ----------
 
-    public PageView<PublicProductView> publicPage(String merchantCode, Long categoryId, String cursor, int size) {
+    public PageView<PublicProductView> publicPage(String storeSlug, Long categoryId, String cursor, int size) {
         ProductCacheStore store = cache.getIfAvailable();
-        long merchantId = requireStore(merchantCode);
+        long merchantId = requireStore(storeSlug);
         var position = ProductCursor.decodePublic(cursor);
         boolean cacheable = store != null && cursor == null;
         if (cacheable) {
@@ -89,9 +90,9 @@ public class ProductQueryService {
         return new PageView<>(withAvailability(merchantId, items), nextCursor, hasMore);
     }
 
-    public PublicProductView publicProduct(String merchantCode, long productId) {
+    public PublicProductView publicProduct(String storeSlug, long productId) {
         ProductCacheStore store = cache.getIfAvailable();
-        long merchantId = requireStore(merchantCode);
+        long merchantId = requireStore(storeSlug);
         if (store != null) {
             var hit = store.readProduct(merchantId, productId);
             if (hit != null) return withAvailability(merchantId, List.of(hit)).getFirst();
@@ -103,9 +104,9 @@ public class ProductQueryService {
         return withAvailability(merchantId, List.of(view)).getFirst();
     }
 
-    public PublicSkuView publicSku(String merchantCode, long skuId) {
+    public PublicSkuView publicSku(String storeSlug, long skuId) {
         ProductCacheStore store = cache.getIfAvailable();
-        long merchantId = requireStore(merchantCode);
+        long merchantId = requireStore(storeSlug);
         if (store != null) {
             var hit = store.readSku(merchantId, skuId);
             if (hit != null) return hit.withAvailability(availability.inStock(merchantId, List.of(skuId)).get(skuId));
@@ -201,15 +202,19 @@ public class ProductQueryService {
         return new Scope(principal.merchantId(), staff);
     }
 
-    long requireStore(String merchantCode) {
-        if (merchantCode == null || merchantCode.isBlank()) throw ProductError.missing();
+    long requireStore(String storeSlug) {
+        try {
+            storeSlug = AuthInput.storeSlug(storeSlug);
+        } catch (IllegalArgumentException e) {
+            throw ProductError.missing();
+        }
         ProductCacheStore store = cache.getIfAvailable();
         if (store != null) {
-            Long cached = store.readMerchantId(merchantCode);
+            Long cached = store.readMerchantId(storeSlug);
             if (cached != null) return cached;
         }
-        Tenant tenant = tenants.resolveActive(merchantCode).orElseThrow(ProductError::missing);
-        if (store != null) store.putMerchantId(merchantCode, tenant.id());
+        Tenant tenant = tenants.resolveActive(storeSlug).orElseThrow(ProductError::missing);
+        if (store != null) store.putMerchantId(storeSlug, tenant.id());
         return tenant.id();
     }
 

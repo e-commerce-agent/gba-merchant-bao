@@ -5,6 +5,7 @@
 管理 3C 商品及其可售规格：分类（两级）、商品/SPU、SKU、结构化兼容性属性；提供公开商城查询、登录读取与商户员工维护接口，并向后续 Agent 商品 Tool 输出 `ProductQueryService` 只读事实。库存、订单、物流依赖本模块冻结的 SKU 标识与商户归属。
 
 - change：`openspec/changes/add-product-module/`
+- 当前集成对齐：`openspec/changes/align-commerce-module-integration/` 第 4 节（公开店铺路径、匿名访问边界及库存布尔）
 - 缓存：`product/cache/ProductCacheStore`（Redis，公开读路径；写操作 O(1) 版本失效）
 - 迁移：`db/migration/V6__product_module.sql`（V1–V5 冻结）
 - dev 演示数据：`db/devdata/R__040_product_demo.sql`（仅 dev；依赖 R010 租户）
@@ -25,10 +26,10 @@ V7 库存及 V8 订单项通过同商户复合外键引用 SKU；订单项外键
 
 ## Redis 缓存（高并发主落点）
 
-公开商城读路径是本模块的高并发落点，缓存只在 product 域内，不改动 auth 任何逻辑：
+公开商城读路径是本模块的高并发落点，缓存只在 product 域内，不读写认证会话；匿名路由白名单按下文单独登记：
 
-- 缓存对象：`ProductCatalog` 中的目录事实（商品、ACTIVE SKU、属性），以及无 cursor 的公开首页（按 store+category+size）；`merchantCode → merchantId` 映射另缓存 60 秒。缓存不保存 `inStock` 或库存数量。
-- 键规范：条目 `gba:product:catalog:v2:e:{merchantId}:v{ver}:{kind}:{id}`，版本 `gba:product:catalog:v2:ver:{merchantId}`，映射 `gba:product:store:{code}`；首页 id 为 `{categoryId或0}:size:{size}`。v2 命名空间使旧格式条目自然失效，不读取旧条目或执行全库清理。
+- 缓存对象：`ProductCatalog` 中的目录事实（商品、ACTIVE SKU、属性），以及无 cursor 的公开首页（按 store+category+size）；`storeSlug → merchantId` 映射另缓存 60 秒，已缓存店铺停用后最多延迟 60 秒不可见。缓存不保存 `inStock` 或库存数量。
+- 键规范：条目 `gba:product:catalog:v2:e:{merchantId}:v{ver}:{kind}:{id}`，版本 `gba:product:catalog:v2:ver:{merchantId}`，映射 `gba:product:store:{storeSlug}`；storeSlug 先按认证规则 trim、转大写并校验格式，再查询或写缓存，不因大小写产生多个映射。首页 id 为 `{categoryId或0}:size:{size}`。v2 命名空间使旧格式条目自然失效，不读取旧条目或执行全库清理。
 - 失效：任何商户写操作（分类增改、商品增改、上下架、停售、属性替换、SKU 增改）`INCR` 该商户版本号，旧条目自然失效（TTL 15 分钟兜底），无需遍历删除
 - 降级：Redis 不可用/超时/JSON 损坏一律当作未命中回源数据库，缓存永不成为依赖；`merchant.product.cache-enabled=false` 可整体关闭（测试环境已关闭）
 - 一致性边界：缓存只覆盖匿名公开读；员工/消费者已登录读、Agent 事实查询始终直读数据库，保证管理端与 Agent 看到最新状态
@@ -36,11 +37,19 @@ V7 库存及 V8 订单项通过同商户复合外键引用 SKU；订单项外键
 
 ## 接口契约
 
-公开（匿名 GET，店铺编码解析 ACTIVE 商户，失败 404）：
+公开（匿名 GET，storeSlug 按认证既有编码规则解析 ACTIVE 商户，格式无效、未知或停用店铺返回 404；映射缓存时效见上文）：
 
-- `GET /api/v1/public/stores/{merchantCode}/products`：PUBLISHED 分页；`size` 1–100 默认 20；`cursor` 不透明游标
-- `GET /api/v1/public/stores/{merchantCode}/products/{productId}`：详情（含 ACTIVE SKU 与属性）
-- `GET /api/v1/public/stores/{merchantCode}/skus/{skuId}`
+- `GET /api/v1/stores/{storeSlug}/products`：PUBLISHED 分页；`size` 1–100 默认 20；`cursor` 不透明游标
+- `GET /api/v1/stores/{storeSlug}/products/{productId}`：详情（含 ACTIVE SKU 与属性）
+- `GET /api/v1/stores/{storeSlug}/skus/{skuId}`
+
+storeSlug 是公开店铺定位符，初期复用数据库 `merchant_code`；例如 `/api/v1/stores/M_3C_DEMO/products`。不新增 slug 表字段，员工登录及 SOAP 的 `merchantCode`、内部 `merchantId` 均保持不变。此次替换原带 `/public` 的商品路径，不保留旧路由别名；旧路径匿名访问返回 401，带有效凭证也无法访问旧商品资源。
+
+安全规则仅匿名放行以上三个资源路径的 GET，不放行整个 `/stores/**`；即使携带无效 token 或其他店铺 token，公开请求仍按 URL 店铺查询，不建立身份、不认证或续期会话。现有消费者验证码/登录 POST 白名单保留，其他私有资源与商品维护写操作继续受认证和角色限制。
+
+后端调用示例：`GET /api/v1/stores/M_3C_DEMO/skus/2500000000000301`，无需 Authorization。`inStock` 已包含于公开 SKU 响应，不提供独立匿名 `/availability` 接口。
+
+前端接入事项（仅只读核对，代码由队友处理）：`view/src/api/catalog.ts` 的列表及商品详情已使用店铺路径；`getSku` 仍调用需登录的 `/v1/skus/{skuId}`，公开使用时应改为 `/v1/stores/{storeSlug}/skus/{skuId}`（默认 `/api` 基址）。`getSkuAvailability` 使用的 `/v1/skus/{skuId}/availability` 不是后端公开契约，应从公开 SKU 的 `inStock` 取值。本次未修改前端代码，也未验证页面联调。
 
 以上列表/商品详情内的每个 SKU，以及公开 SKU 详情，均包含必填布尔字段 `inStock`。它表示该店铺该 SKU 的当前可售库存是否大于零；库存缺行或可售量为零时为 `false`，即使仍有预占量也不算有货。它不承诺后续预占必定成功。
 
@@ -85,7 +94,10 @@ V7 库存及 V8 订单项通过同商户复合外键引用 SKU；订单项外键
 - `ProductPersistenceIT`（Testcontainers MySQL，需 Docker）：四表租户隔离、可见性过滤、编码唯一、状态流转与停售级联、`@Sql` fixture 的角色可见性/隔离/Agent 事实。
 - `InventoryAvailabilityQueryServiceTest`：批量商户范围、空集合、缺行映射和存储异常传播。
 - `ProductCacheStoreTest`：纯目录 JSON、v2 格式隔离、版本失效和 Redis 降级。
-- `ProductAvailabilityIT`（隔离 MySQL/Redis）：匿名/消费者公开布尔、不泄漏精确库存、缺行/零可售/预占、两租户及停售可见性、批量分页、缓存预热后的预占/释放实时性、Redis 故障回源和 MySQL 故障 503，并导出实际 OpenAPI 到 `api/target/product-v1.openapi.yaml`。
+- `PublicCatalogSecurityTest`：精确匹配三个匿名 GET、拒绝额外店铺子路径/写方法/旧公开前缀，保留消费者认证入口；公开请求忽略凭证、不建立认证身份或访问会话。
+- `ProductAvailabilityIT`（隔离 MySQL/Redis）：匿名/消费者公开布尔、不泄漏精确库存、缺行/零可售/预占、两租户及停售可见性、批量分页、缓存预热后的预占/释放实时性、Redis 故障回源和 MySQL 故障 503；覆盖新路径、slug 规范化/规范缓存键、无效及停用店铺、无效/异店 token、旧路由移除和私有/员工访问权限，并导出实际 OpenAPI 到 `api/target/product-v1.openapi.yaml`。
 - 本地无 Docker 时按仓库惯例 `mvn -f api/pom.xml test` 只跑单元测试；`verify` 需启动 Docker Desktop。
 
 2026-11-11 第 4 节验证：`mvn -f api/pom.xml '-Dtest=InventoryAvailabilityQueryServiceTest,ProductCacheStoreTest,ProductRequestsTest,ProductAvailabilityIT,ProductPersistenceIT,InventoryFlowIT' test` 共 45 项通过，无失败/错误/跳过；全部数据库操作发生于隔离 Testcontainers。IDEA 构建通过；未执行本地 dev 数据库升级或第 5 节及后续任务。
+
+2026-11-11 任务 4.5–4.7 定向验证：`mvn -f api/pom.xml '-Dtest=PublicCatalogSecurityTest,AuthContextTest,AuthInputTest,ProductRequestsTest,ProductCacheStoreTest,ProductAvailabilityIT,ProductPersistenceIT' test` 共 34 项通过，无失败/错误/跳过。MySQL/Redis 使用隔离 Testcontainers；从实际 Springdoc 导出的 `api/target/product-v1.openapi.yaml` 已同步至 `docs/api/product-v1.openapi.yaml`。前端代码未修改，待队友同步的调用差异见接口契约一节；未执行第 5、6、7 节任务、全量 clean verify 或本地 dev 升级。

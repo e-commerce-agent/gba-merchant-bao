@@ -61,21 +61,21 @@ public class ProductCacheStore {
         }
     }
 
-    /** merchantCode → merchantId mapping; short TTL keeps a deactivated store going dark within a minute. */
-    public Long readMerchantId(String merchantCode) {
+    /** storeSlug → merchantId mapping; short TTL keeps a deactivated store going dark within a minute. */
+    public Long readMerchantId(String storeSlug) {
         if (!enabled) return null;
         try {
-            String value = redis.opsForValue().get(mappingKey(merchantCode));
+            String value = redis.opsForValue().get(mappingKey(storeSlug));
             return value == null ? null : Long.valueOf(value);
         } catch (RuntimeException e) {
             return null;
         }
     }
 
-    public void putMerchantId(String merchantCode, long merchantId) {
+    public void putMerchantId(String storeSlug, long merchantId) {
         if (!enabled) return;
         try {
-            redis.opsForValue().set(mappingKey(merchantCode), Long.toString(merchantId), MAPPING_TTL);
+            redis.opsForValue().set(mappingKey(storeSlug), Long.toString(merchantId), MAPPING_TTL);
         } catch (RuntimeException ignored) {
             // degrade to database
         }
@@ -146,7 +146,7 @@ public class ProductCacheStore {
     public static final String CATALOG_NAMESPACE = "gba:product:catalog:v2:";
 
     public static String versionKey(long merchantId) { return CATALOG_NAMESPACE + "ver:" + merchantId; }
-    public static String mappingKey(String merchantCode) { return "gba:product:store:" + merchantCode; }
+    public static String mappingKey(String storeSlug) { return "gba:product:store:" + storeSlug; }
     public static String pageKey(Long categoryId, int size) {
         return (categoryId == null ? "0" : Long.toString(categoryId)) + ":size:" + size;
     }

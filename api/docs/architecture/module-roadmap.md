@@ -29,7 +29,7 @@ Agent 基础已实现 LangChain4j 模型边界、本人会话六操作、start/t
 | --- | --- |
 | 功能 | 本商户分类、商品新增/修改/上下架、SKU 与规格属性维护；公开列表/详情只显示已发布内容；员工查询本商户管理数据 |
 | 数据 | 按 PRD 设计 product_category、product、product_sku、product_attribute 等表及关系；兼容型号、接口、功率、颜色、长度、插头等结构化字段；最终字段/索引在本模块 change 冻结 |
-| HTTP 接口 | 公开店铺商品列表/详情、SKU 详情；员工本商户维护接口。参考 `/api/v1/public/stores/{storeSlug}/products`、`/api/v1/products`、`/api/v1/skus/{skuId}`，方法/写入路由在模块设计确定 |
+| HTTP 接口 | 公开店铺商品列表/详情、SKU 详情；员工本商户维护接口。当前整合契约为 `/api/v1/stores/{storeSlug}/products`、`/products/{productId}`、`/skus/{skuId}`（后两项同一店铺基路径），登录读取/维护为 `/api/v1/products`、`/api/v1/skus/{skuId}`；详见商品模块文档和 `align-commerce-module-integration` 第 4 节 |
 | 给 Agent 的能力 | 商品检索、商品详情、SKU 规格与兼容性查询的 Service，返回名称、规格、状态等必要字段；建议命名 ProductQueryService，最终以真实实现为准 |
 | 测试/演示 | 充电器、数据线、耳机及多 SKU；两个商户隔离；停售/未发布商品不可公开；非法 SKU/跨商户访问拒绝 |
 

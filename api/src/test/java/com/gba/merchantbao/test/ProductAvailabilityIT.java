@@ -59,13 +59,13 @@ class ProductAvailabilityIT {
     private static final long DEMO = 1000000000000001L, ISO = 1000000000000002L;
     private static final long PRODUCT = 2600000000000201L, HIDDEN_PRODUCT = 2600000000000202L;
     private static final long SKU = 2600000000000301L, HIDDEN_SKU = 2600000000000302L, ISO_SKU = 2600000000000303L;
-    private static final String ROOT = "/api/v1/public/stores/M_3C_DEMO";
+    private static final String ROOT = "/api/v1/stores/M_3C_DEMO";
     private static final List<String> PUBLIC_PATHS = List.of(ROOT + "/products", ROOT + "/products/" + PRODUCT, ROOT + "/skus/" + SKU);
 
     @Autowired TestRestTemplate http;
     @Autowired ObjectMapper json;
     @Autowired JdbcTemplate jdbc;
-    @Autowired SessionService sessions;
+    @MockitoSpyBean SessionService sessions;
     @Autowired InventoryAvailabilityQueryService availability;
     @Autowired ProductCacheStore cache;
     @MockitoSpyBean InventoryMapper inventory;
@@ -73,6 +73,8 @@ class ProductAvailabilityIT {
     @MockitoSpyBean StringRedisTemplate redis;
 
     @BeforeEach void resetFixtures() {
+        jdbc.update("UPDATE merchant SET status='ACTIVE' WHERE id IN (?,?)", DEMO, ISO);
+        redis.delete(List.of(ProductCacheStore.mappingKey("M_3C_DEMO"), ProductCacheStore.mappingKey("M_ISOLATION_TEST")));
         jdbc.update("DELETE FROM inventory_transaction");
         jdbc.update("DELETE FROM inventory_idempotent");
         jdbc.update("DELETE FROM inventory");
@@ -139,7 +141,7 @@ class ProductAvailabilityIT {
         for (String path : PUBLIC_PATHS) data(path, consumer);
         jdbc.update("UPDATE inventory SET available_qty=0 WHERE sku_id=?", SKU);
         assertPublicStock(false);
-        var iso = data("/api/v1/public/stores/M_ISOLATION_TEST/skus/" + ISO_SKU, null);
+        var iso = data("/api/v1/stores/M_ISOLATION_TEST/skus/" + ISO_SKU, null);
         assertThat(iso.path("inStock").booleanValue()).isTrue();
         jdbc.update("DELETE FROM inventory WHERE sku_id=?", SKU);
         assertPublicStock(false);
@@ -163,6 +165,59 @@ class ProductAvailabilityIT {
         assertThat(get(ROOT + "/skus/" + SKU, null).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(data(ROOT + "/products/" + PRODUCT, null).path("skus")).isEmpty();
         verifyNoInteractions(inventory);
+    }
+
+    @Test void storeSlugUsesAuthNormalizationAndRejectsMissingOrDisabledStores() throws Exception {
+        for (String path : PUBLIC_PATHS) {
+            data(path.replace("M_3C_DEMO", "m_3c_demo"), null);
+            assertThat(cache.readMerchantId("M_3C_DEMO")).isEqualTo(DEMO);
+            assertThat(redis.hasKey(ProductCacheStore.mappingKey("m_3c_demo"))).isFalse();
+            assertThat(get(path.replace("M_3C_DEMO", "NO_SUCH_STORE"), null).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+            assertThat(get(path.replace("M_3C_DEMO", "invalid!"), null).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        }
+        jdbc.update("UPDATE merchant SET status='DISABLED' WHERE id=?", ISO);
+        for (String suffix : List.of("/products", "/products/2600000000000203", "/skus/" + ISO_SKU)) {
+            assertThat(get("/api/v1/stores/M_ISOLATION_TEST" + suffix, null).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @Test void publicStoreSelectionIgnoresInvalidAndForeignTokensAndNeverUsesTheSession() throws Exception {
+        String token = sessions.login(new AuthPrincipal(2000000000000201L, DEMO, AccountRole.CONSUMER)).accessToken();
+        clearInvocations(sessions);
+        for (String credential : List.of("invalid", token)) {
+            var page = data("/api/v1/stores/M_ISOLATION_TEST/products", credential);
+            assertThat(page.path("items").get(0).path("productId").asText()).isEqualTo("2600000000000203");
+            assertThat(data("/api/v1/stores/M_ISOLATION_TEST/products/2600000000000203", credential)
+                    .path("productId").asText()).isEqualTo("2600000000000203");
+            assertThat(data("/api/v1/stores/M_ISOLATION_TEST/skus/" + ISO_SKU, credential)
+                    .path("skuId").asText()).isEqualTo(Long.toString(ISO_SKU));
+            assertThat(get("/api/v1/stores/M_ISOLATION_TEST/skus/" + SKU, credential).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        }
+        verifyNoInteractions(sessions);
+    }
+
+    @Test void oldRoutesAreRemovedAndPrivateAndWriteResourcesStillRequireAuthorization() throws Exception {
+        String staff = sessions.login(new AuthPrincipal(2000000000000101L, DEMO, AccountRole.MERCHANT_STAFF)).accessToken();
+        for (String path : PUBLIC_PATHS) {
+            String old = path.replace("/api/v1/stores/", "/api/v1/public/stores/");
+            assertThat(get(old, null).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            assertThat(get(old, staff).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        }
+        for (String path : List.of(ROOT + "/orders", ROOT + "/products/" + PRODUCT + "/private",
+                "/api/v1/products", "/api/v1/inventory/page")) {
+            assertThat(get(path, null).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+        var body = Map.of("productCode", "NO_WRITE", "name", "Not allowed");
+        for (String path : List.of(ROOT + "/products", "/api/v1/products")) {
+            assertThat(http.postForEntity(path, body, String.class).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+        String consumer = sessions.login(new AuthPrincipal(2000000000000201L, DEMO, AccountRole.CONSUMER)).accessToken();
+        var headers = new HttpHeaders();
+        headers.setBearerAuth(consumer);
+        assertThat(http.postForEntity("/api/v1/products", new HttpEntity<>(body, headers), String.class).getStatusCode())
+                .isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(get("/api/v1/products", staff).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(get("/api/v1/inventory/page", staff).getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test void pageBatchesOnlyVisibleSkusAndKeepsPageSizesAndCursorsSeparate() throws Exception {
@@ -240,11 +295,15 @@ class ProductAvailabilityIT {
         assertThat(sku.path("properties").toString()).doesNotContain("availableQty", "reservedQty", "inventoryId");
         assertThat(schemas.path("PublicProductView").path("properties").path("skus").path("items").path("$ref").asText())
                 .endsWith("/PublicSkuView");
-        for (String path : List.of("/api/v1/public/stores/{merchantCode}/products",
-                "/api/v1/public/stores/{merchantCode}/products/{productId}",
-                "/api/v1/public/stores/{merchantCode}/skus/{skuId}")) {
+        for (String path : List.of("/api/v1/stores/{storeSlug}/products",
+                "/api/v1/stores/{storeSlug}/products/{productId}",
+                "/api/v1/stores/{storeSlug}/skus/{skuId}")) {
             assertThat(doc.path("paths").path(path).has("get")).isTrue();
+            assertThat(doc.path("paths").path(path).path("get").path("parameters").findValuesAsText("name"))
+                    .contains("storeSlug").doesNotContain("merchantCode");
         }
+        assertThat(doc.path("paths").toString()).doesNotContain("/api/v1/public/");
+        assertThat(schemas.path("StaffLogin").path("properties").has("merchantCode")).isTrue();
         String yaml = http.getForObject("/v3/api-docs.yaml/product-v1", String.class);
         assertThat(yaml).startsWith("openapi:");
         Files.createDirectories(Path.of("target"));
