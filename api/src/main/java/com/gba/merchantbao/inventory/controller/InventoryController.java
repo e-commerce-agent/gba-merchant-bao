@@ -18,8 +18,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 /**
  * 商户后台库存接口。
  *
@@ -28,10 +26,10 @@ import java.util.List;
  * 2. 不提供匿名公开端点，公开端"有货/无货"并入商品详情聚合（由商品模块调用 Service.inStock）；
  * 3. 统一返回主仓 ApiResponse{code, message, data, requestId}，错误码走 13xxx 段。</p>
  *
- * <p>路径 /api/v1/merchant/inventory 沿用模块交付稿；资源路径规范若统一调整需整体替换。</p>
+ * <p>统一资源路径 /api/v1/inventory；商户范围及员工权限由可信 Actor 决定。</p>
  */
 @RestController
-@RequestMapping("/api/v1/merchant/inventory")
+@RequestMapping("/api/v1/inventory")
 public class InventoryController {
 
     private final InventoryService inventoryService;

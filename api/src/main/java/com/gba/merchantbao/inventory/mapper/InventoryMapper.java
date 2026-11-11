@@ -9,6 +9,9 @@ import java.util.List;
 @Mapper
 public interface InventoryMapper {
 
+    /** First positive adjustment only; uk_merchant_sku arbitrates concurrent creation. */
+    int insertZeroStock(@Param("merchantId") Long merchantId, @Param("skuId") Long skuId);
+
     /**
      * 按租户 + SKU 查库存（所有读写都必须带 merchantId，禁止跨租户访问）
      */

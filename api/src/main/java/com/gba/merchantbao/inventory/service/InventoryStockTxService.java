@@ -8,6 +8,8 @@ import com.gba.merchantbao.inventory.mapper.InventoryTransactionMapper;
 import com.gba.merchantbao.inventory.po.InventoryPO;
 import com.gba.merchantbao.inventory.po.InventoryTransactionPO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +47,19 @@ public class InventoryStockTxService {
                           int reservedShortageCode) {
 
         InventoryPO current = inventoryMapper.selectByMerchantAndSku(merchantId, skuId);
+        if (current == null && InventoryService.BIZ_ADJUST.equals(bizType)
+                && changeAvailable > 0 && changeReserved == 0) {
+            try {
+                inventoryMapper.insertZeroStock(merchantId, skuId);
+            } catch (DuplicateKeyException | PessimisticLockingFailureException concurrentCreation) {
+                // Roll back this transaction; the next retry reads the winning creator's row.
+                throw new VersionConflictException();
+            }
+            current = new InventoryPO();
+            current.setAvailableQty(0);
+            current.setReservedQty(0);
+            current.setVersion(0);
+        }
         if (current == null) {
             throw new InventoryBizException(InventoryErrorCode.STOCK_NOT_FOUND,
                     "该商户下不存在该 SKU 的库存记录");

@@ -2,7 +2,13 @@ package com.gba.merchantbao.test;
 
 import com.gba.merchantbao.auth.enums.AccountRole;
 import com.gba.merchantbao.auth.security.AuthPrincipal;
+import com.gba.merchantbao.auth.security.Actor;
 import com.gba.merchantbao.auth.service.SessionService;
+import com.gba.merchantbao.inventory.common.exception.InventoryBizException;
+import com.gba.merchantbao.inventory.mapper.InventoryMapper;
+import com.gba.merchantbao.inventory.mapper.InventoryTransactionMapper;
+import com.gba.merchantbao.inventory.service.InventoryService;
+import com.gba.merchantbao.product.service.ProductReferenceService;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,6 +21,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.*;
 import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.*;
@@ -23,6 +30,9 @@ import java.util.Map;
 import java.util.concurrent.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 /**
  * HTTP contract of the merchant inventory module: concurrent reserve can never oversell
@@ -53,11 +63,26 @@ class InventoryFlowIT {
     private static final long ISOLATION_TENANT = 1000000000000002L;
     private static final long DEMO_SKU = 2600000000000301L;
     private static final long ISOLATION_SKU = 2600000000000303L;
+    private static final long UNPUBLISHED_SKU = 2600000000000302L;
 
     @Autowired SessionService sessions;
     @Autowired TestRestTemplate http;
     @Autowired ObjectMapper json;
     @Autowired JdbcTemplate jdbc;
+    @Autowired ProductReferenceService references;
+    @Autowired InventoryService inventoryService;
+    @Autowired org.mybatis.spring.SqlSessionTemplate sqlSession;
+    @MockitoSpyBean InventoryMapper inventoryMapper;
+    @MockitoSpyBean InventoryTransactionMapper transactionMapper;
+
+    @BeforeEach void resetFixtures() {
+        jdbc.update("DELETE FROM inventory_transaction WHERE merchant_id IN (?,?)", DEMO_TENANT, ISOLATION_TENANT);
+        jdbc.update("DELETE FROM inventory_idempotent WHERE merchant_id IN (?,?)", DEMO_TENANT, ISOLATION_TENANT);
+        jdbc.update("DELETE FROM inventory WHERE merchant_id=? AND sku_id=?", DEMO_TENANT, UNPUBLISHED_SKU);
+        jdbc.update("UPDATE product_sku SET status='ACTIVE' WHERE id IN (?,?,?)", DEMO_SKU, UNPUBLISHED_SKU, ISOLATION_SKU);
+        jdbc.update("UPDATE product SET status='UNPUBLISHED' WHERE id=2600000000000202");
+        resetDemoStock();
+    }
 
     private String token(long accountId, long merchantId, AccountRole role) {
         return sessions.login(new AuthPrincipal(accountId, merchantId, role)).accessToken();
@@ -88,8 +113,265 @@ class InventoryFlowIT {
     }
 
     private ResponseEntity<String> reserve(String token, String key, long skuId, int qty) {
-        return post("/api/v1/merchant/inventory/reserve", token,
+        return post("/api/v1/inventory/reserve", token,
                 Map.of("idempotentKey", key, "skuId", skuId, "qty", qty));
+    }
+
+    private ResponseEntity<String> adjust(String token, String key, long skuId, int delta) {
+        return post("/api/v1/inventory/adjust", token,
+                Map.of("idempotentKey", key, "skuId", skuId, "adjustQty", delta));
+    }
+
+    private String staffToken() {
+        return token(2000000000000101L, DEMO_TENANT, AccountRole.MERCHANT_STAFF);
+    }
+
+    private void assertError(ResponseEntity<String> response, int status, int code) throws Exception {
+        assertThat(response.getStatusCode().value()).as("%s", response.getBody()).isEqualTo(status);
+        assertThat(envelope(response).get("code").asInt()).isEqualTo(code);
+    }
+
+    private Map<String, Object> stock(long skuId) {
+        return jdbc.queryForMap("SELECT available_qty,reserved_qty,version FROM inventory WHERE merchant_id=? AND sku_id=?",
+                DEMO_TENANT, skuId);
+    }
+
+    private int ledgerCount() {
+        return jdbc.queryForObject("SELECT COUNT(*) FROM inventory_transaction", Integer.class);
+    }
+
+    @Test void exactStockQueriesRejectConsumersAndAnonymousBeforeReadingInventory() throws Exception {
+        String consumer = token(2000000000000201L, DEMO_TENANT, AccountRole.CONSUMER);
+        clearInvocations(inventoryMapper);
+        for (String path : java.util.List.of("/api/v1/inventory/" + DEMO_SKU,
+                "/api/v1/inventory/page", "/api/v1/inventory/999999999")) {
+            var forbidden = get(path, consumer);
+            assertError(forbidden, 400, 13006);
+            assertThat(envelope(forbidden).get("data").isNull()).isTrue();
+            var anonymous = get(path, null);
+            assertThat(anonymous.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            assertThat(envelope(anonymous).get("data").isNull()).isTrue();
+        }
+        // The same boundary also applies to direct Java callers of the actor-based queries.
+        var actor = new Actor(new AuthPrincipal(2000000000000201L, DEMO_TENANT, AccountRole.CONSUMER), "test-session");
+        assertThatThrownBy(() -> inventoryService.query(actor, DEMO_SKU))
+                .isInstanceOfSatisfying(InventoryBizException.class, e -> assertThat(e.getCode()).isEqualTo(13006));
+        assertThatThrownBy(() -> inventoryService.pageList(actor, 1, 20))
+                .isInstanceOfSatisfying(InventoryBizException.class, e -> assertThat(e.getCode()).isEqualTo(13006));
+        verifyNoInteractions(inventoryMapper);
+    }
+
+    @Test void staffReadsAndPagesOnlyItsAuthenticatedMerchantOnTheUnifiedRoute() throws Exception {
+        String demoStaff = staffToken();
+        String isolationStaff = token(2000000000000102L, ISOLATION_TENANT, AccountRole.MERCHANT_STAFF);
+        var own = get("/api/v1/inventory/" + DEMO_SKU + "?merchantId=" + ISOLATION_TENANT, demoStaff);
+        assertThat(own.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(envelope(own).get("data").get("availableQty").asInt()).isEqualTo(10);
+
+        var demoPage = get("/api/v1/inventory/page?pageNo=1&pageSize=100&merchantId=" + ISOLATION_TENANT, demoStaff);
+        var isolationPage = get("/api/v1/inventory/page?pageNo=1&pageSize=100&merchantId=" + DEMO_TENANT, isolationStaff);
+        var responses = java.util.List.of(demoPage, isolationPage);
+        long[] expectedSkus = {DEMO_SKU, ISOLATION_SKU};
+        for (int i = 0; i < responses.size(); i++) {
+            var response = responses.get(i);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            var page = envelope(response).get("data");
+            assertThat(page.get("total").asLong()).isOne();
+            assertThat(page.get("records").size()).isOne();
+            assertThat(page.get("records").get(0).get("skuId").asLong()).isEqualTo(expectedSkus[i]);
+            assertThat(page.get("current").asInt()).isOne();
+            assertThat(page.get("size").asInt()).isEqualTo(100);
+        }
+        assertError(get("/api/v1/inventory/" + ISOLATION_SKU, demoStaff), 404, 13001);
+    }
+
+    @Test void oldMerchantPrefixedRoutesAreRetiredWithoutChangingStock() {
+        String staff = staffToken();
+        var before = stock(DEMO_SKU);
+        assertThat(get("/api/v1/merchant/inventory/" + DEMO_SKU, staff).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(get("/api/v1/merchant/inventory/page", staff).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(post("/api/v1/merchant/inventory/adjust", staff,
+                Map.of("idempotentKey", "IT-OLD-ROUTE", "skuId", DEMO_SKU, "adjustQty", 3)).getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(stock(DEMO_SKU)).isEqualTo(before);
+        assertThat(ledgerCount()).isZero();
+    }
+
+    @Test void catalogReferencesIncludeUnpublishedAndDraftSkusButHideOtherMerchants() {
+        for (String productStatus : java.util.List.of("DRAFT", "UNPUBLISHED")) {
+            jdbc.update("UPDATE product SET status=? WHERE id=2600000000000202", productStatus);
+            var sku = references.findSku(DEMO_TENANT, UNPUBLISHED_SKU).orElseThrow();
+            assertThat(sku.productId()).isEqualTo(2600000000000202L);
+            assertThat(sku.active()).isTrue();
+        }
+        jdbc.update("UPDATE product_sku SET status='DISCONTINUED' WHERE id=?", UNPUBLISHED_SKU);
+        assertThat(references.findSku(DEMO_TENANT, UNPUBLISHED_SKU).orElseThrow().active()).isFalse();
+        assertThat(references.findSku(ISOLATION_TENANT, UNPUBLISHED_SKU)).isEmpty();
+        assertThat(references.findSku(DEMO_TENANT, 999999999L)).isEmpty();
+    }
+
+    @Test void unknownAndForeignSkusCannotCreateStockOrLedgerEvenWithASuccessfulKey() throws Exception {
+        String staff = staffToken();
+        assertThat(adjust(staff, "IT-CATALOG-OK", DEMO_SKU, 1).getStatusCode()).isEqualTo(HttpStatus.OK);
+        var before = stock(DEMO_SKU);
+        int logs = ledgerCount();
+        for (long skuId : new long[]{ISOLATION_SKU, 999999999L}) {
+            assertError(adjust(staff, "IT-CATALOG-OK", skuId, 5), 404, 13001);
+            for (String operation : java.util.List.of("reserve", "release", "deduct")) {
+                assertError(post("/api/v1/inventory/" + operation, staff,
+                        Map.of("idempotentKey", "IT-CATALOG-OK", "skuId", skuId, "qty", 1)), 404, 13001);
+            }
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory WHERE merchant_id=? AND sku_id=?",
+                    Integer.class, DEMO_TENANT, skuId)).isZero();
+        }
+        assertThat(stock(DEMO_SKU)).isEqualTo(before);
+        assertThat(ledgerCount()).isEqualTo(logs);
+    }
+
+    @Test void discontinuedSkuRejectsNewSupplyAndReserveButAllowsCleanup() throws Exception {
+        String staff = staffToken();
+        jdbc.update("UPDATE inventory SET reserved_qty=4 WHERE merchant_id=? AND sku_id=?", DEMO_TENANT, DEMO_SKU);
+        jdbc.update("UPDATE product_sku SET status='DISCONTINUED' WHERE id IN (?,?)", DEMO_SKU, UNPUBLISHED_SKU);
+        var before = stock(DEMO_SKU);
+        assertError(adjust(staff, "IT-DISC-ADD", DEMO_SKU, 2), 409, 13008);
+        assertError(adjust(staff, "IT-DISC-INIT", UNPUBLISHED_SKU, 2), 409, 13008);
+        assertError(reserve(staff, "IT-DISC-RESERVE", DEMO_SKU, 1), 409, 13008);
+        assertThat(stock(DEMO_SKU)).isEqualTo(before);
+        assertThat(ledgerCount()).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory WHERE sku_id=?", Integer.class, UNPUBLISHED_SKU)).isZero();
+        assertThat(adjust(staff, "IT-DISC-LOSS", DEMO_SKU, -2).getStatusCode()).isEqualTo(HttpStatus.OK);
+        for (String operation : java.util.List.of("release", "deduct")) {
+            assertThat(post("/api/v1/inventory/" + operation, staff,
+                    Map.of("idempotentKey", "IT-DISC-" + operation, "skuId", DEMO_SKU, "qty", 2))
+                    .getStatusCode()).isEqualTo(HttpStatus.OK);
+        }
+        assertThat(stock(DEMO_SKU)).containsEntry("available_qty", 10).containsEntry("reserved_qty", 0).containsEntry("version", 3);
+        assertThat(ledgerCount()).isEqualTo(3);
+    }
+
+    @Test void firstPositiveAdjustmentStocksUnpublishedSkuOnceWithZeroBasedLedger() throws Exception {
+        String staff = staffToken();
+        assertThat(adjust(staff, "IT-INIT", UNPUBLISHED_SKU, 6).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(adjust(staff, "IT-INIT", UNPUBLISHED_SKU, 6).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(stock(UNPUBLISHED_SKU)).containsEntry("available_qty", 6).containsEntry("reserved_qty", 0).containsEntry("version", 1);
+        assertThat(ledgerCount()).isOne();
+        assertThat(jdbc.queryForMap("SELECT before_available,after_available,before_reserved,after_reserved FROM inventory_transaction WHERE idempotent_key='IT-INIT'"))
+                .containsEntry("before_available", 0).containsEntry("after_available", 6)
+                .containsEntry("before_reserved", 0).containsEntry("after_reserved", 0);
+        assertThat(jdbc.queryForObject("SELECT status FROM product WHERE id=2600000000000202", String.class)).isEqualTo("UNPUBLISHED");
+    }
+
+    @Test void missingStockIsNotInitializedByNegativeAdjustmentOrOtherOperations() throws Exception {
+        String staff = staffToken();
+        assertError(adjust(staff, "IT-MISSING-LOSS", UNPUBLISHED_SKU, -1), 404, 13001);
+        for (String operation : java.util.List.of("reserve", "release", "deduct")) {
+            assertError(post("/api/v1/inventory/" + operation, staff,
+                    Map.of("idempotentKey", "IT-MISSING-" + operation, "skuId", UNPUBLISHED_SKU, "qty", 1)), 404, 13001);
+        }
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory WHERE sku_id=?", Integer.class, UNPUBLISHED_SKU)).isZero();
+        assertThat(ledgerCount()).isZero();
+    }
+
+    @Test void simultaneousFirstAdjustmentsSerializeThroughTheMerchantSkuUniqueKey() throws Exception {
+        String staff = staffToken();
+        // Force both transactions to observe the missing row before either INSERT.
+        var initialReads = new java.util.concurrent.atomic.AtomicInteger();
+        var bothRead = new CountDownLatch(2);
+        doAnswer(invocation -> {
+            var result = sqlSession.getMapper(InventoryMapper.class).selectByMerchantAndSku(DEMO_TENANT, UNPUBLISHED_SKU);
+            if (initialReads.incrementAndGet() <= 2) {
+                assertThat(result).isNull();
+                bothRead.countDown();
+                assertThat(bothRead.await(30, TimeUnit.SECONDS)).isTrue();
+            }
+            return result;
+        }).when(inventoryMapper).selectByMerchantAndSku(DEMO_TENANT, UNPUBLISHED_SKU);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var a = executor.submit(() -> adjust(staff, "IT-INIT-A", UNPUBLISHED_SKU, 3));
+            var b = executor.submit(() -> adjust(staff, "IT-INIT-B", UNPUBLISHED_SKU, 5));
+            for (var future : java.util.List.of(a, b)) {
+                var response = future.get(60, TimeUnit.SECONDS);
+                assertThat(response.getStatusCode()).as("%s", response.getBody()).isEqualTo(HttpStatus.OK);
+            }
+        }
+        assertThat(stock(UNPUBLISHED_SKU)).containsEntry("available_qty", 8).containsEntry("reserved_qty", 0).containsEntry("version", 2);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory WHERE merchant_id=? AND sku_id=?",
+                Integer.class, DEMO_TENANT, UNPUBLISHED_SKU)).isOne();
+        var logs = jdbc.queryForList("SELECT before_available,after_available FROM inventory_transaction WHERE sku_id=? ORDER BY id", UNPUBLISHED_SKU);
+        assertThat(logs).hasSize(2);
+        assertThat(logs.get(0)).containsEntry("before_available", 0);
+        assertThat(logs.get(1)).containsEntry("before_available", logs.get(0).get("after_available")).containsEntry("after_available", 8);
+    }
+
+    @Test void sameKeyDuringFirstAdjustmentNeverCreatesDuplicateStockOrLedger() throws Exception {
+        String staff = staffToken();
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var start = new CountDownLatch(1);
+            Callable<ResponseEntity<String>> request = () -> {
+                start.await();
+                return adjust(staff, "IT-INIT-SAME", UNPUBLISHED_SKU, 7);
+            };
+            var a = executor.submit(request);
+            var b = executor.submit(request);
+            start.countDown();
+            var responses = java.util.List.of(a.get(60, TimeUnit.SECONDS), b.get(60, TimeUnit.SECONDS));
+            assertThat(responses.stream().filter(r -> r.getStatusCode().value() == 200).count()).isGreaterThanOrEqualTo(1);
+            for (var response : responses) {
+                if (response.getStatusCode().value() != 200) assertError(response, 409, 13004);
+            }
+        }
+        assertThat(adjust(staff, "IT-INIT-SAME", UNPUBLISHED_SKU, 7).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(stock(UNPUBLISHED_SKU)).containsEntry("available_qty", 7).containsEntry("version", 1);
+        assertThat(ledgerCount()).isOne();
+    }
+
+    @Test void versionConflictRetriesNewTransactionAndExhaustionRollsBackInitialization() throws Exception {
+        String staff = staffToken();
+        doReturn(0).doAnswer(i -> sqlSession.getMapper(InventoryMapper.class).updateStockWithVersion(
+                i.getArgument(0), i.getArgument(1), i.getArgument(2), i.getArgument(3), i.getArgument(4)))
+                .when(inventoryMapper).updateStockWithVersion(
+                eq(DEMO_TENANT), eq(UNPUBLISHED_SKU), anyInt(), anyInt(), anyInt());
+        assertThat(adjust(staff, "IT-RETRY-OK", UNPUBLISHED_SKU, 4).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(stock(UNPUBLISHED_SKU)).containsEntry("available_qty", 4).containsEntry("version", 1);
+        assertThat(ledgerCount()).isOne();
+        verify(inventoryMapper, times(2)).insertZeroStock(DEMO_TENANT, UNPUBLISHED_SKU);
+
+        doReturn(0).when(inventoryMapper).updateStockWithVersion(eq(DEMO_TENANT), eq(DEMO_SKU), anyInt(), anyInt(), anyInt());
+        var before = stock(DEMO_SKU);
+        assertError(adjust(staff, "IT-RETRY-FAIL", DEMO_SKU, 3), 409, 13003);
+        assertThat(stock(DEMO_SKU)).isEqualTo(before);
+        assertThat(ledgerCount()).isOne();
+        verify(inventoryMapper, times(3)).updateStockWithVersion(DEMO_TENANT, DEMO_SKU, 13, 0, 0);
+    }
+
+    @Test void ledgerFailureRollsBackStockCreationAndFailedKeyCanRetry() throws Exception {
+        String staff = staffToken();
+        doThrow(new org.springframework.dao.DataIntegrityViolationException("forced ledger failure"))
+                .when(transactionMapper).insert(any());
+        assertError(adjust(staff, "IT-ATOMIC", UNPUBLISHED_SKU, 4), 500, 13999);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory WHERE sku_id=?", Integer.class, UNPUBLISHED_SKU)).isZero();
+        assertThat(ledgerCount()).isZero();
+        assertThat(jdbc.queryForObject("SELECT status FROM inventory_idempotent WHERE idempotent_key='IT-ATOMIC'", String.class)).isEqualTo("FAILED");
+        reset(transactionMapper);
+        assertThat(adjust(staff, "IT-ATOMIC", UNPUBLISHED_SKU, 4).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(stock(UNPUBLISHED_SKU)).containsEntry("available_qty", 4).containsEntry("version", 1);
+        assertThat(ledgerCount()).isOne();
+    }
+
+    @Test void successfulReplayStillRequiresCurrentIdentityAndCatalogState() throws Exception {
+        String staff = staffToken();
+        assertThat(reserve(staff, "IT-REPLAY", DEMO_SKU, 2).getStatusCode()).isEqualTo(HttpStatus.OK);
+        var before = stock(DEMO_SKU);
+        String consumer = token(2000000000000201L, DEMO_TENANT, AccountRole.CONSUMER);
+        assertError(reserve(consumer, "IT-REPLAY", DEMO_SKU, 2), 400, 13006);
+        assertThat(post("/api/v1/inventory/reserve", null,
+                Map.of("idempotentKey", "IT-REPLAY", "skuId", DEMO_SKU, "qty", 2)).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        String foreignStaff = token(2000000000000102L, ISOLATION_TENANT, AccountRole.MERCHANT_STAFF);
+        assertError(reserve(foreignStaff, "IT-REPLAY", DEMO_SKU, 2), 404, 13001);
+        jdbc.update("UPDATE product_sku SET status='DISCONTINUED' WHERE id=?", DEMO_SKU);
+        assertError(reserve(staff, "IT-REPLAY", DEMO_SKU, 2), 409, 13008);
+        assertThat(stock(DEMO_SKU)).isEqualTo(before);
+        assertThat(ledgerCount()).isOne();
     }
 
     @Test
@@ -117,7 +399,7 @@ class InventoryFlowIT {
             }
 
             // No oversell: exactly one reservation landed (10 - 7).
-            var stock = envelope(get("/api/v1/merchant/inventory/" + DEMO_SKU, staff));
+            var stock = envelope(get("/api/v1/inventory/" + DEMO_SKU, staff));
             assertThat(stock.get("data").get("availableQty").asInt()).isEqualTo(3);
         }
     }
@@ -135,7 +417,7 @@ class InventoryFlowIT {
         assertThat(envelope(repeat).get("code").asInt()).isZero();
 
         // The stock moved once (10 - 4), not twice; one SUCCESS idempotency row exists.
-        var stock = envelope(get("/api/v1/merchant/inventory/" + DEMO_SKU, staff));
+        var stock = envelope(get("/api/v1/inventory/" + DEMO_SKU, staff));
         assertThat(stock.get("data").get("availableQty").asInt()).isEqualTo(6);
         assertThat(jdbc.queryForObject(
                 "SELECT COUNT(*) FROM inventory_idempotent WHERE idempotent_key='IT-IDEM-1' AND status='SUCCESS'",
@@ -146,7 +428,7 @@ class InventoryFlowIT {
 
         // A different key is a new operation and moves the stock again.
         assertThat(reserve(staff, "IT-IDEM-2", DEMO_SKU, 2).getStatusCode()).isEqualTo(HttpStatus.OK);
-        var after = envelope(get("/api/v1/merchant/inventory/" + DEMO_SKU, staff));
+        var after = envelope(get("/api/v1/inventory/" + DEMO_SKU, staff));
         assertThat(after.get("data").get("availableQty").asInt()).isEqualTo(4);
     }
 
@@ -157,16 +439,16 @@ class InventoryFlowIT {
         String isolationStaff = token(2000000000000102L, ISOLATION_TENANT, AccountRole.MERCHANT_STAFF);
 
         // The isolation tenant cannot see or touch the demo tenant's SKU.
-        var foreign = get("/api/v1/merchant/inventory/" + DEMO_SKU, isolationStaff);
+        var foreign = get("/api/v1/inventory/" + DEMO_SKU, isolationStaff);
         assertThat(foreign.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(envelope(foreign).get("code").asInt()).isEqualTo(13001);
 
-        var missing = get("/api/v1/merchant/inventory/999999999", demoStaff);
+        var missing = get("/api/v1/inventory/999999999", demoStaff);
         assertThat(missing.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(envelope(missing).get("code").asInt()).isEqualTo(13001);
 
         // Isolation staff can always work with its own tenant stock.
-        var own = get("/api/v1/merchant/inventory/" + ISOLATION_SKU, isolationStaff);
+        var own = get("/api/v1/inventory/" + ISOLATION_SKU, isolationStaff);
         assertThat(own.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(envelope(own).get("data").get("availableQty").asInt()).isEqualTo(5);
 
@@ -176,12 +458,12 @@ class InventoryFlowIT {
 
     @Test
     void anonymousIs401AndInvalidBodiesAre400With13006() throws Exception {
-        var anonymous = post("/api/v1/merchant/inventory/reserve", null,
+        var anonymous = post("/api/v1/inventory/reserve", null,
                 Map.of("idempotentKey", "k", "skuId", DEMO_SKU, "qty", 1));
         assertThat(anonymous.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
 
         String staff = token(2000000000000101L, DEMO_TENANT, AccountRole.MERCHANT_STAFF);
-        var invalid = post("/api/v1/merchant/inventory/reserve", staff,
+        var invalid = post("/api/v1/inventory/reserve", staff,
                 Map.of("idempotentKey", "IT-BAD-1", "skuId", DEMO_SKU, "qty", 0));
         assertThat(invalid.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(envelope(invalid).get("code").asInt()).isEqualTo(13006);

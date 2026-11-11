@@ -6,14 +6,16 @@ envelope，业务错误码走 13xxx 段。
 
 ## 资源与语义
 
-- `POST /api/v1/merchant/inventory/reserve`：预占（可售 -qty、预占 +qty）
-- `POST /api/v1/merchant/inventory/release`：释放预占（可售 +qty、预占 -qty）
-- `POST /api/v1/merchant/inventory/deduct`：扣减预占（支付成功/发货出库）
-- `POST /api/v1/merchant/inventory/adjust`：人工调整（正数入库、负数盘亏）
-- `GET  /api/v1/merchant/inventory/{skuId}`：单个 SKU 库存（本商户）
-- `GET  /api/v1/merchant/inventory/page?pageNo&pageSize`：分页列表（pageSize 上限 100）
+- `POST /api/v1/inventory/reserve`：预占（可售 -qty、预占 +qty）
+- `POST /api/v1/inventory/release`：释放预占（可售 +qty、预占 -qty）
+- `POST /api/v1/inventory/deduct`：扣减预占（支付成功/发货出库）
+- `POST /api/v1/inventory/adjust`：人工调整（正数入库、负数盘亏）
+- `GET  /api/v1/inventory/{skuId}`：单个 SKU 库存（本商户）
+- `GET  /api/v1/inventory/page?pageNo&pageSize`：分页列表（pageSize 上限 100）
 
-匿名公开"有货/无货"并入商品详情聚合（商品模块调 `InventoryService.inStock`），不设公开 HTTP 端点。
+全部库存 HTTP 路由仅供本商户员工使用，包括单 SKU 精确库存和分页查询；未认证返回 401，消费者访问沿用库存角色拒绝约定 400/13006，且不返回库存数据。请求格式、状态码和调用示例见 [库存接口说明](api-design.md)。公开商品的库存布尔聚合由关联 change 第 4 节单独实现。
+
+统一基路径为 `/api/v1/inventory`，旧商户前缀路径已停用。路径调整不改变多商户模型：商户仍来自可信 Actor，所有 `merchant_id` 字段及同商户关联约束保留，无需修改库存、商品、订单或物流表结构。
 
 ## 关键设计
 
@@ -23,6 +25,23 @@ envelope，业务错误码走 13xxx 段。
   （RR 快照下同一事务重读无效），重试 3 次仍冲突返回 13003。
 - **租户隔离**：所有 SQL 带 `merchant_id` 谓词；跨租户与不存在统一 404/13001。
 - **流水留痕**：`inventory_transaction` 记录变更前后值、幂等键、操作人（accountId）。
+- **目录引用**：写操作经商品域 `ProductReferenceService.findSku` 查询本商户 SKU 的商品归属及状态，不跨域访问商品 Mapper，也不依赖商品公开聚合、Redis 或库存查询。未知与跨商户 SKU 统一 404/13001。
+- **发布前备货**：DRAFT/UNPUBLISHED 商品的 ACTIVE SKU 可备货；不改变商品发布状态。停售 SKU 的正向 adjust 与 reserve 返回 409/13008；已有库存的负向 adjust，以及已有预占的 release/deduct 仍按原数量规则处理。
+- **首次调整**：只有正向 adjust 可在缺行时从 0 初始化；初始化、带 version 的数量更新和流水在同一个事务提交。首次成功后 version=1、预占=0、流水 before=0；后续每次成功 version 加 1。负向 adjust 或 reserve/release/deduct 缺行返回 404/13001。
+- **并发初始化**：`uk_merchant_sku(merchant_id,sku_id)` 裁定首次创建，唯一键竞争或创建锁冲突回滚后沿现有最多 3 轮新事务重试；不会覆盖另一请求已提交的数量/version。
+- **重放边界**：每次先检查员工身份与当前目录归属/状态，再处理幂等成功重放。成功重放仍不重复写库存或流水，但 SKU 已停售时重复 reserve/正向 adjust 也会返回 13008。幂等键沿用现有全局唯一约定，调用方须为独立业务操作生成独立键。
+
+这些操作仍是员工维护入口，不提供消费者下单、支付、取消接口，也不由订单查询自动调用库存写操作。
+
+## 验证
+
+`ProductReferenceServiceTest` 覆盖目录状态和归属边界；`InventoryFlowIT` 在隔离 Testcontainers MySQL/Redis 及真实 Spring 上下文中验证未发布商品备货、停售收尾、首次/并发调整、幂等重放、乐观锁重试、流水失败原子回滚及 HTTP 权限。
+
+```powershell
+mvn -f api/pom.xml '-Dtest=ProductReferenceServiceTest,InventoryFlowIT' clean test
+```
+
+需要 Docker Linux 容器引擎；不会连接本地 dev 数据库。
 
 ## Flyway 编号
 

@@ -11,6 +11,7 @@ import com.gba.merchantbao.inventory.dto.InventoryVO;
 import com.gba.merchantbao.inventory.mapper.InventoryMapper;
 import com.gba.merchantbao.inventory.po.InventoryPO;
 import com.gba.merchantbao.inventory.po.IdempotentRecordPO;
+import com.gba.merchantbao.product.service.ProductReferenceService;
 
 import org.springframework.stereotype.Service;
 
@@ -34,12 +35,14 @@ public class InventoryService {
     private final InventoryMapper inventoryMapper;
     private final InventoryStockTxService stockTxService;
     private final IdempotentService idempotentService;
+    private final ProductReferenceService productReferences;
 
     public InventoryService(InventoryMapper inventoryMapper, InventoryStockTxService stockTxService,
-            IdempotentService idempotentService) {
+            IdempotentService idempotentService, ProductReferenceService productReferences) {
         this.inventoryMapper = inventoryMapper;
         this.stockTxService = stockTxService;
         this.idempotentService = idempotentService;
+        this.productReferences = productReferences;
     }
 
     /** 商户后台库存分页返回（分页参数默认值与上限沿 v1 约定）。 */
@@ -86,11 +89,13 @@ public class InventoryService {
 
     /** 商户后台查询单个 SKU 库存 */
     public InventoryVO query(Actor actor, long skuId) {
+        requireStaff(actor);
         return getByMerchantAndSku(merchantIdOf(actor), skuId);
     }
 
     /** 商户后台库存分页列表 */
     public Page pageList(Actor actor, int pageNo, int pageSize) {
+        requireStaff(actor);
         Long merchantId = merchantIdOf(actor);
         int safePageNo = Math.max(pageNo, 1);
         int safePageSize = Math.min(Math.max(pageSize, 1), 100);
@@ -153,6 +158,15 @@ public class InventoryService {
         }
         if (idempotentKey == null || idempotentKey.isBlank()) {
             throw new InventoryBizException(InventoryErrorCode.INVALID_ARGUMENT, "幂等键不能为空");
+        }
+
+        // 身份及目录校验先于成功幂等重放；停售后仍允许已有库存/预占收尾。
+        var sku = productReferences.findSku(merchantId, skuId).orElseThrow(() ->
+                new InventoryBizException(InventoryErrorCode.STOCK_NOT_FOUND, "该商户下不存在该 SKU"));
+        if (!sku.active() && (BIZ_RESERVE.equals(bizType)
+                || (BIZ_ADJUST.equals(bizType) && changeAvailable > 0))) {
+            throw new InventoryBizException(InventoryErrorCode.SKU_DISCONTINUED,
+                    "停售 SKU 不允许新增供应或预占");
         }
 
         // 1. 幂等抢占：唯一索引兜底，重复请求不重复执行
@@ -224,6 +238,12 @@ public class InventoryService {
      * 消费者不是库存操作主体，直接拒绝。
      */
     private String operatorOf(Actor actor) {
+        requireStaff(actor);
+        return String.valueOf(actor.principal().accountId());
+    }
+
+    /** Exact stock reads and writes share the same staff-only service boundary. */
+    private void requireStaff(Actor actor) {
         if (actor == null) {
             throw new InventoryBizException(InventoryErrorCode.INVALID_ARGUMENT, "未获取到登录身份");
         }
@@ -231,6 +251,5 @@ public class InventoryService {
         if (principal.role() != AccountRole.MERCHANT_STAFF) {
             throw new InventoryBizException(InventoryErrorCode.INVALID_ARGUMENT, "库存操作仅限商户员工");
         }
-        return String.valueOf(principal.accountId());
     }
 }
