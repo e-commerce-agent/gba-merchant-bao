@@ -12,7 +12,7 @@
 | --- | --- |
 | 认证 | `Authorization: Bearer <access>`（10002） |
 | 主体范围 | 消费者=本人订单；员工=本商户订单（Service/SQL 限定） |
-| 归属校验 | 订单模块真实归属查询；集成前 fixture 联调，最终验收接真实授权 |
+| 归属校验 | `OrderBackedOrderAccessGuard` → `OrderQueryService.locateForActor`；成功后才读取任何运单/轨迹，已有运单也不能跳过 |
 | 不存在/越权 | 统一 404/10004（三者不可区分） |
 
 **成功响应 200**（含未发货业务态）：
@@ -79,7 +79,8 @@ ShipmentSummaryDTO queryShipmentByOrderNo(String merchantCode, String orderNo)
   — 按商户编码+订单号返回物流摘要：
     status / carrierName / carrierCode / trackingNo /
     lastEventTime / tracks[]（eventTime, status, description, location）
-  — 内部复用与 REST 相同的 ShipmentQueryService，脱敏规则同源。
+  — 服务凭证通过后，TenantResolver 解析 merchantCode，OrderQueryService.locateForService 确认真订单，再按 merchantId+orderId 查运单与轨迹。
+  — 真实订单无运单返回 NOT_SHIPPED，保留真实 orderNo，tracks 为空；carrierName/trackingNo/lastEventTime 缺省，WSDL 的 trackingNo 为可选。
   — merchantCode+orderNo 不存在或跨商户 → SOAP Fault .NOT_FOUND，不泄露存在性。
 ```
 
@@ -89,6 +90,8 @@ ShipmentSummaryDTO queryShipmentByOrderNo(String merchantCode, String orderNo)
 2. 凭证不进前端、不进仓库明文配置（与 JWT 密钥同用 .env/忽略配置管理）；泄露视为越权能力；生产不开放。
 3. 端点**不接**浏览器 Bearer 会话；REST 授权边界不被绕过——SOAP 客户端模拟外部承运商系统，本来就没有浏览器会话。
 4. 定位：课程「分布式框架初识」演示 + 模拟与外部承运商系统对接；不开放为生产对公能力。
+
+订单号仅作定位，SOAP 不直接按 `shipment.order_no` 判断订单存在性，也不构造消费者 Actor。REST 与 SOAP 的授权前提各自独立，随后均按真实订单 ID 读取同商户物流。实现与定向测试记录见 [订单与物流整合记录](commerce-integration.md)。
 
 ### 2.4 与 WebSocket 的区分
 

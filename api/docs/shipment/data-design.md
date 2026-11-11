@@ -9,7 +9,7 @@
 | id | BIGINT UNSIGNED | PK | Snowflake |
 | merchant_id | BIGINT UNSIGNED | NOT NULL | 租户根；所有查询必带 |
 | order_id | BIGINT UNSIGNED | NOT NULL | 关联同商户订单 `trade_order.id`；复合外键约束 `(merchant_id, order_id)` |
-| order_no | VARCHAR(64) | NOT NULL | 下单时订单号快照；SOAP 查询键之一 |
+| order_no | VARCHAR(64) | NOT NULL | 履约订单号快照；不作为订单存在或访问权限的依据 |
 | status | VARCHAR(20) | NOT NULL | NOT_SHIPPED / IN_TRANSIT / DELIVERED |
 | carrier_name | VARCHAR(64) | NOT NULL | 承运商展示名 |
 | carrier_code | VARCHAR(32) | NULL | 承运商编码 |
@@ -26,7 +26,7 @@
 | `UNIQUE(merchant_id, order_id)` | 按订单查运单（REST 主路径）、一单一运单约束 |
 | `UNIQUE(merchant_id, id)` | 同商户轨迹复合外键的父键 |
 | `UNIQUE(merchant_id, tracking_no)` | 运单号租户内唯一防重 |
-| `KEY(merchant_id, order_no)` | SOAP 按商户编码+订单号查询 |
+| `KEY(merchant_id, order_no)` | 保留的订单号快照索引；SOAP 实际先定位真实订单，再走 order_id 唯一键 |
 
 ## 2. 表：shipment_track（轨迹事件，只追加）
 
@@ -51,7 +51,7 @@
 
 1. 数据库用复合外键约束运单到订单、轨迹到运单的同商户引用；Service 仍负责订单授权。外键使用限制删除语义，不级联删除履约历史。
 2. **冗余 merchant_id** 到 shipment_track：轨迹隔离查询不 join 主表，SQL 一律带租户限定。
-3. **冗余 order_no** 快照到 shipment：SOAP 按订单号查询免 join 订单表；订单号以下单时为准，商品/订单变更不回写。
+3. **冗余 order_no** 快照到 shipment：保留履约展示含义，不因当前目录变更回写。SOAP 经订单服务按真实订单号定位，再以真实 orderId 查询物流；物流不直接读取订单 Mapper，也不以运单快照代替订单确认。
 
 ## 4. Flyway 编号（已定稿）
 

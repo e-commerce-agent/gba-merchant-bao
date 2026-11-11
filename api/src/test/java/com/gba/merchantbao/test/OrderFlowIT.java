@@ -43,6 +43,10 @@ class OrderFlowIT {
     @Autowired TestRestTemplate http;
     @Autowired ObjectMapper json;
     @Autowired JdbcTemplate jdbc;
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
+    com.gba.merchantbao.inventory.service.InventoryService inventory;
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
+    com.gba.merchantbao.inventory.service.InventoryStockTxService stockTransactions;
 
     long tenant(String code) { return jdbc.queryForObject("SELECT id FROM merchant WHERE merchant_code=?", Long.class, code); }
     String token(long accountId, String merchantCode, AccountRole role) {
@@ -139,5 +143,48 @@ class OrderFlowIT {
         var cross = get("/api/v1/orders/2000000000000304", staff);
         assertThat(cross.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(envelope(cross).get("code").asInt()).isEqualTo(10004);
+    }
+
+    @Test
+    void historicalSnapshotSurvivesCatalogChangesWithoutInventoryOperations() throws Exception {
+        var consumer = token(2000000000000201L, "M_3C_DEMO", AccountRole.CONSUMER);
+        var staff = token(2000000000000101L, "M_3C_DEMO", AccountRole.MERCHANT_STAFF);
+        String path = "/api/v1/orders/2000000000000301";
+        var product = jdbc.queryForMap("SELECT name, status FROM product WHERE id=2600000000000201");
+        var sku = jdbc.queryForMap("SELECT title, attributes_json, price, status FROM product_sku WHERE id=2600000000000301");
+        var stockBefore = jdbc.queryForList("SELECT * FROM inventory ORDER BY merchant_id, sku_id");
+        var transactionsBefore = jdbc.queryForList("SELECT * FROM inventory_transaction ORDER BY id");
+        org.mockito.Mockito.clearInvocations(inventory, stockTransactions);
+        var before = envelope(get(path, consumer)).get("data");
+        try {
+            assertThat(jdbc.update("UPDATE product SET name=?, status='DISCONTINUED' WHERE id=2600000000000201",
+                    "当前商品已更名并停售")).isEqualTo(1);
+            assertThat(jdbc.update("UPDATE product_sku SET title=?, attributes_json=?, price=1.23, status='DISCONTINUED' WHERE id=2600000000000301",
+                    "当前 SKU 已修改", "{\"规格\":\"新版规格\"}")).isEqualTo(1);
+
+            for (String token : new String[]{consumer, staff}) {
+                var response = get(path, token);
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                var detail = envelope(response).get("data");
+                assertThat(detail).isEqualTo(before);
+                var item = detail.get("items").get(0);
+                assertThat(item.get("productName").asText()).isEqualTo("65W 双口充电器");
+                assertThat(item.get("skuAttributes").asText()).contains("USB-C").doesNotContain("新版规格");
+                assertThat(item.get("unitPrice").decimalValue()).isEqualByComparingTo("79.00");
+                assertThat(item.get("quantity").asInt()).isEqualTo(1);
+                assertThat(item.get("amount").decimalValue()).isEqualByComparingTo("79.00");
+                assertThat(detail.get("totalAmount").decimalValue()).isEqualByComparingTo("158.00");
+                assertThat(detail.get("paidAmount").decimalValue()).isEqualByComparingTo("158.00");
+                var list = get("/api/v1/orders", token);
+                assertThat(list.getStatusCode()).isEqualTo(HttpStatus.OK);
+            }
+            org.mockito.Mockito.verifyNoInteractions(inventory, stockTransactions);
+            assertThat(jdbc.queryForList("SELECT * FROM inventory ORDER BY merchant_id, sku_id")).isEqualTo(stockBefore);
+            assertThat(jdbc.queryForList("SELECT * FROM inventory_transaction ORDER BY id")).isEqualTo(transactionsBefore);
+        } finally {
+            jdbc.update("UPDATE product_sku SET title=?, attributes_json=?, price=?, status=? WHERE id=2600000000000301",
+                    sku.get("title"), sku.get("attributes_json"), sku.get("price"), sku.get("status"));
+            jdbc.update("UPDATE product SET name=?, status=? WHERE id=2600000000000201", product.get("name"), product.get("status"));
+        }
     }
 }

@@ -22,7 +22,6 @@ public class ShipmentSummary {
     private String carrierName;
     private String carrierCode;
 
-    @XmlElement(required = true)
     private String trackingNo;
 
     private String lastEventTime;

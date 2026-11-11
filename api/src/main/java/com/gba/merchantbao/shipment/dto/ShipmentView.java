@@ -29,7 +29,11 @@ public record ShipmentView(ApiId orderId, String orderNo, ShipmentStatus status,
     }
 
     public static ShipmentView notShipped(long orderId) {
-        return new ShipmentView(new ApiId(orderId), null, ShipmentStatus.NOT_SHIPPED,
+        return notShipped(orderId, null);
+    }
+
+    public static ShipmentView notShipped(long orderId, String orderNo) {
+        return new ShipmentView(new ApiId(orderId), orderNo, ShipmentStatus.NOT_SHIPPED,
                 null, null, null, null, null, List.of());
     }
 

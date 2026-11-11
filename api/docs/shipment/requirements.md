@@ -16,7 +16,7 @@
 | S-4 | 越权不可区分 | 订单不存在、跨租户、非本人统一 404，不泄露存在性 |
 | S-5 | 运单号不可绕过 | 不提供按 trackingNo 的独立查询入口；运单号只在已授权响应中出现 |
 | S-6 | WebService 端点 | SOAP/JAX-WS（Apache CXF）发布物流查询端点，WSDL 可访问，与 REST 同源同脱敏 |
-| S-7 | 租户隔离 | shipment/shipment_track 全查询带 merchant_id；与订单模块逻辑关联、不建指向未建表的物理外键 |
+| S-7 | 租户隔离 | shipment/shipment_track 全查询带 merchant_id；V9 在 V8 订单之后建立同商户复合外键，服务仍先验证订单权限 |
 
 ## 3. 主体与授权
 
@@ -26,7 +26,8 @@
 | 员工 MERCHANT_STAFF | 本商户订单 | 认证 Actor |
 | SOAP 客户端（服务间） | 按 merchantCode+orderNo，独立信任域 | 服务间凭证（配置注入，随 SOAP Header） |
 
-- 订单归属校验依赖订单模块的真实查询：集成前用 test fixture 订单数据联调，**最终验收必须接真实订单授权**（roadmap 明文）。
+- 订单归属校验已接 `OrderQueryService.locateForActor`，由 `OrderBackedOrderAccessGuard` 适配；运单存在与否均须先授权，拒绝时不读取运单或轨迹。
+- SOAP 服务凭证通过后，经 `TenantResolver` 与 `OrderQueryService.locateForService` 解析真实订单，再按 orderId 查物流；真实订单无运单返回 `NOT_SHIPPED`，未知订单为 Fault。消费者 Bearer 不能替代服务凭证。验证见 [订单与物流整合记录](commerce-integration.md)。
 - 请求中出现 customerId/merchantId/订单号仅作定位参数，不能替代授权。
 
 ## 4. WebService 边界（与 WebSocket 的区分）

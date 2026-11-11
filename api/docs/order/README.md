@@ -49,3 +49,18 @@
 - 本模块只读：新增写操作（下单/取消/退款回补）另开 change，不得在本包内追加写 Mapper。
 - Controller 不直接访问 Mapper；授权与范围收敛在 `OrderQueryService`；SQL 必带 `merchant_id` 与主体范围。
 - Agent Function Calling 直接注入 `OrderQueryService`（Java Service，不走 HTTP 回调），返回同一投影。
+
+## 跨模块订单定位与快照边界
+
+`align-commerce-module-integration` 第 5 节将物流对订单 Mapper 的直接访问替换为订单服务调用：
+
+| 订单服务能力 | 调用与信任前提 | 结果 |
+| --- | --- | --- |
+| `locateForActor(Actor, orderId)` | REST 物流经 `OrderBackedOrderAccessGuard` 调用；可信 Actor 决定租户与本人范围 | `OrderLocation(merchantId, orderId, orderNo)`；无权或未知统一 404/10004，不装载订单项 |
+| `locateForService(merchantId, orderNo)` | SOAP 已校验服务间凭证，merchantId 由 `TenantResolver` 解析 merchantCode 得到 | 按真实订单的商户与订单号定位；无权或未知统一 404/10004，不伪造消费者 Actor |
+
+这两个方法是内部 Java 能力，不新增 HTTP 入口；服务间定位不作为消费者或 Agent 的授权入口。物流必须先定位订单成功，之后才能读取运单与轨迹；真实订单无运单是 `NOT_SHIPPED`，未知订单不能合成为未发货。
+
+订单详情与授权定位复用同一 Actor 范围判断，详情继续仅从 `trade_order_item` 读取名称、规格、成交单价、数量与金额。`productId/skuId` 供追溯和数据库引用约束使用；当前目录即使更名、调价、改规格或停售，也不重新计算历史订单。查询不调用库存预占、扣减、释放或调整服务。
+
+测试：`OrderQueryServiceTest` 验证定位边界；`OrderFlowIT.historicalSnapshotSurvivesCatalogChangesWithoutInventoryOperations` 在真实 MySQL 修改当前目录后，通过消费者和员工 HTTP 查询比较完整订单响应，并验证库存服务无调用、库存及流水不变。第 5 节验证记录与物流调用顺序见 [订单与物流整合记录](../shipment/commerce-integration.md)。

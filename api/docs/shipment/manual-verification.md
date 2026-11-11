@@ -23,8 +23,8 @@ SELECT shipment_id, status, description FROM shipment_track ORDER BY shipment_id
 | --- | --- | --- |
 | 员工查运输中 | `GET /api/v1/orders/2100000000000302/shipment` + 员工 token | 200，`IN_TRANSIT`、顺丰、`SF1000000000301`、3 段轨迹升序、`estimatedDeliveryAt` 存在 |
 | 员工查已签收 | `GET /api/v1/orders/2100000000000301/shipment` | 200，`DELIVERED` + `deliveredAt`，无 `estimatedDeliveryAt` 字段 |
-| 消费者查本人订单 | 同上，用消费者 `2100000000000201` 的 token | 200（`OrderBackedOrderAccessGuard` 校验本人归属） |
-| 消费者查他人订单 | 用消费者 `2100000000000202` 的 token 查 `2100000000000302` | 404/10004 |
+| 消费者查本人订单 | 同上，用消费者 `2100000000000201` 的 token | 200（`OrderBackedOrderAccessGuard` 经订单服务先校验本人归属，再读运单） |
+| 消费者查他人订单 | 用消费者 `2100000000000202` 的 token 查已有运单的 `2100000000000302` | 404/10004；授权拒绝前不读取运单/轨迹 |
 | 跨租户员工 | M_ISOLATION_TEST 员工查 `2100000000000302` | 404/10004 |
 | 不存在订单 | `GET /api/v1/orders/999/shipment` | 404/10004（与越权不可区分） |
 | 匿名 | 不带 Authorization | 401/10002 |

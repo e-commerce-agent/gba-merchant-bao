@@ -63,6 +63,8 @@ class ShipmentFlowIT {
     @Autowired TestRestTemplate http;
     @Autowired JdbcTemplate jdbc;
     @Autowired com.fasterxml.jackson.databind.ObjectMapper json;
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
+    com.gba.merchantbao.shipment.mapper.ShipmentMapper shipments;
 
     private AuthPrincipal staff(long merchantId, long accountId) {
         return new AuthPrincipal(accountId, merchantId, AccountRole.MERCHANT_STAFF);
@@ -118,11 +120,24 @@ class ShipmentFlowIT {
     }
 
     @Test
-    void consumerOfSameTenantMayQueryInIntegrationState() throws Exception {
+    void consumerMayQueryOwnShipment() throws Exception {
         String token = sessions.login(consumer(DEMO_TENANT, 2000000000000202L)).accessToken();
         var response = get("/api/v1/orders/" + IN_TRANSIT_ORDER + "/shipment", token);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(data(response).path("status").asText()).isEqualTo("IN_TRANSIT");
+    }
+
+    @Test
+    void otherConsumersExistingShipmentIs404BeforeAnyShipmentRead() throws Exception {
+        String token = sessions.login(consumer(DEMO_TENANT, 2000000000000201L)).accessToken();
+        org.mockito.Mockito.clearInvocations(shipments);
+        for (long orderId : new long[]{IN_TRANSIT_ORDER, ISOLATION_ORDER, 9999999999999999L}) {
+            var response = get("/api/v1/orders/" + orderId + "/shipment", token);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+            assertThat(json.readTree(response.getBody()).path("code").asInt()).isEqualTo(10004);
+            assertThat(response.getBody()).doesNotContain("trackingNo", "FIX1000001", "tracks");
+        }
+        org.mockito.Mockito.verifyNoInteractions(shipments);
     }
 
     @Test
@@ -160,6 +175,11 @@ class ShipmentFlowIT {
         assertThat(view.path("orderId").asText()).isEqualTo("2000000000000302");
         assertThat(view.path("orderId").isTextual()).isTrue();
         assertThat(view.path("tracks").size()).isZero();
+
+        String owner = sessions.login(consumer(DEMO_TENANT, 2000000000000201L)).accessToken();
+        var ownResponse = get("/api/v1/orders/2000000000000302/shipment", owner);
+        assertThat(ownResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(data(ownResponse).path("status").asText()).isEqualTo("NOT_SHIPPED");
 
         // A consumer who does not own the order and a foreign-tenant staff both get the unified 404.
         String otherConsumer = sessions.login(consumer(DEMO_TENANT, 2000000000000202L)).accessToken();
