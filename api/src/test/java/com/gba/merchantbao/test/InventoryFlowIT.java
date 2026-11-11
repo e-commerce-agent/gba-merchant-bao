@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test") @Testcontainers @DirtiesContext
-@Sql(scripts = {"/db/fixture/auth_accounts.sql", "/db/fixture/inventory.sql"},
+@Sql(scripts = {"/db/fixture/auth_accounts.sql", "/db/fixture/product_catalog.sql", "/db/fixture/inventory.sql"},
         executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 class InventoryFlowIT {
     static { DockerRequired.check(); }
@@ -51,8 +51,8 @@ class InventoryFlowIT {
 
     private static final long DEMO_TENANT = 1000000000000001L;
     private static final long ISOLATION_TENANT = 1000000000000002L;
-    private static final long DEMO_SKU = 2000000000000902L;
-    private static final long ISOLATION_SKU = 2000000000000908L;
+    private static final long DEMO_SKU = 2600000000000301L;
+    private static final long ISOLATION_SKU = 2600000000000303L;
 
     @Autowired SessionService sessions;
     @Autowired TestRestTemplate http;
@@ -95,6 +95,7 @@ class InventoryFlowIT {
     @Test
     void concurrentReserveCannotOversellAvailableStock() throws Exception {
         String staff = token(2000000000000101L, DEMO_TENANT, AccountRole.MERCHANT_STAFF);
+        resetDemoStock();
 
         // available=10; two competing reservations of 7 each — exactly one may win.
         try (var executor = Executors.newFixedThreadPool(2)) {
@@ -184,5 +185,33 @@ class InventoryFlowIT {
                 Map.of("idempotentKey", "IT-BAD-1", "skuId", DEMO_SKU, "qty", 0));
         assertThat(invalid.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(envelope(invalid).get("code").asInt()).isEqualTo(13006);
+    }
+
+    @Test
+    void inventoryAndLedgerRequireSameMerchantCatalogSkuWithoutCascadeDelete() {
+        long ledgerSku = 2600000000000302L; // No stock row: the ledger FK must protect this SKU itself.
+        jdbc.update("INSERT INTO inventory_transaction (merchant_id, sku_id, biz_type, change_available, change_reserved, " +
+                        "before_available, after_available, before_reserved, after_reserved, operator_id) " +
+                        "VALUES (?, ?, 'ADJUST', 1, 0, 0, 1, 0, 0, 'schema-it')",
+                DEMO_TENANT, ledgerSku);
+        assertThat(org.assertj.core.api.Assertions.catchThrowable(() -> jdbc.update(
+                "INSERT INTO inventory (merchant_id,sku_id,available_qty,reserved_qty,version) VALUES (?,?,1,0,0)",
+                DEMO_TENANT, 999999999L))).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        assertThat(org.assertj.core.api.Assertions.catchThrowable(() -> jdbc.update(
+                "INSERT INTO inventory (merchant_id,sku_id,available_qty,reserved_qty,version) VALUES (?,?,1,0,0)",
+                ISOLATION_TENANT, DEMO_SKU))).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        assertThat(org.assertj.core.api.Assertions.catchThrowable(() -> jdbc.update(
+                "INSERT INTO inventory_transaction (merchant_id,sku_id,biz_type,change_available,change_reserved,before_available,after_available,before_reserved,after_reserved) " +
+                        "VALUES (?,?,'ADJUST',1,0,0,1,0,0)", DEMO_TENANT, 999999999L)))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        assertThat(org.assertj.core.api.Assertions.catchThrowable(() -> jdbc.update(
+                "INSERT INTO inventory_transaction (merchant_id,sku_id,biz_type,change_available,change_reserved,before_available,after_available,before_reserved,after_reserved) " +
+                        "VALUES (?,?,'ADJUST',1,0,0,1,0,0)", ISOLATION_TENANT, DEMO_SKU)))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        assertThat(org.assertj.core.api.Assertions.catchThrowable(() -> jdbc.update(
+                "DELETE FROM product_sku WHERE id=?", ledgerSku)))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory_transaction WHERE merchant_id=? AND sku_id=?",
+                Integer.class, DEMO_TENANT, ledgerSku)).isOne();
     }
 }

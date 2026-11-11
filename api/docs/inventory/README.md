@@ -26,8 +26,9 @@ envelope，业务错误码走 13xxx 段。
 
 ## Flyway 编号
 
-V8__inventory_tables.sql（编号已顺延：main 合入会话模块后占用 V5/R030，物流 V6 / 订单 V7 / 库存 V8）。暂无 devdata 演示数据——
-商品 SKU 种子未交付，待商品模块就绪后按 devdata 编号登记补种。
+`V7__inventory_tables.sql` 在商品目录 `V6__product_module.sql` 后创建库存结构，并用同商户复合外键引用 `product_sku`。dev 种子为 `R__050_inventory_demo.sql`，依赖 `R__040_product_demo.sql`；只初始化缺失库存，重跑不覆盖人工数量/version，也不创建库存流水。V1–V5 与 R010/R020/R030 保持冻结。
+
+库存及流水都用 `(merchant_id, sku_id)` 引用同商户 SKU，限制删除父 SKU，不级联删除流水。当前顺序只兼容新库及本地尚在 V5 的 dev 基线，不兼容已执行旧 V6–V9 布局的其他库。演示库存覆盖 SKU `2500000000000301–307/309`，含有货、缺货、预占和停售保留量；完整 ID 对照及补种步骤见 [dev 数据登记](../../src/main/resources/db/devdata/README.md)。
 
 ## 已知留待事项
 

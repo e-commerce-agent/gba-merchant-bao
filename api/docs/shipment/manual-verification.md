@@ -4,7 +4,7 @@
 
 ## 1. 启动与迁移
 
-1. 启动 API：Flyway 应依次执行 V1–V7，并加载 R__010/R__020/R__030/R__040/R__050（V5/R030 属会话模块）。
+1. 启动 API：Flyway 应依次执行 V1–V9；V1–V5 为冻结基线，之后依次为商品 V6、库存 V7、订单 V8、物流 V9。dev seeds 为 R010 租户、R020 账号、R030 会话、R040 商品、R050 库存、R060 订单、R070 物流。
 2. 确认日志无迁移报错；`shipment`、`shipment_track` 表存在且含演示数据。
 
 ```sql
@@ -93,12 +93,12 @@ mvn -f api/pom.xml clean verify   # 单元测试 + 全部 IT（failsafe）
 ```
 
 - `ShipmentQueryServiceTest` / `ShipmentServiceTokenInterceptorTest`：纯单元，无需 Docker。
-- `ShipmentSchemaIT`：V6 DDL 约束（一单一运单、运单号租户内唯一、状态闭合、商户外键、轨迹幂等唯一）。
+- `ShipmentSchemaIT`：V9 DDL 约束（一单一运单、运单号租户内唯一、状态闭合、同商户订单/运单复合外键、轨迹幂等唯一）。
 - `ShipmentFlowIT`：REST 授权契约全场景。
 - `ShipmentSoapIT`：WSDL 可达、凭证门禁、往返摘要、NOT_FOUND、REST 链路不受影响。
 
 ## 6. 已接入的能力与剩余限制
 
 1. 订单归属授权已接入 `OrderBackedOrderAccessGuard`：消费者仅本人订单、员工限本商户；越权与不存在同为 404/10004。无运单记录的订单返回 200 + `NOT_SHIPPED`（服务合成，不落库）。
-2. 商品/SKU 模块未接入：订单项的 `product_id`/`sku_id` 仅为追溯引用，无外键与商品快照校验。
-3. Flyway 编号：物流 V6/R040（main 的 V5/R030 已被会话模块占用）、订单 V7/R050、库存 V8，按分支栈顺序落地。
+2. 商品/SKU 通过 V8 订单项复合外键和同商户关系约束；订单服务仍读取订单项成交快照。
+3. Flyway 编号：商品 V6/R040、库存 V7/R050、订单 V8/R060、物流 V9/R070；本地 V5 基线之后按依赖执行。

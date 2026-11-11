@@ -17,7 +17,8 @@ import java.util.*;
 public final class DevSeedUpgrade {
     public static final Set<String> OLD = Set.of("R__local_test_tenants.sql", "R__auth_demo_accounts.sql");
     public static final Set<String> NEW = Set.of("R__010_local_test_tenants.sql", "R__020_auth_demo_accounts.sql",
-            "R__030_chat_demo.sql", "R__040_shipment_demo_data.sql", "R__050_order_demo_orders.sql");
+            "R__030_chat_demo.sql", "R__040_product_demo.sql", "R__050_inventory_demo.sql",
+            "R__060_order_demo_orders.sql", "R__070_shipment_demo_data.sql");
     public static final String[] LOCATIONS = {"classpath:db/migration", "classpath:db/seed/common",
             "classpath:db/seed/nonprod", "classpath:db/devdata"};
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -54,6 +55,13 @@ public final class DevSeedUpgrade {
                     throw rejected("Stale runtime migration resources; remove old build output and rebuild");
             }
         }
+        for (String stale : List.of("db/migration/V6__shipment_tables.sql", "db/migration/V7__order_tables.sql",
+                "db/migration/V8__inventory_tables.sql", "db/migration/V9__product_module.sql",
+                "db/devdata/R__040_shipment_demo_data.sql", "db/devdata/R__050_order_demo_orders.sql",
+                "db/devdata/R__060_product_demo.sql")) {
+            if (DevSeedUpgrade.class.getClassLoader().getResource(stale) != null)
+                throw rejected("Stale runtime migration resources; remove old build output and rebuild");
+        }
         var flyway = flyway();
         Set<String> versions = new TreeSet<>();
         Set<String> pendingVersions = new TreeSet<>();
@@ -67,12 +75,27 @@ public final class DevSeedUpgrade {
             String script = info.getScript();
             if (info.getVersion() != null) {
                 String version = info.getVersion().getVersion();
+                String expectedScript = switch (version) {
+                    case "1" -> "V1__legacy_schema_baseline.sql";
+                    case "2" -> "V2__merchant_tenant_root.sql";
+                    case "3" -> "V3__merchant_currency_compatibility.sql";
+                    case "4" -> "V4__auth_accounts.sql";
+                    case "5" -> "V5__agent_conversation.sql";
+                    case "6" -> "V6__product_module.sql";
+                    case "7" -> "V7__inventory_tables.sql";
+                    case "8" -> "V8__order_tables.sql";
+                    case "9" -> "V9__shipment_tables.sql";
+                    default -> null;
+                };
+                if (expectedScript == null || !expectedScript.equals(script))
+                    throw rejected("Unexpected versioned migration script for V" + version);
                 boolean knownPending = (state == MigrationState.PENDING
                         && ("4".equals(version) && "V4__auth_accounts.sql".equals(script)
                         || "5".equals(version) && "V5__agent_conversation.sql".equals(script)
-                        || "6".equals(version) && "V6__shipment_tables.sql".equals(script)
-                        || "7".equals(version) && "V7__order_tables.sql".equals(script)
-                        || "8".equals(version) && "V8__inventory_tables.sql".equals(script)));
+                        || "6".equals(version) && "V6__product_module.sql".equals(script)
+                        || "7".equals(version) && "V7__inventory_tables.sql".equals(script)
+                        || "8".equals(version) && "V8__order_tables.sql".equals(script)
+                        || "9".equals(version) && "V9__shipment_tables.sql".equals(script)));
                 if (knownPending) pendingVersions.add(version);
                 else if (state != MigrationState.SUCCESS || !versions.add(version))
                     throw rejected("Unexpected versioned migration state");
@@ -89,13 +112,14 @@ public final class DevSeedUpgrade {
                 else throw rejected("New repeatable is not Pending or Success");
             } else throw rejected("Unknown migration outside the rename allowlist");
         }
-        if (!(versions.equals(Set.of("1", "2", "3", "4", "5", "6", "7", "8")) && pendingVersions.isEmpty())
-                && !(versions.equals(Set.of("1", "2", "3", "4", "5", "6", "7")) && pendingVersions.equals(Set.of("8")))
-                && !(versions.equals(Set.of("1", "2", "3", "4", "5", "6")) && pendingVersions.equals(Set.of("7", "8")))
-                && !(versions.equals(Set.of("1", "2", "3", "4", "5")) && pendingVersions.equals(Set.of("6", "7", "8")))
-                && !(versions.equals(Set.of("1", "2", "3", "4")) && pendingVersions.equals(Set.of("5", "6", "7", "8")))
-                && !(versions.equals(Set.of("1", "2", "3")) && pendingVersions.equals(Set.of("4", "5", "6", "7", "8"))))
-            throw rejected("Expected successful V1 through V8, or a supported historical V3/V4/V5/V6/V7 database with only the next pending");
+        if (!(versions.equals(Set.of("1", "2", "3", "4", "5", "6", "7", "8", "9")) && pendingVersions.isEmpty())
+                && !(versions.equals(Set.of("1", "2", "3", "4", "5", "6", "7", "8")) && pendingVersions.equals(Set.of("9")))
+                && !(versions.equals(Set.of("1", "2", "3", "4", "5", "6", "7")) && pendingVersions.equals(Set.of("8", "9")))
+                && !(versions.equals(Set.of("1", "2", "3", "4", "5", "6")) && pendingVersions.equals(Set.of("7", "8", "9")))
+                && !(versions.equals(Set.of("1", "2", "3", "4", "5")) && pendingVersions.equals(Set.of("6", "7", "8", "9")))
+                && !(versions.equals(Set.of("1", "2", "3", "4")) && pendingVersions.equals(Set.of("5", "6", "7", "8", "9")))
+                && !(versions.equals(Set.of("1", "2", "3")) && pendingVersions.equals(Set.of("4", "5", "6", "7", "8", "9"))))
+            throw rejected("Expected successful V1 through V9 or a supported V3/V4/V5 baseline with only its approved versioned suffix pending");
         if (pendingVersions.contains("4") && knownOldAccounts)
             throw rejected("Historical auth seed without successful V4 is not a supported V3 database");
         var validation = flyway.validateWithResult();
@@ -111,12 +135,13 @@ public final class DevSeedUpgrade {
                 boolean approvedPendingVersion = "RESOLVED_VERSIONED_MIGRATION_NOT_APPLIED".equals(invalid.errorDetails.errorCode.toString())
                         && (("4".equals(invalid.version) && "auth accounts".equals(invalid.description))
                         || ("5".equals(invalid.version) && "agent conversation".equals(invalid.description))
-                        || ("6".equals(invalid.version) && "shipment tables".equals(invalid.description))
-                        || ("7".equals(invalid.version) && "order tables".equals(invalid.description))
-                        || ("8".equals(invalid.version) && "inventory tables".equals(invalid.description)))
+                        || ("6".equals(invalid.version) && "product module".equals(invalid.description))
+                        || ("7".equals(invalid.version) && "inventory tables".equals(invalid.description))
+                        || ("8".equals(invalid.version) && "order tables".equals(invalid.description))
+                        || ("9".equals(invalid.version) && "shipment tables".equals(invalid.description)))
                         && pendingVersions.contains(invalid.version);
                 if (!approvedMissing && !approvedPending && !approvedPendingVersion)
-                    throw rejected("Validation differs from the two approved repeatable renames");
+                    throw rejected("Validation differs from the approved historical R rename and pending migration allowlist");
             }
         }
         boolean complete = retire.isEmpty() && pending.isEmpty() && pendingVersions.isEmpty() && successful.equals(NEW);

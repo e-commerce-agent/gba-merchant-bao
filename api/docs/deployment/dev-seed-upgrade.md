@@ -1,10 +1,10 @@
 # 开发种子数字前缀与一次性历史升级
 
-正常运行使用 `R__010_local_test_tenants.sql`（dev/test）、`R__020_auth_demo_accounts.sql` 和 `R__030_chat_demo.sql`（后两者仅 dev），不保留旧名空文件，不使用 AFTER_MIGRATE 回调。V1–V4 不改，会话结构由新增 V5 提供。首次启动空库先执行所有 V，再按 R 的描述排序执行 010、020、030，locations 的排列不代表依赖。
+正常运行使用 `R__010_local_test_tenants.sql`（dev/test）、`R__020_auth_demo_accounts.sql` 和 `R__030_chat_demo.sql`（后两者仅 dev），以及 dev 专用 R040 商品、R050 库存、R060 订单、R070 物流。V1–V5 与 R010/R020/R030 是已执行基线，内容和摘要不变。首次启动空库先执行所有 V，再按 R 的描述排序；locations 的排列不代表依赖。
 
 租户和账号只插缺失记录，保留密码、停用状态、名称及其他人工资料。预期租户缺失、固定 ID/编码/用户名/手机号/商户归属冲突时，在写入前通过名为 `dev_seed_*` 的 NOT NULL 临时校验列报错，错误列名说明具体问题；临时表只存在于当前连接，不创建永久业务表或过程。不要用 INSERT IGNORE 或覆盖式 upsert 隐藏问题。
 
-编号统一登记在 `src/main/resources/db/devdata/README.md`。后续模块实现时再按依赖分配三位编号，不提前创建业务表；新 V 不得依赖 R 数据。R 仅首次或校验和变化时执行，上游变化不触发未变化的下游，手工删数据后普通重启也不补回。若确需补种，停相关写入、备份、核验依赖和身份后显式执行对应 SQL，再核验；不要改 history 或给脚本加入时间戳强制每次执行。
+编号统一登记在 `src/main/resources/db/devdata/README.md`。V6–V9 按商品、库存、订单、物流排序；R040–R070 依次种入商品目录、库存、订单成交快照和物流。维护工具核对精确文件名和 Flyway description，并拒绝旧 V6–V9 布局或未知迁移；R050 只补缺失库存，不覆盖人工数量/version 或生成库存流水。R 仅首次或校验和变化时由 Flyway 执行，上游变化不触发未变化的下游，手工删数据后普通重启也不补回。若确需补种，停相关写入、备份、核验依赖和身份后显式执行对应 SQL，再核验；不要改 history 或给脚本加入时间戳强制每次执行。
 
 ## 适用边界
 
@@ -14,7 +14,7 @@
 
 独立入口 `com.gba.merchantbao.maintenance.DevSeedUpgrade` 不被 Spring 自动扫描为组件。应用与工具统一 Flyway 11.7.2，工具固定完整 dev locations。数据库允许目标为 loopback 的 gba_dev；`gba_seed_it_<hex>` 仅用于隔离验证。其他目标、未知缺失、失败、V 校验和变化、未知待迁移或新 R 已改写均阻断。
 
-Agent 持久化增加 V5/R030、物流模块追加 V6/R040 后，维护工具的显式白名单相应增加这四份脚本：支持成功 V1–V6，或历史 V5 仅待 V6，或历史 V4 仅待 V5/V6，或历史 V3 待 V4/V5/V6。改名 repair 仍只针对两份已知旧 R，之后按审阅计划执行四份新 R 和明确待执行的 V；不放行任意未来版本或未知 R。已经使用 010/020 的正常 V4 库通过普通 migrate 增量应用 V5/V6 与 R030/R040，无需执行改名 repair。历史旧 SQL 测试固定 target=4，避免把未来表结构当成历史快照。
+DevSeedUpgrade 按精确 V1–V9 脚本名和 R010–R070 repeatable 白名单检查布局，允许受支持的 V3/V4/V5 前缀逐级补齐当前 V9 结构。它只对已登记旧 R 执行显式受控 repair，不自动修复，也不在应用常规启动时补种。已应用的旧 V6–V9 脚本名与当前布局不同，工具会拒绝；其他数据库不属于本次兼容范围。历史旧 SQL 测试固定 target=4，避免把未来表结构当成历史快照。
 
 ## 人工维护清单
 
@@ -26,26 +26,26 @@ Agent 持久化增加 V5/R030、物流模块追加 V6/R040 后，维护工具的
    ./api/docs/deployment/dev-seed-upgrade.ps1 -ReportDirectory "A:/work/project/ElectricBusiness/backups/dev-seed-实际日期时间"
    ```
 
-   若 docker 不在 PATH，显式追加 `-DockerExecutable '<实际 docker.exe 路径>'`。脚本编译维护入口并构建依赖 classpath，不运行应用或完整测试；它仅删除 target/classes 下四个确切的旧生成文件，避免 Maven 保留改名资源。不会执行 Maven clean。
+   若 docker 不在 PATH，显式追加 `-DockerExecutable '<实际 docker.exe 路径>'`。脚本编译维护入口并构建依赖 classpath，不运行应用或完整测试；它只删除 target/classes 下列明的旧 R/V 资源及认证旧生成类，避免 Maven 保留改名资源。不会执行 Maven clean。
 
 4. Check 核对 history 后，导出 `before.sql`（结构＋数据＋routines/events/triggers＋history），在新建、随机端口、无真实卷的临时 MySQL 恢复，逐表核对全部原行的 SHA-256 与完整迁移历史。只清理带专用 label 的本次临时容器及其匿名卷。核对以下文件，不外传实际备份：
 
    | 文件 | 用途 |
    | --- | --- |
-   | review.json | 目标库、旧 R 退役白名单、新 R Pending 集合、pendingVersions（空或仅 "4"） |
+| review.json | 目标库、旧 R 退役白名单、七份新 R Pending 集合、pendingVersions（空或 V4–V9 内的连续剩余后缀） |
    | history-before.json | 实际旧迁移历史，不含连接凭据 |
    | rows-before.json | 每表每主键与整行摘要，不写原始行值 |
    | before.sql | 完整备份，含凭证摘要及业务隐私，仅保存在忽略目录 |
    | restore-evidence.json | 该备份 SHA-256、随机隔离恢复库及验证时间 |
 
-5. 人工 Review：V1–V4 全部 Success，或 V1–V3 Success 且仅固定 `V4__auth_accounts.sql` Pending（B 分支，报告必须明确列出 pendingVersions=["4"]）；旧名租户 R 必须有真实历史，账号旧 R 可有可无；实际旧名 R Missing、新名 010/020 Pending。V3 分支不能把账号旧 R 已执行却表不存在等异常当正常。新空库无需用此工具。如果存在未知差异，停止调查，不能扩大忽略规则或直接 repair。
+5. 人工 Review：V1 起连续 Success，至少到 V3，最高到当前 V9；pendingVersions 必须精确列出剩余的 V4–V9 连续后缀及新脚本名。旧名租户 R 必须有真实历史，账号旧 R 可有可无；实际旧名 R Missing、全部七份新 R010–R070 Pending。V3 分支不能把账号旧 R 已执行却表不存在等异常当正常。新空库、仅有正常数字编号 R 的 V5 dev 库不使用此旧名 R 工具，按正常 migrate/validate 升级。已执行旧 V6–V9 布局或存在未知差异时停止调查，不能扩大忽略规则或直接 repair。
 6. 报告和恢复验证通过后，仍在停写窗口显式执行：
 
    ```powershell
    ./api/docs/deployment/dev-seed-upgrade.ps1 -Mode Execute -MaintenanceConfirmed -ReportDirectory "A:/work/project/ElectricBusiness/backups/dev-seed-实际日期时间"
    ```
 
-   Execute 重新检查目标、连接、迁移集合、已存在业务行以及备份 hash 对应的恢复证据。repair 仅针对已核验旧 R，校验没有额外对齐或失败清理；再 migrate（B 分支先补 V4，再 010/020，共三项；V4 已成功则只有两个新 R）、validate，并逐行确认已有数据未改写。旧历史保留，追加 DELETE 退役标记，新名按真实执行登记。Deleted 不删除业务数据；新 R 必须真正执行，不能伪造为已应用。
+   Execute 重新检查目标、连接、迁移集合、已存在业务行以及备份 hash 对应的恢复证据。repair 仅针对已核验旧 R，校验没有额外对齐或失败清理；再 migrate（精确执行 pendingVersions 后缀，再执行七份 R010–R070）、validate，并逐行确认已有数据未改写。V3 基线为六份 V 加七份 R，共十三项；V4 基线为五份 V 加七份 R，共十二项。旧历史保留，追加 DELETE 退役标记，新名按真实执行登记。Deleted 不删除业务数据；新 R 必须真正执行，不能伪造为已应用。
 7. 查看 `history-after.json`、`result.json`（备份 SHA-256、完成时间和保留结果）；核对租户/账号及人工数据。完成后不混跑旧迁移包。工具再次 Check 显示 complete；无差异重入 Execute 不重复 repair，但仍需对应检查及备份证据。
 8. IDEA 激活 dev 或 AI 在 api 下执行 `mvn spring-boot:run '-Dspring-boot.run.profiles=dev'`。确认新 API 就绪、演示账号登录正常，再重启一次确认无新增种子执行或人工数据变化。账号曾改密码/停用时按现状验证，不强制重置。
 
@@ -56,7 +56,7 @@ Agent 持久化增加 V5/R030、物流模块追加 V6/R040 后，维护工具的
 隔离验收运行：
 
 ```powershell
-mvn -f api/pom.xml '-Dtest=DevSeedMigrationIT,FlywayMigrationIT,AuthDevManualIT,FoundationApplicationIT,FoundationSchemaContractTest,MigrationScriptContractTest,RuntimeConfigurationTest' test
+mvn -f api/pom.xml clean verify '-Dtest=MigrationScriptContractTest' '-Dit.test=DevSeedMigrationIT'
 ```
 
 覆盖空库顺序、旧租户 R/两份旧 R 两个升级分支、历史保留与 Deleted、账号密码/状态/人工修改、显式补种、缺依赖/身份冲突、未知迁移/失败/校验和拦截、备份恢复、CLI 确认门槛和并发独立 Flyway。测试只连接自己的随机端口容器，不操作 gba-dev 卷；Docker 不可用失败，报告仅在 target。实际开发库维护记录单独留在 backups，并将无秘密的结果摘要记录到本说明关联的交付记录。

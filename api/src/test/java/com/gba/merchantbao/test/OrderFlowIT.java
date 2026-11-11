@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test") @Testcontainers @DirtiesContext
-@Sql(scripts = {"/db/fixture/auth_accounts.sql", "/db/fixture/orders.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
+@Sql(scripts = {"/db/fixture/auth_accounts.sql", "/db/fixture/product_catalog.sql", "/db/fixture/orders.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 class OrderFlowIT {
     static { DockerRequired.check(); }
     @Container static final MySQLContainer<?> MYSQL = new MySQLContainer<>("mysql:8.0.34")

@@ -6,7 +6,8 @@ CREATE TEMPORARY TABLE dev_seed_product_guard (
   dev_seed_missing_M_ISOLATION_TEST INT NOT NULL,
   dev_seed_category_name_conflict INT NOT NULL,
   dev_seed_product_code_conflict INT NOT NULL,
-  dev_seed_sku_code_conflict INT NOT NULL
+  dev_seed_sku_code_conflict INT NOT NULL,
+  dev_seed_product_identity_conflict INT NOT NULL
 );
 INSERT INTO dev_seed_product_guard
 SELECT
@@ -52,6 +53,77 @@ SELECT
     ) s JOIN merchant m ON m.merchant_code = s.code
     WHERE k.merchant_id = m.id AND k.sku_code = s.sku_code
       AND k.id NOT BETWEEN 2500000000000301 AND 2500000000000309
+  ) THEN NULL ELSE 1 END,
+  CASE WHEN EXISTS (
+    SELECT 1 FROM product_category c
+    JOIN (
+      SELECT 2500000000000101 AS id, 'M_3C_DEMO' AS code, NULL AS parent_id, '充电器' AS name UNION ALL
+      SELECT 2500000000000102, 'M_3C_DEMO', NULL, '数据线' UNION ALL
+      SELECT 2500000000000103, 'M_3C_DEMO', NULL, '耳机' UNION ALL
+      SELECT 2500000000000104, 'M_3C_DEMO', 2500000000000101, '车载充电器' UNION ALL
+      SELECT 2500000000000105, 'M_ISOLATION_TEST', NULL, '对照分类'
+    ) expected ON expected.id = c.id
+    JOIN merchant m ON m.merchant_code = expected.code
+    WHERE c.merchant_id <> m.id OR c.name <> expected.name
+       OR COALESCE(c.parent_id, 0) <> COALESCE(expected.parent_id, 0)
+    UNION ALL
+    SELECT p.id FROM product p
+    JOIN (
+      SELECT 2500000000000201 AS id, 'M_3C_DEMO' AS code, 'P-CHG-65W' AS product_code, 2500000000000101 AS category_id UNION ALL
+      SELECT 2500000000000202, 'M_3C_DEMO', 'P-CBL-USBC', 2500000000000102 UNION ALL
+      SELECT 2500000000000203, 'M_3C_DEMO', 'P-EAR-TWS', 2500000000000103 UNION ALL
+      SELECT 2500000000000204, 'M_3C_DEMO', 'P-CHG-MAG', 2500000000000101 UNION ALL
+      SELECT 2500000000000205, 'M_3C_DEMO', 'P-CHG-CAR', 2500000000000104 UNION ALL
+      SELECT 2500000000000206, 'M_ISOLATION_TEST', 'P-ISO-001', 2500000000000105
+    ) expected ON expected.id = p.id
+    JOIN merchant m ON m.merchant_code = expected.code
+    WHERE p.merchant_id <> m.id OR p.product_code <> expected.product_code
+       OR NOT (p.category_id <=> expected.category_id)
+    UNION ALL
+    SELECT k.id FROM product_sku k
+    JOIN (
+      SELECT 2500000000000301 AS id, 'M_3C_DEMO' AS code, 'SKU-CHG-65W-CN' AS sku_code, 2500000000000201 AS product_id UNION ALL
+      SELECT 2500000000000302, 'M_3C_DEMO', 'SKU-CHG-65W-EU', 2500000000000201 UNION ALL
+      SELECT 2500000000000303, 'M_3C_DEMO', 'SKU-CHG-65W-US', 2500000000000201 UNION ALL
+      SELECT 2500000000000304, 'M_3C_DEMO', 'SKU-CBL-USBC-1M-BK', 2500000000000202 UNION ALL
+      SELECT 2500000000000305, 'M_3C_DEMO', 'SKU-CBL-USBC-1M-WH', 2500000000000202 UNION ALL
+      SELECT 2500000000000306, 'M_3C_DEMO', 'SKU-CBL-USBC-2M-BK', 2500000000000202 UNION ALL
+      SELECT 2500000000000307, 'M_3C_DEMO', 'SKU-EAR-TWS-BK', 2500000000000203 UNION ALL
+      SELECT 2500000000000308, 'M_3C_DEMO', 'SKU-EAR-TWS-WH', 2500000000000203 UNION ALL
+      SELECT 2500000000000309, 'M_ISOLATION_TEST', 'SKU-ISO-001', 2500000000000206
+    ) expected ON expected.id = k.id
+    JOIN merchant m ON m.merchant_code = expected.code
+    WHERE k.merchant_id <> m.id OR k.sku_code <> expected.sku_code
+       OR k.product_id <> expected.product_id
+    UNION ALL
+    SELECT a.id FROM product_attribute a
+    JOIN (
+      SELECT 2500000000000401 AS id, 2500000000000201 AS product_id, '兼容机型' AS attr_name UNION ALL
+      SELECT 2500000000000402, 2500000000000201, '接口类型' UNION ALL
+      SELECT 2500000000000403, 2500000000000201, '快充协议' UNION ALL
+      SELECT 2500000000000404, 2500000000000201, '额定功率' UNION ALL
+      SELECT 2500000000000405, 2500000000000202, '接口类型' UNION ALL
+      SELECT 2500000000000406, 2500000000000202, '传输速率' UNION ALL
+      SELECT 2500000000000407, 2500000000000203, '降噪类型' UNION ALL
+      SELECT 2500000000000408, 2500000000000203, '蓝牙版本'
+    ) expected ON expected.id = a.id
+    JOIN merchant m ON m.merchant_code = 'M_3C_DEMO'
+    WHERE a.merchant_id <> m.id OR a.product_id <> expected.product_id
+       OR a.attr_name <> expected.attr_name
+    UNION ALL
+    SELECT a.id FROM product_attribute a
+    JOIN (
+      SELECT 2500000000000401 AS id, 2500000000000201 AS product_id, '兼容机型' AS attr_name UNION ALL
+      SELECT 2500000000000402, 2500000000000201, '接口类型' UNION ALL
+      SELECT 2500000000000403, 2500000000000201, '快充协议' UNION ALL
+      SELECT 2500000000000404, 2500000000000201, '额定功率' UNION ALL
+      SELECT 2500000000000405, 2500000000000202, '接口类型' UNION ALL
+      SELECT 2500000000000406, 2500000000000202, '传输速率' UNION ALL
+      SELECT 2500000000000407, 2500000000000203, '降噪类型' UNION ALL
+      SELECT 2500000000000408, 2500000000000203, '蓝牙版本'
+    ) expected ON expected.product_id = a.product_id AND expected.attr_name = a.attr_name
+    JOIN merchant m ON m.merchant_code = 'M_3C_DEMO'
+    WHERE a.merchant_id = m.id AND a.id <> expected.id
   ) THEN NULL ELSE 1 END;
 
 -- Categories: three 3C roots plus one second-level demo child, and one isolation tenant root.

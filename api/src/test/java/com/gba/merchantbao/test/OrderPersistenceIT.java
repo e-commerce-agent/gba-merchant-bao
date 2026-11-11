@@ -62,7 +62,7 @@ class OrderPersistenceIT {
     }
 
     @Test
-    @Sql({"/db/fixture/auth_accounts.sql", "/db/fixture/orders.sql"})
+    @Sql({"/db/fixture/auth_accounts.sql", "/db/fixture/product_catalog.sql", "/db/fixture/orders.sql"})
     void fixtureScopesStayInTenantAndOwnerBounds() {
         long demo = tenant("M_3C_DEMO"), isolated = tenant("M_ISOLATION_TEST");
         long consumer = 2000000000000201L, otherConsumer = 2000000000000202L;
@@ -86,7 +86,7 @@ class OrderPersistenceIT {
     }
 
     @Test
-    @Sql({"/db/fixture/auth_accounts.sql", "/db/fixture/orders.sql"})
+    @Sql({"/db/fixture/auth_accounts.sql", "/db/fixture/product_catalog.sql", "/db/fixture/orders.sql"})
     void serviceReturnsSnapshotDetailAnd404ForOutOfScopeOrMissingOrders() {
         long demo = tenant("M_3C_DEMO"), isolated = tenant("M_ISOLATION_TEST");
         var consumer = actor(2000000000000201L, demo, AccountRole.CONSUMER);
@@ -120,7 +120,7 @@ class OrderPersistenceIT {
     }
 
     @Test
-    @Sql({"/db/fixture/auth_accounts.sql", "/db/fixture/orders.sql"})
+    @Sql({"/db/fixture/auth_accounts.sql", "/db/fixture/product_catalog.sql", "/db/fixture/orders.sql"})
     void paginationHonoursLimitOffsetAndIsExplainable() throws Exception {
         long demo = tenant("M_3C_DEMO");
         var consumer = actor(2000000000000201L, demo, AccountRole.CONSUMER);
@@ -143,17 +143,40 @@ class OrderPersistenceIT {
     }
 
     @Test
-    @Sql("/db/fixture/auth_accounts.sql")
+    @Sql({"/db/fixture/auth_accounts.sql", "/db/fixture/product_catalog.sql"})
     void itemRowsCannotEscapeTheirOrderOrTenantByForeignKeys() {
         long demo = tenant("M_3C_DEMO"), isolated = tenant("M_ISOLATION_TEST");
         long orderId = 2000000000000901L, itemId = 2000000000000911L, customerId = 2000000000000201L;
         jdbc.update("INSERT INTO trade_order (id, merchant_id, order_no, customer_id, status, pay_status, total_amount, currency) " +
                         "VALUES (?, ?, 'ORD-FK', ?, 'COMPLETED', 'PAID', 10.00, 'CNY')",
                 orderId, demo, customerId);
+        jdbc.update("INSERT INTO trade_order_item (id, merchant_id, order_id, product_id, sku_id, product_name_snapshot, " +
+                        "sku_attrs_snapshot, unit_price, quantity, amount) VALUES (?, ?, ?, ?, ?, 'snapshot', '{}', 10.00, 1, 10.00)",
+                itemId, demo, orderId, 2600000000000201L, 2600000000000301L);
         assertThatThrownBy(() -> jdbc.update("INSERT INTO trade_order_item (id, merchant_id, order_id, product_id, sku_id, " +
-                        "product_name_snapshot, unit_price, quantity, amount) VALUES (?, ?, ?, 1, 1, 'x', 10.00, 1, 10.00)",
-                itemId, isolated, orderId))
+                        "product_name_snapshot, unit_price, quantity, amount) VALUES (?, ?, ?, ?, ?, 'mismatch', 10.00, 1, 10.00)",
+                itemId + 1, demo, orderId, 2600000000000202L, 2600000000000301L))
                 .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> jdbc.update("DELETE FROM product_sku WHERE id=?", 2600000000000301L))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM trade_order_item WHERE id=?", Integer.class, itemId)).isOne();
+        for (long[] catalog : new long[][] {
+                {2600000000000201L, 999999L},
+                {2600000000000203L, 2600000000000303L}}) {
+            assertThatThrownBy(() -> jdbc.update("INSERT INTO trade_order_item (id,merchant_id,order_id,product_id,sku_id,"
+                            + "product_name_snapshot,unit_price,quantity,amount) VALUES (?,?,?,?,?,'invalid catalog',10,1,10)",
+                    itemId + 3, demo, orderId, catalog[0], catalog[1]))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+        }
+        assertThatThrownBy(() -> jdbc.update("DELETE FROM trade_order WHERE id=?", orderId))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> jdbc.update("INSERT INTO trade_order_item (id, merchant_id, order_id, product_id, sku_id, " +
+                        "product_name_snapshot, unit_price, quantity, amount) VALUES (?, ?, ?, 2600000000000203, 2600000000000303, 'x', 10.00, 1, 10.00)",
+                itemId + 2, isolated, orderId))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> jdbc.update("INSERT INTO trade_order_item (id,merchant_id,order_id,product_id,sku_id,"
+                        + "product_name_snapshot,unit_price,quantity,amount) VALUES (?,?,999999,2600000000000201,2600000000000301,'orphan',10,1,10)",
+                itemId + 4, demo)).isInstanceOf(DataIntegrityViolationException.class);
         assertThatThrownBy(() -> jdbc.update("INSERT INTO trade_order (id, merchant_id, order_no, customer_id, status, " +
                         "pay_status, total_amount, currency) VALUES (?, ?, 'ORD-FK2', ?, 'COMPLETED', 'PAID', 10.00, 'CNY')",
                 2000000000000902L, demo, 2000000000000999L))
@@ -162,6 +185,35 @@ class OrderPersistenceIT {
                 .isInstanceOf(org.springframework.dao.NonTransientDataAccessException.class)
                 .hasMessageContaining("ck_trade_order_status");
         assertThat(orders.findById(demo, orderId).status()).isEqualTo("COMPLETED");
+    }
+
+    @Test
+    @Sql("/db/fixture/auth_accounts.sql")
+    void commerceFixturesCanBeLoadedAndCleanedTwiceWithForeignKeysEnabled() throws Exception {
+        var connection = org.springframework.jdbc.datasource.DataSourceUtils.getConnection(jdbc.getDataSource());
+        try {
+            for (int round = 0; round < 2; round++) {
+                for (String fixture : new String[]{"product_catalog", "inventory", "orders", "shipment"}) {
+                    org.springframework.jdbc.datasource.init.ScriptUtils.executeSqlScript(connection,
+                            new org.springframework.core.io.ClassPathResource("db/fixture/" + fixture + ".sql"));
+                }
+                assertThat(jdbc.queryForObject("SELECT @@FOREIGN_KEY_CHECKS", Integer.class)).isOne();
+                assertThat(items.findByOrder(tenant("M_3C_DEMO"), 2000000000000301L)).hasSize(2);
+                jdbc.update("DELETE FROM shipment_track WHERE id BETWEEN 4000000000000501 AND 4000000000000521");
+                jdbc.update("DELETE FROM shipment WHERE id BETWEEN 4000000000000401 AND 4000000000000403");
+                jdbc.update("DELETE FROM trade_order_item WHERE id BETWEEN 2000000000000311 AND 2000000000000314");
+                jdbc.update("DELETE FROM trade_order WHERE id BETWEEN 2000000000000301 AND 2000000000000304");
+                jdbc.update("DELETE FROM inventory WHERE sku_id BETWEEN 2600000000000301 AND 2600000000000303");
+                jdbc.update("DELETE FROM product_attribute WHERE id=2600000000000401");
+                jdbc.update("DELETE FROM product_sku WHERE id BETWEEN 2600000000000301 AND 2600000000000303");
+                jdbc.update("DELETE FROM product WHERE id BETWEEN 2600000000000201 AND 2600000000000203");
+                jdbc.update("DELETE FROM product_category WHERE id BETWEEN 2600000000000101 AND 2600000000000102");
+            }
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM consumer_account WHERE id BETWEEN 2000000000000201 AND 2000000000000203",
+                    Integer.class)).isEqualTo(3);
+        } finally {
+            org.springframework.jdbc.datasource.DataSourceUtils.releaseConnection(connection, jdbc.getDataSource());
+        }
     }
 
     // EXPLAIN the actual bound Mapper SQL, not a separately maintained imitation query.

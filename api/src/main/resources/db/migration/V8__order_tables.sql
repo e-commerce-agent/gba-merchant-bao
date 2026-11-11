@@ -49,6 +49,8 @@ CREATE TABLE `trade_order_item` (
   CONSTRAINT `fk_trade_order_item_merchant` FOREIGN KEY (`merchant_id`) REFERENCES `merchant` (`id`),
   CONSTRAINT `fk_trade_order_item_order` FOREIGN KEY (`merchant_id`, `order_id`)
     REFERENCES `trade_order` (`merchant_id`, `id`),
+  CONSTRAINT `fk_trade_order_item_product_sku` FOREIGN KEY (`merchant_id`, `product_id`, `sku_id`)
+    REFERENCES `product_sku` (`merchant_id`, `product_id`, `id`),
   CONSTRAINT `ck_trade_order_item_quantity` CHECK (`quantity` > 0),
   CONSTRAINT `ck_trade_order_item_amount` CHECK (`amount` >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

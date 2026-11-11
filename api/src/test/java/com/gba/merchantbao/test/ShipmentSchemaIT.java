@@ -11,7 +11,7 @@ import java.sql.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** Pure DDL contract check for V6__shipment_tables; no Spring context, manual transactions. */
+/** Pure DDL contract check for V9__shipment_tables; no Spring context, manual transactions. */
 @Testcontainers
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ShipmentSchemaIT {
@@ -32,6 +32,9 @@ class ShipmentSchemaIT {
             s.execute("INSERT INTO merchant (id, merchant_code, merchant_name, status) VALUES "
                     + "(1000000000000001, 'SCHEMA_T1', 'schema tenant one', 'ACTIVE'), "
                     + "(1000000000000002, 'SCHEMA_T2', 'schema tenant two', 'ACTIVE')");
+            s.execute("INSERT INTO consumer_account (id, merchant_id, phone) VALUES "
+                    + "(2000000000000001, 1000000000000001, '+8613800000001'), "
+                    + "(2000000000000002, 1000000000000002, '+8613800000002')");
         }
     }
 
@@ -53,10 +56,21 @@ class ShipmentSchemaIT {
 
     private void insertShipment(long id, long merchantId, long orderId, String status, String trackingNo) throws Exception {
         try (var ps = connection.prepareStatement(
+                "INSERT INTO trade_order (id, merchant_id, order_no, customer_id, status, pay_status, total_amount, currency) "
+                        + "VALUES (?,?,?,?,'SHIPPED','PAID',0,'CNY') ON DUPLICATE KEY UPDATE id=id")) {
+            ps.setLong(1, orderId);ps.setLong(2, merchantId);ps.setString(3, "SO-" + orderId);
+            ps.setLong(4, merchantId == 1000000000000001L ? 2000000000000001L : 2000000000000002L);
+            ps.executeUpdate();
+        }
+        insertShipmentOnly(id, merchantId, orderId, status, trackingNo);
+    }
+
+    private void insertShipmentOnly(long id, long merchantId, long orderId, String status, String trackingNo) throws Exception {
+        try (var ps = connection.prepareStatement(
                 "INSERT INTO shipment (id, merchant_id, order_id, order_no, status, carrier_name, tracking_no) "
                         + "VALUES (?,?,?,?,?,?,?)")) {
             ps.setLong(1, id);ps.setLong(2, merchantId);ps.setLong(3, orderId);
-            ps.setString(4, "SO-" + id);ps.setString(5, status);
+            ps.setString(4, "SO-" + orderId);ps.setString(5, status);
             ps.setString(6, "顺丰速运");ps.setString(7, trackingNo);
             ps.executeUpdate();
         }
@@ -90,12 +104,33 @@ class ShipmentSchemaIT {
                 .isInstanceOf(SQLException.class);
     }
 
+    @Test @Order(7)
+    void shipmentRequiresAnExistingOrderInTheSameMerchant() throws Exception {
+        assertThatThrownBy(() -> insertShipmentOnly(6061, 1000000000000001L, 7999, "IN_TRANSIT", "MISSING"))
+                .isInstanceOf(SQLException.class);
+        insertShipment(6062, 1000000000000002L, 7062, "IN_TRANSIT");
+        assertThatThrownBy(() -> insertShipmentOnly(6063, 1000000000000001L, 7062, "IN_TRANSIT", "FOREIGN"))
+                .isInstanceOf(SQLException.class);
+    }
+
+    @Test @Order(8)
+    void trackRequiresItsShipmentToBelongToTheSameMerchant() throws Exception {
+        insertShipment(6071, 1000000000000001L, 7071, "IN_TRANSIT");
+        try (var ps = connection.prepareStatement(
+                "INSERT INTO shipment_track (id, shipment_id, merchant_id, event_time, status, description) VALUES (?,?,?,?,?,?)")) {
+            ps.setLong(1, 6711);ps.setLong(2, 6071);ps.setLong(3, 1000000000000002L);
+            ps.setTimestamp(4, Timestamp.valueOf("2026-11-07 09:00:00"));
+            ps.setString(5, "IN_TRANSIT");ps.setString(6, "foreign tenant track");
+            assertThatThrownBy(ps::executeUpdate).isInstanceOf(SQLException.class);
+        }
+    }
+
     @Test @Order(5)
     void sameTrackingNumberAcrossTenantsIsAllowed() throws Exception {
-        insertShipment(6041, 1000000000000001L, 7041, "IN_TRANSIT");
-        insertShipment(6042, 1000000000000002L, 7041, "IN_TRANSIT");
+        insertShipment(6041, 1000000000000001L, 7041, "IN_TRANSIT", "SHARED-TRACKING");
+        insertShipment(6042, 1000000000000002L, 7042, "IN_TRANSIT", "SHARED-TRACKING");
         var count = connection.prepareStatement(
-                "SELECT COUNT(*) FROM shipment WHERE order_id = 7041");
+                "SELECT COUNT(*) FROM shipment WHERE tracking_no = 'SHARED-TRACKING'");
         try (var rs = count.executeQuery()) {rs.next();assertThat(rs.getLong(1)).isEqualTo(2);}
     }
 
@@ -111,6 +146,26 @@ class ShipmentSchemaIT {
             ps.executeUpdate();
             ps.setLong(1, 6512);
             assertThatThrownBy(ps::executeUpdate).isInstanceOf(SQLException.class);
+        }
+    }
+
+    @Test
+    void orphanTracksAndDeletingReferencedParentsAreRejected() throws Exception {
+        try (var statement = connection.createStatement()) {
+            assertThatThrownBy(() -> statement.executeUpdate("INSERT INTO shipment_track "
+                    + "(id,shipment_id,merchant_id,event_time,status,description) VALUES "
+                    + "(6801,9999,1000000000000001,'2026-11-07','IN_TRANSIT','orphan')"))
+                    .isInstanceOf(SQLException.class);
+            insertShipment(6081, 1000000000000001L, 7081, "IN_TRANSIT");
+            statement.executeUpdate("INSERT INTO shipment_track (id,shipment_id,merchant_id,event_time,status,description) "
+                    + "VALUES (6802,6081,1000000000000001,'2026-11-07','IN_TRANSIT','retained history')");
+            assertThatThrownBy(() -> statement.executeUpdate("DELETE FROM trade_order WHERE id=7081"))
+                    .isInstanceOf(SQLException.class);
+            assertThatThrownBy(() -> statement.executeUpdate("DELETE FROM shipment WHERE id=6081"))
+                    .isInstanceOf(SQLException.class);
+            try (var result = statement.executeQuery("SELECT COUNT(*) FROM shipment_track WHERE id=6802")) {
+                result.next(); assertThat(result.getInt(1)).isOne();
+            }
         }
     }
 }

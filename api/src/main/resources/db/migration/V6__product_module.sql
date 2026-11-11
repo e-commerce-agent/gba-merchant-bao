@@ -57,6 +57,7 @@ CREATE TABLE product_sku (
   updated_at DATETIME(3) NOT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uk_product_sku_merchant_id (merchant_id,id),
+  UNIQUE KEY uk_product_sku_merchant_product_id (merchant_id,product_id,id),
   UNIQUE KEY uk_product_sku_code (merchant_id,sku_code),
   KEY idx_product_sku_product_page (merchant_id,product_id,status,id),
   CONSTRAINT fk_product_sku_merchant FOREIGN KEY (merchant_id) REFERENCES merchant(id),

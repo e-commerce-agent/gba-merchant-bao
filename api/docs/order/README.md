@@ -25,17 +25,18 @@
 
 ## 数据设计
 
-`V7__order_tables.sql`（冻结字段以迁移脚本为准）：
+`V8__order_tables.sql`（V1–V5 冻结，V6 商品、V7 库存之后创建；冻结字段以迁移脚本为准）：
 
 - `trade_order`：`id`（Snowflake）、`merchant_id`、`order_no`（ASCII）、`customer_id`（= `consumer_account.id`）、`status`（`PENDING_PAYMENT/PENDING_SHIPMENT/SHIPPED/COMPLETED/CANCELLED`）、`pay_status`（`UNPAID/PAID/REFUNDING/REFUNDED`）、`total_amount`、`paid_amount`（可空，未支付为 NULL）、`currency`（默认 CNY）、`placed_at`、`created_at/updated_at/version`。
-- `trade_order_item`：`id`、`merchant_id`、`order_id`、`product_id/sku_id`（仅溯源引用，不设外键到商品表，商品表由商品模块交付）、`product_name_snapshot`、`sku_attrs_snapshot`（JSON 文本）、`unit_price`、`quantity`、`amount`。
+- `trade_order_item`：`id`、`merchant_id`、`order_id`、`product_id/sku_id`、`product_name_snapshot`、`sku_attrs_snapshot`（JSON 文本）、`unit_price`、`quantity`、`amount`。复合外键保证 SKU 与同一商户的 product_id 配对；历史查询继续读取成交快照。
 - 索引：`(merchant_id, order_no)` 唯一（订单号租户内唯一，也支撑隔离租户复用同号）；`(merchant_id, id)` 唯一（资源定位 + 组合外键目标）；`(merchant_id, customer_id, placed_at)` 支撑本人订单列表；`(merchant_id, order_id)` 支撑订单项装载。
 - 组合外键 `(merchant_id, order_id)`、`(merchant_id, customer_id)` 在数据库层兜底跨租户引用，CHECK 约束限定状态与金额非负。
 
 ## 演示数据
 
-- devdata：`R__050_order_demo_orders.sql`（编号 050 已按 devdata README 登记）。样板 3C 租户 6 单（覆盖全部履约状态与退款态，含一名第二名消费者订单），隔离租户 1 单（复用同号 DEV-2026-0001，验证租户隔离）。仅在缺失时插入，稳定 ID 21000000000003xx。
-- 测试：`src/test/resources/db/fixture/orders.sql`（稳定 ID 20000000000003xx），由 `@Sql` 显式加载，依赖 `auth_accounts.sql` 的租户/消费者/员工。
+- devdata：`R__060_order_demo_orders.sql` 依赖 R040 商品；六个 3C 租户订单及一个隔离租户订单的 8 条订单项引用同商户真实 SKU。只补缺失，不覆盖成交快照。
+- 订单项到商品/SKU 的引用限制删除父 SKU，不级联删除历史快照；当前迁移仅支持新库及本地 V5 基线，已执行旧 V6–V9 的其他库不兼容。八项稳定 ID 及受控补种步骤见 [dev 数据登记](../../src/main/resources/db/devdata/README.md)。
+- 测试：`src/test/resources/db/fixture/orders.sql`（稳定 ID 20000000000003xx），由 `@Sql` 显式加载，依赖 auth 和 `product_catalog.sql`（独立 260... SKU 空间）。
 
 ## 测试
 

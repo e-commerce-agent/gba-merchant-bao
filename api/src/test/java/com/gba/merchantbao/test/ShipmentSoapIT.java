@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test") @Testcontainers @DirtiesContext
-@Sql(scripts = {"/db/fixture/auth_accounts.sql", "/db/fixture/shipment.sql"},
+@Sql(scripts = {"/db/fixture/auth_accounts.sql", "/db/fixture/product_catalog.sql", "/db/fixture/orders.sql", "/db/fixture/shipment.sql"},
         executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 class ShipmentSoapIT {
     static {DockerRequired.check();}
@@ -106,7 +106,7 @@ class ShipmentSoapIT {
 
     @Test
     void missingCredentialIsRejected() {
-        var response = soap("queryShipmentByOrderNo", envelope(null, "M_3C_DEMO", "FIX-0401"));
+        var response = soap("queryShipmentByOrderNo", envelope(null, "M_3C_DEMO", "DEV-2026-0903"));
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody()).contains("Fault");
         assertThat(response.getBody()).contains("invalid service credential");
@@ -114,21 +114,21 @@ class ShipmentSoapIT {
 
     @Test
     void wrongCredentialIsRejected() {
-        var response = soap("queryShipmentByOrderNo", envelope("bad-token", "M_3C_DEMO", "FIX-0401"));
+        var response = soap("queryShipmentByOrderNo", envelope("bad-token", "M_3C_DEMO", "DEV-2026-0903"));
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody()).contains("invalid service credential");
     }
 
     @Test
     void validCredentialReturnsShipmentSummary() throws Exception {
-        var response = soap("queryShipmentByOrderNo", envelope("soap-it-service-token", "M_3C_DEMO", "FIX-0401"));
+        var response = soap("queryShipmentByOrderNo", envelope("soap-it-service-token", "M_3C_DEMO", "DEV-2026-0903"));
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         Document document = parse(response.getBody());
         // Wrapper children are doc/literal wrapped: namespace-agnostic lookup keeps the
         // assertions focused on payload values rather than element-form qualifiers.
         var status = document.getElementsByTagNameNS("*", "status").item(0).getTextContent();
         assertThat(status).isEqualTo("IN_TRANSIT");
-        assertThat(document.getElementsByTagNameNS("*", "orderNo").item(0).getTextContent()).isEqualTo("FIX-0401");
+        assertThat(document.getElementsByTagNameNS("*", "orderNo").item(0).getTextContent()).isEqualTo("DEV-2026-0903");
         assertThat(document.getElementsByTagNameNS("*", "trackingNo").item(0).getTextContent()).isEqualTo("FIX1000001");
         assertThat(document.getElementsByTagNameNS("*", "track").getLength()).isEqualTo(2);
     }
@@ -138,7 +138,7 @@ class ShipmentSoapIT {
         var missing = soap("queryShipmentByOrderNo", envelope("soap-it-service-token", "M_3C_DEMO", "no-such-order"));
         assertThat(missing.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(missing.getBody()).contains("NOT_FOUND");
-        var foreign = soap("queryShipmentByOrderNo", envelope("soap-it-service-token", "M_ISOLATION_TEST", "FIX-0401"));
+        var foreign = soap("queryShipmentByOrderNo", envelope("soap-it-service-token", "M_ISOLATION_TEST", "DEV-2026-0903"));
         assertThat(foreign.getBody()).contains("NOT_FOUND");
     }
 

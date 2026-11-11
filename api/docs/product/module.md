@@ -6,8 +6,8 @@
 
 - change：`openspec/changes/add-product-module/`
 - 缓存：`product/cache/ProductCacheStore`（Redis，公开读路径；写操作 O(1) 版本失效）
-- 迁移：`db/migration/V8__product_module.sql`
-- dev 演示数据：`db/devdata/R__050_product_demo.sql`（仅 dev；编号 050，依赖 010/020）
+- 迁移：`db/migration/V6__product_module.sql`（V1–V5 冻结）
+- dev 演示数据：`db/devdata/R__040_product_demo.sql`（仅 dev；依赖 R010 租户）
 - 测试 fixture：`src/test/resources/db/fixture/product_catalog.sql`（`@Sql` 显式加载）
 
 ## 数据模型
@@ -18,6 +18,8 @@
 | product | 商品/SPU，状态 DRAFT/PUBLISHED/UNPUBLISHED/DISCONTINUED | `(merchant_id,product_code)` 唯一 |
 | product_sku | SKU，状态 ACTIVE/DISCONTINUED | `(merchant_id,sku_code)` 唯一；`price DECIMAL(12,2) >= 0`；组合规格存 `attributes_json` |
 | product_attribute | 可筛选/兼容性属性，一属性名一行，多值分号分隔 | `(merchant_id,product_id,attr_name)` 唯一 |
+
+V7 库存及 V8 订单项通过同商户复合外键引用 SKU；订单项外键还保证 SKU 属于所记录的 product_id。复合外键不替代领域服务的状态、权限及商户归属校验，历史订单展示只读取持久化成交快照。外键限制父记录删除，不级联删除成交快照或库存流水。
 
 规则：结构化筛选属性存 `product_attribute`；SKU 展示组合存 `attributes_json`；不建专用列，不把全部属性塞 JSON；价格定点小数禁浮点；停售商品自动停售其全部 ACTIVE SKU；停售 SKU 不可恢复销售。
 

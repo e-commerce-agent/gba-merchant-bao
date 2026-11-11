@@ -1,7 +1,6 @@
 -- Inventory module tables: SKU stock with optimistic-lock version, stock transaction ledger
 -- and the idempotency table backing INSERT-based acquire.
--- Numbering: V8. The numbering shifted one place after main took V5/R030 for the
--- agent/conversation module: shipment V6, order V7, inventory V8.
+-- Numbering: V7, after product V6 and before order V8 and shipment V9.
 -- Primary keys stay AUTO_INCREMENT for this module; ids never leave the API as numbers.
 
 CREATE TABLE IF NOT EXISTS inventory (
@@ -15,7 +14,10 @@ CREATE TABLE IF NOT EXISTS inventory (
     update_time     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (id),
     UNIQUE KEY uk_merchant_sku (merchant_id, sku_id),
-    KEY idx_sku (sku_id)
+    KEY idx_sku (sku_id),
+    CONSTRAINT fk_inventory_merchant FOREIGN KEY (merchant_id) REFERENCES merchant (id),
+    CONSTRAINT fk_inventory_sku FOREIGN KEY (merchant_id, sku_id)
+        REFERENCES product_sku (merchant_id, id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'SKU库存表';
 
 CREATE TABLE IF NOT EXISTS inventory_transaction (
@@ -36,7 +38,10 @@ CREATE TABLE IF NOT EXISTS inventory_transaction (
     create_time      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '流水时间',
     PRIMARY KEY (id),
     KEY idx_merchant_sku_time (merchant_id, sku_id, create_time),
-    KEY idx_idempotent_key (idempotent_key)
+    KEY idx_idempotent_key (idempotent_key),
+    CONSTRAINT fk_inventory_transaction_merchant FOREIGN KEY (merchant_id) REFERENCES merchant (id),
+    CONSTRAINT fk_inventory_transaction_sku FOREIGN KEY (merchant_id, sku_id)
+        REFERENCES product_sku (merchant_id, id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '库存变动流水表';
 
 CREATE TABLE IF NOT EXISTS inventory_idempotent (
