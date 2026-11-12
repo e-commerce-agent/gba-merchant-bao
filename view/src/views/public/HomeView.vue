@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { Search, ArrowRight, ChatDotRound } from '@element-plus/icons-vue'
 import ProductCard from '@/components/ProductCard.vue'
 import { listPublicProducts } from '@/api/catalog'
+import { toCardModel } from '@/api/adapters'
 import type { ProductSummary } from '@/api/types'
 
 const router = useRouter()
@@ -50,8 +51,9 @@ const capabilities = [
 
 onMounted(async () => {
   try {
-    const res = await listPublicProducts({ pageSize: 4, sort: 'recommend' })
-    hotProducts.value = res.items
+    // 公开接口是游标分页（size 默认 20），首页取第一页前 8 个即可
+    const res = await listPublicProducts({ size: 8 })
+    hotProducts.value = res.items.slice(0, 8).map(toCardModel)
   } finally {
     loading.value = false
   }
@@ -62,8 +64,12 @@ function search() {
   router.push({ path: '/products', query: q ? { keyword: q } : {} })
 }
 
+/**
+ * 公开接口没有类目维度（分类查询参数需要登录态才能取到类目表），
+ * 首页的类目入口改为按关键词跳转，在已加载商品里过滤。
+ */
 function goCategory(name: string) {
-  router.push({ path: '/products', query: { category: name } })
+  router.push({ path: '/products', query: { keyword: name } })
 }
 </script>
 

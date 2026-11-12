@@ -1,57 +1,215 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
-import { Plus, Search } from '@element-plus/icons-vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus, Refresh, Search } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 import ProductThumb from '@/components/ProductThumb.vue'
-import StockBadge from '@/components/StockBadge.vue'
-import { listProducts, getProduct } from '@/api/catalog'
-import type { ProductDetail, ProductSummary, Sku } from '@/api/types'
-import { formatMoney } from '@/utils/format'
+import EmptyState from '@/components/EmptyState.vue'
+import {
+  getPublicProduct,
+  listCategories,
+  listProducts,
+  publishProduct,
+  unpublishProduct,
+  updateSku
+} from '@/api/catalog'
+import type { CategoryView, ProductStatus, ProductView, PublicProductView } from '@/api/types'
+import { thumbOf } from '@/utils/thumb'
+import { formatDateTime, formatMoney } from '@/utils/format'
+import { toNumber } from '@/api/adapters'
 
-const keyword = ref('')
-const list = ref<ProductSummary[]>([])
+const router = useRouter()
+
+/**
+ * 商品与 SKU（商户端）。
+ * 读：GET /v1/products（游标分页，员工可见全部状态）+ GET /v1/product-categories
+ * 写：POST /v1/products/{id}/publish|unpublish、PUT /v1/skus/{skuId}
+ * SKU 明细：契约未提供员工端「按商品列 SKU」接口，已发布商品复用公开详情
+ * （GET /v1/stores/{slug}/products/{id}，含 ACTIVE SKU），未发布商品提示先发布。
+ */
+const PAGE_SIZE = 20
+
+const items = ref<ProductView[]>([])
+const cursor = ref<string | undefined>()
+const hasMore = ref(false)
 const loading = ref(true)
-const total = ref(0)
-const skuCache = ref<Record<string, Sku[]>>({})
-const detailCache = ref<Record<string, ProductDetail>>({})
-const editing = ref<ProductDetail | null>(null)
-const drawerVisible = ref(false)
+const loadingMore = ref(false)
+const failed = ref('')
+const keyword = ref('')
+const activeStatus = ref<'ALL' | ProductStatus>('ALL')
 
-const onSaleCount = computed(() => list.value.filter((p) => p.status === 'ON_SALE').length)
-const lowStockCount = computed(
-  () => list.value.filter((p) => p.stockStatus === 'LOW_STOCK' || p.stockStatus === 'OUT_OF_STOCK').length
-)
+const categories = ref<CategoryView[]>([])
+const categoryNameOf = computed(() => {
+  const map = new Map<string, string>()
+  const walk = (list: CategoryView[]) => {
+    list.forEach((c) => {
+      map.set(c.categoryId, c.name)
+      if (c.children?.length) walk(c.children)
+    })
+  }
+  walk(categories.value)
+  return map
+})
 
-async function fetchList() {
-  loading.value = true
+/** 已发布商品的公开视图（含 SKU），按 productId 懒加载缓存 */
+const publicIndex = reactive<Record<string, PublicProductView | undefined>>({})
+const skuLoading = reactive<Record<string, boolean>>({})
+const expandedIds = ref<string[]>([])
+
+const statusMeta: Record<ProductStatus, { label: string; tone: string }> = {
+  DRAFT: { label: '草稿', tone: 'muted' },
+  PUBLISHED: { label: '已上架', tone: 'on' },
+  UNPUBLISHED: { label: '已下架', tone: 'off' },
+  DISCONTINUED: { label: '已停售', tone: 'muted' }
+}
+
+const filtered = computed(() => {
+  const q = keyword.value.trim()
+  return items.value.filter((p) => {
+    const statusOk = activeStatus.value === 'ALL' || p.status === activeStatus.value
+    const keywordOk =
+      !q ||
+      p.name.includes(q) ||
+      p.productCode.includes(q) ||
+      (p.brand || '').includes(q)
+    return statusOk && keywordOk
+  })
+})
+
+const publishedCount = computed(() => items.value.filter((p) => p.status === 'PUBLISHED').length)
+
+async function load(reset = false) {
+  if (reset) {
+    loading.value = true
+    failed.value = ''
+    cursor.value = undefined
+    items.value = []
+  } else {
+    loadingMore.value = true
+  }
   try {
-    const res = await listProducts({ keyword: keyword.value.trim() || undefined, page: 1, pageSize: 20 })
-    list.value = res.items
-    total.value = res.total
+    const page = await listProducts({ size: PAGE_SIZE, cursor: cursor.value })
+    items.value = reset ? page.items : [...items.value, ...page.items]
+    cursor.value = page.nextCursor
+    hasMore.value = Boolean(page.hasMore && page.nextCursor)
+  } catch (e) {
+    failed.value = e instanceof Error ? e.message : '商品加载失败'
   } finally {
     loading.value = false
+    loadingMore.value = false
   }
 }
 
-async function onExpand(row: ProductSummary, expandedRows: ProductSummary[]) {
-  const isExpanded = expandedRows.some((r) => r.id === row.id)
-  if (!isExpanded || skuCache.value[row.id]) return
-  const detail = await getProduct(row.id)
-  detailCache.value[row.id] = detail
-  skuCache.value[row.id] = detail.skus
+async function loadCategories() {
+  try {
+    categories.value = await listCategories()
+  } catch {
+    // 类目失败不影响列表展示，表格里退回显示 categoryId
+    categories.value = []
+  }
 }
 
-function openEdit(row: ProductSummary) {
-  const detail = detailCache.value[row.id]
-  if (!detail) {
-    ElMessage.info('SKU 明细正在加载，请先展开该商品')
+async function onExpandChange(row: ProductView, rows: ProductView[]) {
+  expandedIds.value = rows.map((r) => r.productId)
+  const isExpanded = rows.some((r) => r.productId === row.productId)
+  if (!isExpanded || publicIndex[row.productId] !== undefined) return
+  if (row.status !== 'PUBLISHED') {
+    publicIndex[row.productId] = undefined
     return
   }
-  editing.value = detail
-  drawerVisible.value = true
+  skuLoading[row.productId] = true
+  try {
+    publicIndex[row.productId] = await getPublicProduct(row.productId)
+  } catch {
+    publicIndex[row.productId] = undefined
+  } finally {
+    skuLoading[row.productId] = false
+  }
 }
 
-onMounted(fetchList)
+async function togglePublish(row: ProductView) {
+  const publishing = row.status !== 'PUBLISHED'
+  try {
+    await ElMessageBox.confirm(
+      publishing
+        ? `上架后「${row.name}」会出现在公开商城，未上架前公开接口查不到它。`
+        : `下架后「${row.name}」在公开商城立即不可见，已下订单不受影响。`,
+      publishing ? '确认上架' : '确认下架',
+      { confirmButtonText: publishing ? '上架' : '下架', cancelButtonText: '取消', type: 'warning' }
+    )
+  } catch {
+    return
+  }
+  try {
+    const updated = publishing
+      ? await publishProduct(row.productId)
+      : await unpublishProduct(row.productId)
+    const idx = items.value.findIndex((p) => p.productId === row.productId)
+    if (idx >= 0) items.value[idx] = updated
+    // 状态变了，公开 SKU 缓存失效
+    delete publicIndex[row.productId]
+    if (expandedIds.value.includes(row.productId)) {
+      await onExpandChange(updated, [updated])
+    }
+    ElMessage.success(publishing ? '已上架' : '已下架')
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '操作失败')
+  }
+}
+
+/* ------------------------------ SKU 改价 ------------------------------ */
+
+const priceDialog = reactive({
+  visible: false,
+  skuId: '',
+  skuCode: '',
+  title: '',
+  price: 0,
+  saving: false
+})
+
+function openPriceDialog(sku: { skuId: string; skuCode: string; title: string; price: string }) {
+  priceDialog.skuId = sku.skuId
+  priceDialog.skuCode = sku.skuCode
+  priceDialog.title = sku.title
+  priceDialog.price = toNumber(sku.price)
+  priceDialog.visible = true
+}
+
+async function savePrice() {
+  if (!(priceDialog.price > 0)) {
+    ElMessage.warning('价格必须大于 0')
+    return
+  }
+  priceDialog.saving = true
+  try {
+    await updateSku(priceDialog.skuId, { price: priceDialog.price })
+    ElMessage.success('价格已更新')
+    priceDialog.visible = false
+    await reloadExpanded()
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : '改价失败')
+  } finally {
+    priceDialog.saving = false
+  }
+}
+
+async function reloadExpanded() {
+  const ids = [...expandedIds.value]
+  for (const id of ids) {
+    const row = items.value.find((p) => p.productId === id)
+    if (!row || row.status !== 'PUBLISHED') continue
+    try {
+      publicIndex[id] = await getPublicProduct(id)
+    } catch {
+      delete publicIndex[id]
+    }
+  }
+}
+
+onMounted(async () => {
+  await Promise.all([load(true), loadCategories()])
+})
 </script>
 
 <template>
@@ -60,7 +218,9 @@ onMounted(fetchList)
       <div>
         <h2 class="products__title">商品与 SKU</h2>
         <p class="products__desc">
-          共 {{ total }} 个 SPU · 在售 {{ onSaleCount }} · 库存异常 {{ lowStockCount }}
+          已加载 {{ items.length }} 个 SPU · 在售 {{ publishedCount }}
+          <template v-if="hasMore">· 还有更多</template>
+          · 价格与库存挂在 SKU 上，库存请到「库存管理」调整
         </p>
       </div>
 
@@ -68,52 +228,104 @@ onMounted(fetchList)
         <el-input
           v-model="keyword"
           class="products__search"
-          placeholder="搜索商品名称"
+          placeholder="搜索商品名、编码、品牌"
           :prefix-icon="Search"
           clearable
-          @keyup.enter="fetchList"
-          @clear="fetchList"
         />
-        <el-button type="primary" :icon="Plus" @click="ElMessage.info('写接口待后端交付：POST /v1/products')">
+        <el-button :icon="Refresh" :loading="loading" @click="load(true)">刷新</el-button>
+        <el-button type="primary" :icon="Plus" @click="ElMessage.info('新建商品表单待商品负责人确认字段后接入')">
           新建商品
         </el-button>
       </div>
     </header>
 
-    <div class="card table-card">
+    <div class="status-bar">
+      <button
+        v-for="s in [
+          { key: 'ALL', label: '全部' },
+          { key: 'PUBLISHED', label: '已上架' },
+          { key: 'UNPUBLISHED', label: '已下架' },
+          { key: 'DRAFT', label: '草稿' },
+          { key: 'DISCONTINUED', label: '已停售' }
+        ]"
+        :key="s.key"
+        type="button"
+        class="status-bar__tab"
+        :class="{ 'is-active': activeStatus === s.key }"
+        @click="activeStatus = s.key as typeof activeStatus"
+      >
+        {{ s.label }}
+        <span class="num">
+          {{ s.key === 'ALL' ? items.length : items.filter((p) => p.status === s.key).length }}
+        </span>
+      </button>
+    </div>
+
+    <EmptyState
+      v-if="failed"
+      title="商品加载失败"
+      :description="failed"
+    >
+      <el-button @click="load(true)">重新加载</el-button>
+    </EmptyState>
+
+    <div v-else class="card table-card">
       <el-table
         v-loading="loading"
-        :data="list"
-        row-key="id"
-        :expand-row-keys="[]"
-        @expand-change="onExpand"
+        :data="filtered"
+        row-key="productId"
+        :expand-row-keys="expandedIds"
+        @expand-change="onExpandChange"
       >
         <el-table-column type="expand">
           <template #default="{ row }">
             <div class="expand">
-              <div v-if="!skuCache[row.id]" class="expand__loading">加载 SKU…</div>
+              <div v-if="row.status !== 'PUBLISHED'" class="expand__loading">
+                该商品当前为「{{ statusMeta[row.status as ProductStatus].label }}」，公开接口只返回已上架商品的 SKU。
+                上架后可在此查看 SKU 明细与改价。
+              </div>
+
+              <div v-else-if="skuLoading[row.productId]" class="expand__loading">加载 SKU…</div>
+
+              <div v-else-if="!publicIndex[row.productId]" class="expand__loading">
+                未能取到该商品的 SKU，稍后展开重试。
+              </div>
 
               <table v-else class="sku-table">
                 <thead>
                   <tr>
                     <th>SKU 编码</th>
                     <th>规格</th>
+                    <th>属性</th>
                     <th>价格</th>
-                    <th>库存</th>
-                    <th>状态</th>
+                    <th>可售</th>
+                    <th />
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="s in skuCache[row.id]" :key="s.id">
+                  <tr v-for="s in publicIndex[row.productId]!.skus" :key="s.skuId">
                     <td class="num mono">{{ s.skuCode }}</td>
-                    <td>{{ s.name }}</td>
-                    <td class="num">{{ formatMoney(s.price, s.currency) }}</td>
-                    <td class="num">
-                      <span :class="{ 'is-low': (s.stockQty ?? 0) < 15 }">{{ s.stockQty ?? '—' }}</span>
+                    <td>{{ s.title }}</td>
+                    <td class="attrs">
+                      <span v-for="(v, k) in s.attributes" :key="k" class="attrs__item">{{ k }}：{{ v }}</span>
                     </td>
+                    <td class="num">{{ formatMoney(toNumber(s.price)) }}</td>
                     <td>
-                      <StockBadge :status="s.stockStatus" compact />
+                      <span :class="s.inStock ? 'is-stock' : 'is-out'">{{ s.inStock ? '有货' : '缺货' }}</span>
                     </td>
+                    <td class="right">
+                      <el-button link type="primary" @click="openPriceDialog(s)">改价</el-button>
+                      <el-button
+                        link
+                        type="primary"
+                        @click="router.push({ path: '/merchant/inventory', query: { skuId: s.skuId } })"
+                      >
+                        查库存
+                      </el-button>
+                    </td>
+                  </tr>
+                  <tr v-if="!publicIndex[row.productId]!.skus.length">
+                    <td colspan="6" class="empty-cell">该商品还没有 ACTIVE SKU</td>
                   </tr>
                 </tbody>
               </table>
@@ -121,106 +333,91 @@ onMounted(fetchList)
           </template>
         </el-table-column>
 
-        <el-table-column label="商品" min-width="300">
+        <el-table-column label="商品" min-width="280">
           <template #default="{ row }">
             <div class="pcell">
               <div class="pcell__thumb">
-                <ProductThumb :kind="row.thumb" :size="44" ratio="1 / 1" />
+                <ProductThumb :kind="thumbOf(row.name)" :size="44" ratio="1 / 1" />
               </div>
               <div class="pcell__info">
                 <div class="pcell__name">{{ row.name }}</div>
                 <div class="pcell__meta">
-                  <span class="pcell__model mono">{{ row.model }}</span>
-                  <span class="pcell__cat">{{ row.categoryName }}</span>
+                  <span class="pcell__model mono">{{ row.productCode }}</span>
+                  <span v-if="row.brand" class="pcell__brand">{{ row.brand }}</span>
                 </div>
               </div>
             </div>
           </template>
         </el-table-column>
 
-        <el-table-column label="价格" width="130">
+        <el-table-column label="类目" width="130">
           <template #default="{ row }">
-            <span class="num strong">
-              {{ row.minPrice === row.maxPrice ? formatMoney(row.minPrice) : `${formatMoney(row.minPrice)} 起` }}
+            <span class="cat">
+              {{ categoryNameOf.get(row.categoryId) || row.categoryId || '—' }}
             </span>
           </template>
         </el-table-column>
 
-        <el-table-column label="SKU" width="80">
+        <el-table-column label="状态" width="110">
           <template #default="{ row }">
-            <span class="num">{{ row.skuCount }}</span>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="库存状态" width="120">
-          <template #default="{ row }">
-            <StockBadge :status="row.stockStatus" />
-          </template>
-        </el-table-column>
-
-        <el-table-column label="状态" width="100">
-          <template #default="{ row }">
-            <span class="status" :class="row.status === 'ON_SALE' ? 'is-on' : 'is-off'">
-              {{ row.status === 'ON_SALE' ? '在售' : '已下架' }}
+            <span class="status" :class="`is-${statusMeta[row.status as ProductStatus].tone}`">
+              {{ statusMeta[row.status as ProductStatus].label }}
             </span>
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="120" align="right">
+        <el-table-column label="更新时间" width="150">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+            <span class="num time">{{ formatDateTime(row.updatedAt) }}</span>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="操作" width="150" align="right">
+          <template #default="{ row }">
+            <el-button
+              link
+              type="primary"
+              :disabled="row.status === 'DISCONTINUED'"
+              @click="togglePublish(row)"
+            >
+              {{ row.status === 'PUBLISHED' ? '下架' : '上架' }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
+
+      <div v-if="hasMore" class="more">
+        <el-button :loading="loadingMore" @click="load(false)">
+          {{ loadingMore ? '加载中…' : '加载更多' }}
+        </el-button>
+      </div>
     </div>
 
     <p class="products__note">
-      提示：展开行会懒加载该商品的 SKU 明细（对应 GET /v1/products/{id}）。写操作接口待后端交付。
+      说明：读接口为 GET /v1/products（游标分页）；上架/下架调用 POST /v1/products/{id}/publish|unpublish；
+      SKU 改价调用 PUT /v1/skus/{skuId}。员工端暂未提供「按商品列 SKU」接口，已上架商品的 SKU 明细复用公开详情。
     </p>
 
-    <el-drawer v-model="drawerVisible" :title="editing?.name || '商品详情'" size="520px">
-      <div v-if="editing" class="edit">
-        <div class="edit__row">
-          <span class="edit__label">SPU 编码</span>
-          <span class="mono">{{ editing.model }}</span>
+    <el-dialog v-model="priceDialog.visible" title="调整 SKU 价格" width="420px">
+      <div class="dlg">
+        <div class="dlg__row">
+          <span class="dlg__label">SKU</span>
+          <span class="mono">{{ priceDialog.skuCode }}</span>
         </div>
-        <div class="edit__row">
-          <span class="edit__label">类目</span>
-          <span>{{ editing.categoryName }}</span>
+        <div class="dlg__row">
+          <span class="dlg__label">规格</span>
+          <span>{{ priceDialog.title }}</span>
         </div>
-        <div class="edit__row">
-          <span class="edit__label">售卖状态</span>
-          <span>{{ editing.status === 'ON_SALE' ? '在售' : '已下架' }}</span>
+        <div class="dlg__row">
+          <span class="dlg__label">价格</span>
+          <el-input-number v-model="priceDialog.price" :min="0.01" :precision="2" :step="1" />
         </div>
-
-        <h4 class="edit__section">SKU 明细</h4>
-        <table class="sku-table">
-          <thead>
-            <tr>
-              <th>规格</th>
-              <th>价格</th>
-              <th>库存</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="s in editing.skus" :key="s.id">
-              <td>{{ s.name }}</td>
-              <td class="num">{{ formatMoney(s.price, s.currency) }}</td>
-              <td class="num">{{ s.stockQty ?? '—' }}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <el-alert
-          type="info"
-          :closable="false"
-          show-icon
-          title="编辑表单待接口"
-          description="PUT /v1/products/{id} 与 SKU 库存调整接口由后端交付后接入，当前仅展示只读明细。"
-          class="edit__alert"
-        />
       </div>
-    </el-drawer>
+      <template #footer>
+        <el-button @click="priceDialog.visible = false">取消</el-button>
+        <el-button type="primary" :loading="priceDialog.saving" @click="savePrice">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -230,7 +427,7 @@ onMounted(fetchList)
   align-items: flex-end;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
 }
 
 .products__title {
@@ -253,6 +450,43 @@ onMounted(fetchList)
   width: 240px;
 }
 
+.status-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: var(--space-4);
+}
+
+.status-bar__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+
+  span {
+    font-size: var(--fs-xs);
+    color: var(--text-subtle);
+  }
+
+  &:hover {
+    background: var(--ink-100);
+  }
+
+  &.is-active {
+    background: var(--ink-900);
+    color: #fff;
+
+    span {
+      color: rgba(255, 255, 255, 0.6);
+    }
+  }
+}
+
 .card {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
@@ -262,6 +496,12 @@ onMounted(fetchList)
 
 .table-card {
   padding: var(--space-2) var(--space-4) var(--space-3);
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-4) 0;
 }
 
 .pcell {
@@ -294,7 +534,7 @@ onMounted(fetchList)
   color: var(--text-subtle);
 }
 
-.pcell__cat {
+.pcell__brand {
   font-size: 10.5px;
   color: var(--brand-600);
   background: var(--brand-50);
@@ -302,8 +542,14 @@ onMounted(fetchList)
   border-radius: var(--radius-xs);
 }
 
-.mono {
-  font-family: var(--font-mono);
+.cat {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.time {
+  font-size: 11px;
+  color: var(--text-subtle);
 }
 
 .status {
@@ -314,8 +560,16 @@ onMounted(fetchList)
   }
 
   &.is-off {
+    color: var(--amber-600);
+  }
+
+  &.is-muted {
     color: var(--text-subtle);
   }
+}
+
+.mono {
+  font-family: var(--font-mono);
 }
 
 .expand {
@@ -326,6 +580,7 @@ onMounted(fetchList)
 .expand__loading {
   font-size: var(--fs-xs);
   color: var(--text-subtle);
+  line-height: 1.7;
 }
 
 .sku-table {
@@ -352,19 +607,43 @@ onMounted(fetchList)
     border-bottom: none;
   }
 
-  .is-low {
-    color: var(--amber-600);
-    font-weight: 500;
+  .right {
+    text-align: right;
+    white-space: nowrap;
   }
+
+  .is-stock {
+    color: var(--green-500);
+  }
+
+  .is-out {
+    color: var(--amber-600);
+  }
+}
+
+.attrs {
+  max-width: 220px;
+
+  &__item {
+    display: inline-block;
+    margin-right: 8px;
+    color: var(--text-subtle);
+  }
+}
+
+.empty-cell {
+  text-align: center;
+  color: var(--text-subtle);
 }
 
 .products__note {
   margin-top: var(--space-3);
   font-size: 11px;
+  line-height: 1.7;
   color: var(--text-subtle);
 }
 
-.edit__row {
+.dlg__row {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -373,21 +652,11 @@ onMounted(fetchList)
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.edit__label {
-  width: 80px;
+.dlg__label {
+  width: 64px;
   flex: none;
-  color: var(--text-muted);
   font-size: var(--fs-xs);
-}
-
-.edit__section {
-  margin: var(--space-5) 0 var(--space-3);
-  font-size: var(--fs-sm);
-  font-weight: 500;
-}
-
-.edit__alert {
-  margin-top: var(--space-5);
+  color: var(--text-muted);
 }
 
 @media (max-width: 860px) {

@@ -3,11 +3,7 @@ import type {
   ChatMessage,
   ChatSession,
   DocumentTask,
-  PageResult,
   PrincipalView,
-  ProductDetail,
-  ProductSummary,
-  ShipmentView,
   SmsResult,
   Tokens
 } from '@/api/types'
@@ -19,18 +15,18 @@ import {
   merchantMessages,
   merchantOverview,
   merchantSessions,
-  MERCHANT,
-  orderItems,
-  orders,
-  productDetails,
-  products,
-  shipments,
-  sku
+  MERCHANT
 } from './db'
 
 /**
  * 本地 Mock 分发器。
- * 只在 VITE_USE_MOCK=true 时生效，不依赖 Service Worker，切换真实接口时整份文件可删除。
+ *
+ * 覆盖范围：认证（离线演示）、会话、知识库、文档任务、工作台指标。
+ * 商品 / 库存 / 订单 / 物流 已由后端交付，前端直接走真实接口，
+ * 这里不再维护它们的假数据，避免与契约漂移。
+ *
+ * VITE_USE_MOCK=true 时整站走 Mock；平时只对后端未交付的接口兜底
+ * （见 request.ts 的 MOCK_ONLY_PREFIXES）。
  */
 
 interface MockConfig {
@@ -72,28 +68,6 @@ function uid(prefix: string): string {
   return `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 }
 
-/** 没有单独维护明细的商品，按 SPU 信息合成一份可用的 SKU 明细，避免表格展开空白 */
-function buildFallbackDetail(id: string): ProductDetail | undefined {
-  const base = products.find((p) => p.id === id)
-  if (!base) return undefined
-  const statuses: ProductDetail['skus'] = [
-    sku(base.id + '01', base.id, `${base.name} · 标准版`, [{ name: '版本', value: '标准版' }], base.minPrice, 'IN_STOCK', 36),
-    sku(base.id + '02', base.id, `${base.name} · 套装版`, [{ name: '版本', value: '套装版' }], base.maxPrice, 'LOW_STOCK', 8)
-  ]
-  return {
-    ...base,
-    description: base.subtitle || base.name,
-    sellingPoints: base.tags,
-    compatibility: ['详见产品说明书', '支持主流手机与平板设备'],
-    specs: [
-      { label: '品牌', value: base.brand || '—' },
-      { label: '型号', value: base.model || '—' },
-      { label: '类目', value: base.categoryName }
-    ],
-    skus: statuses,
-    afterSale: '7 天无理由退换，12 个月保修。'
-  }
-}
 
 const consumerUser: AuthUser = {
   subjectId: 'U2001',
@@ -178,16 +152,6 @@ function normalize(url: string): { path: string; action: string } {
     return { path: segments.join('/') + (rawQuery ? `?${rawQuery}` : ''), action }
   }
   return { path: rawPath, action: '' }
-}
-
-function paginate<T>(list: T[], page = 1, pageSize = 12): PageResult<T> {
-  const start = (page - 1) * pageSize
-  return {
-    items: list.slice(start, start + pageSize),
-    total: list.length,
-    page,
-    pageSize
-  }
 }
 
 /* ------------------------------ 假 Agent 回复 ------------------------------ */
@@ -321,86 +285,6 @@ export async function mockDispatch(config: MockConfig): Promise<unknown> {
   }
   if (method === 'POST' && path === '/v1/auth/logout') {
     return {}
-  }
-
-  /* ---- Public（契约确认：公开资源 /v1/stores/{storeSlug}/products，URL 定位租户，无 /public 前缀） ---- */
-  const publicList = matchPath('/v1/stores/:slug/products', path)
-  if (method === 'GET' && publicList) {
-    if (publicList.slug !== MERCHANT.code) throw new MockError('店铺不存在', 10004, 404)
-    const keyword = String(query.keyword || '').trim()
-    const category = String(query.category || '')
-    const sort = String(query.sort || 'recommend')
-    let list: ProductSummary[] = products.filter((p) => p.status === 'ON_SALE')
-    if (keyword) {
-      list = list.filter(
-        (p) =>
-          p.name.includes(keyword) ||
-          (p.brand || '').includes(keyword) ||
-          p.tags.some((t) => t.includes(keyword))
-      )
-    }
-    if (category && category !== '全部') {
-      list = list.filter((p) => p.categoryName === category)
-    }
-    if (sort === 'price-asc') list = [...list].sort((a, b) => a.minPrice - b.minPrice)
-    if (sort === 'price-desc') list = [...list].sort((a, b) => b.minPrice - a.minPrice)
-    return paginate(
-      list,
-      Number(query.page || 1),
-      Number(query.pageSize || 12)
-    ) as PageResult<ProductSummary>
-  }
-
-  const publicDetail = matchPath('/v1/stores/:slug/products/:id', path)
-  if (method === 'GET' && publicDetail) {
-    const detail = productDetails[publicDetail.id] || buildFallbackDetail(publicDetail.id)
-    if (!detail) throw new MockError('商品不存在', 10004, 404)
-    return detail
-  }
-
-  /* ---- Product（登录态） ---- */
-  if (method === 'GET' && path === '/v1/products') {
-    const keyword = String(query.keyword || '').trim()
-    const list = keyword ? products.filter((p) => p.name.includes(keyword)) : products
-    return paginate(list, Number(query.page || 1), Number(query.pageSize || 10))
-  }
-  const productDetail = matchPath('/v1/products/:id', path)
-  if (method === 'GET' && productDetail) {
-    const detail = productDetails[productDetail.id] || buildFallbackDetail(productDetail.id)
-    if (!detail) throw new MockError('商品不存在', 20001, 404)
-    return detail
-  }
-
-  /* ---- Order / Shipment（字段与 order-v1、shipment-v1 契约一致） ---- */
-  if (method === 'GET' && path === '/v1/orders') {
-    const pageNum = Number(query.pageNum || 1)
-    const pageSize = Number(query.pageSize || 10)
-    const start = (pageNum - 1) * pageSize
-    return {
-      records: orders.slice(start, start + pageSize),
-      total: orders.length,
-      current: pageNum,
-      size: pageSize
-    }
-  }
-
-  // 物流：必须按 orderId 查；订单不存在 / 非本人 / 跨租户统一 404 + 10004
-  const shipmentMatch = matchPath('/v1/orders/:id/shipment', path)
-  if (method === 'GET' && shipmentMatch) {
-    const order = orders.find((o) => o.orderId === shipmentMatch.id)
-    if (!order) throw new MockError('资源不存在或无权访问', 10004, 404)
-    const found: ShipmentView | undefined = shipments[order.orderId]
-    // 订单存在但未发货：契约返回 NOT_SHIPPED + 空轨迹，不报错
-    return (
-      found ?? { orderId: order.orderId, orderNo: order.orderNo, status: 'NOT_SHIPPED', tracks: [] }
-    )
-  }
-
-  const orderDetail = matchPath('/v1/orders/:id', path)
-  if (method === 'GET' && orderDetail) {
-    const order = orders.find((o) => o.orderId === orderDetail.id || o.orderNo === orderDetail.id)
-    if (!order) throw new MockError('资源不存在或无权访问', 10004, 404)
-    return { ...order, items: orderItems[order.orderId] ?? [] }
   }
 
   /* ---- Chat ---- */

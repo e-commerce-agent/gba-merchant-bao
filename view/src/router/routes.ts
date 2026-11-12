@@ -107,6 +107,12 @@ export const routes: RouteRecordRaw[] = [
         meta: { title: '商品与 SKU', requiresAuth: true, subjectType: 'MERCHANT_STAFF' }
       },
       {
+        path: 'inventory',
+        name: 'merchant-inventory',
+        component: () => import('@/views/merchant/InventoryView.vue'),
+        meta: { title: '库存管理', requiresAuth: true, subjectType: 'MERCHANT_STAFF' }
+      },
+      {
         path: 'knowledge',
         name: 'merchant-knowledge',
         component: () => import('@/views/merchant/KnowledgeView.vue'),

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { ChatDotRound, Van } from '@element-plus/icons-vue'
+import { ChatDotRound, Refresh, Van } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import ProductThumb from '@/components/ProductThumb.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -31,6 +31,11 @@ const shipmentLoading = ref(false)
 const shipmentError = ref('')
 
 const PAGE_SIZE = 10
+/** order-v1 用 pageNum/pageSize，返回 records + total，可据此做「加载更多」 */
+const pageNo = ref(1)
+const total = ref(0)
+const loadingMore = ref(false)
+const hasMore = computed(() => orders.value.length < total.value)
 
 const tabs: Array<{ key: 'ALL' | OrderStatus; label: string }> = [
   { key: 'ALL', label: '全部' },
@@ -65,10 +70,6 @@ const tracks = computed(() =>
   )
 )
 
-function countOf(key: 'ALL' | OrderStatus): number {
-  return key === 'ALL' ? orders.value.length : orders.value.filter((o) => o.status === key).length
-}
-
 async function openShipment(order: OrderSummary) {
   activeOrder.value = order
   shipment.value = null
@@ -94,25 +95,50 @@ function askAboutOrder(order: OrderSummary) {
   router.push({ path: '/consumer/chat', query: { q: `帮我查一下订单 ${order.orderNo} 的物流` } })
 }
 
-onMounted(async () => {
+/** 列表只返回 Summary，卡片要展示商品行，逐单补详情；单条失败不影响列表 */
+async function fillItems(records: OrderSummary[]) {
+  await Promise.all(
+    records.map(async (o) => {
+      try {
+        const detail = await getOrder(o.orderId)
+        itemsByOrder.value[o.orderId] = detail.items
+      } catch {
+        itemsByOrder.value[o.orderId] = []
+      }
+    })
+  )
+}
+
+async function load(reset = false) {
+  if (reset) {
+    pageNo.value = 1
+    orders.value = []
+    itemsByOrder.value = {}
+  }
   try {
-    const page = await listOrders(1, PAGE_SIZE)
-    orders.value = page.records
-    // 详情失败不影响列表展示，卡片里商品行留空即可
-    await Promise.all(
-      page.records.map(async (o) => {
-        try {
-          const detail = await getOrder(o.orderId)
-          itemsByOrder.value[o.orderId] = detail.items
-        } catch {
-          itemsByOrder.value[o.orderId] = []
-        }
-      })
-    )
+    const page = await listOrders(pageNo.value, PAGE_SIZE)
+    total.value = page.total
+    orders.value = reset ? page.records : [...orders.value, ...page.records]
+    await fillItems(page.records)
   } finally {
     loading.value = false
+    loadingMore.value = false
   }
-})
+}
+
+async function loadMore() {
+  if (!hasMore.value || loadingMore.value) return
+  loadingMore.value = true
+  pageNo.value += 1
+  await load()
+}
+
+function refresh() {
+  loading.value = true
+  load(true)
+}
+
+onMounted(() => load(true))
 </script>
 
 <template>
@@ -120,9 +146,15 @@ onMounted(async () => {
     <header class="orders__head">
       <div>
         <h2 class="orders__title">我的订单</h2>
-        <p class="orders__desc">只展示当前账号下的订单，物流信息按订单实时向后端查询</p>
+        <p class="orders__desc">
+          只展示当前账号下的订单，物流信息按订单实时向后端查询
+          <span v-if="total" class="num">共 {{ total }} 单</span>
+        </p>
       </div>
-      <el-button :icon="ChatDotRound" @click="router.push('/consumer/chat')">问 Agent</el-button>
+      <div class="orders__actions">
+        <el-button :icon="Refresh" :loading="loading" @click="refresh">刷新</el-button>
+        <el-button :icon="ChatDotRound" @click="router.push('/consumer/chat')">问 Agent</el-button>
+      </div>
     </header>
 
     <div class="orders__tabs">
@@ -135,11 +167,10 @@ onMounted(async () => {
         @click="activeTab = t.key"
       >
         {{ t.label }}
-        <span class="num">{{ countOf(t.key) }}</span>
       </button>
     </div>
 
-    <div v-if="loading" class="orders__list">
+    <div v-if="loading && !orders.length" class="orders__list">
       <div v-for="i in 2" :key="i" class="skeleton" style="height: 180px" />
     </div>
 
@@ -188,6 +219,11 @@ onMounted(async () => {
           </div>
         </footer>
       </article>
+    </div>
+
+    <div v-if="!loading && hasMore" class="orders__more">
+      <el-button :loading="loadingMore" @click="loadMore">加载更多</el-button>
+      <span class="orders__more-hint num">已显示 {{ orders.length }} / {{ total }}</span>
     </div>
 
     <el-drawer v-model="drawerVisible" title="物流详情" size="420px">
@@ -311,6 +347,24 @@ onMounted(async () => {
       color: rgba(255, 255, 255, 0.6);
     }
   }
+}
+
+.orders__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.orders__more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--space-5);
+}
+
+.orders__more-hint {
+  font-size: var(--fs-xs);
+  color: var(--text-subtle);
 }
 
 .orders__list {

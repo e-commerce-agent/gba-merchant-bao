@@ -6,6 +6,7 @@ import ProductThumb from '@/components/ProductThumb.vue'
 import StockBadge from '@/components/StockBadge.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { getPublicProduct } from '@/api/catalog'
+import { toDetailModel } from '@/api/adapters'
 import type { ProductDetail, Sku } from '@/api/types'
 import { formatMoney } from '@/utils/format'
 
@@ -16,6 +17,17 @@ const product = ref<ProductDetail | null>(null)
 const loading = ref(true)
 const selected = ref<Record<string, string>>({})
 const activeTab = ref<'detail' | 'specs' | 'compat' | 'after'>('detail')
+
+/** 兼容性来自契约扩展字段，没有数据时不显示对应页签 */
+const tabs = computed(() => {
+  const list = [
+    { key: 'detail', label: '商品详情' },
+    { key: 'specs', label: '规格参数' },
+    { key: 'after', label: '售后政策' }
+  ]
+  if (product.value?.compatibility.length) list.splice(2, 0, { key: 'compat', label: '兼容性' })
+  return list
+})
 
 /** 把 SKU 的扁平行属性聚成「颜色 / 插头规格」这样的可选组 */
 const groups = computed(() => {
@@ -66,9 +78,14 @@ function askAgent() {
 
 onMounted(async () => {
   try {
-    const detail = await getPublicProduct(String(route.params.id))
+    const contract = await getPublicProduct(String(route.params.id))
+    const detail = toDetailModel(contract)
     product.value = detail
-    selected.value = Object.fromEntries(detail.skus[0].attributes.map((a) => [a.name, a.value]))
+    // 没有 SKU 或首个 SKU 无属性时不预选，避免 undefined 访问
+    const first = detail.skus[0]
+    selected.value = first
+      ? Object.fromEntries(first.attributes.map((a) => [a.name, a.value]))
+      : {}
   } catch {
     product.value = null
   } finally {
@@ -118,7 +135,7 @@ onMounted(async () => {
         <!-- 右侧信息 -->
         <div class="info">
           <div class="info__tags">
-            <span class="info__cat">{{ product.categoryName }}</span>
+            <span v-if="product.categoryName" class="info__cat">{{ product.categoryName }}</span>
             <span v-for="tag in product.tags" :key="tag" class="info__tag">{{ tag }}</span>
           </div>
 
@@ -186,12 +203,7 @@ onMounted(async () => {
       <section class="tabs">
         <div class="tabs__bar">
           <button
-            v-for="tab in [
-              { key: 'detail', label: '商品详情' },
-              { key: 'specs', label: '规格参数' },
-              { key: 'compat', label: '兼容性' },
-              { key: 'after', label: '售后政策' }
-            ]"
+            v-for="tab in tabs"
             :key="tab.key"
             type="button"
             class="tabs__item"

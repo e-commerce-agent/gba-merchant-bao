@@ -6,7 +6,7 @@ import { Plus, Promotion } from '@element-plus/icons-vue'
 import ChatBubble from '@/components/ChatBubble.vue'
 import { createSession, listMessages, listSessions, sendMessage } from '@/api/chat'
 import { getPublicProduct } from '@/api/catalog'
-import type { ChatMessage, ChatSession, ProductDetail } from '@/api/types'
+import type { ChatMessage, ChatSession, PublicProductView } from '@/api/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,7 +19,8 @@ const input = ref('')
 const sending = ref(false)
 const loading = ref(true)
 const scroller = ref<HTMLElement>()
-const contextProduct = ref<ProductDetail | null>(null)
+/** 从商品详情页跳转过来时带上 productId，头部展示当前咨询的商品 */
+const contextProduct = ref<PublicProductView | null>(null)
 
 const quickPrompts = [
   '我的订单到哪了',
