@@ -24,7 +24,7 @@
 
 ## 契约快照
 
-`ShipmentFlowIT.exportsActualSpringdocContractForShipmentV1` 在隔离后端上实际取 `/v3/api-docs/shipment-v1` 与 `/v3/api-docs.yaml/shipment-v1`，断言后把 YAML 写入 `api/target/shipment-v1.openapi.yaml`，再落到仓库快照 [docs/api/shipment-v1.openapi.yaml](../../../docs/api/shipment-v1.openapi.yaml)。快照为 Springdoc 原始输出，未手工改写。
+`ShipmentFlowIT.exportsActualSpringdocContractForShipmentV1` 在隔离后端上实际取 `/v3/api-docs/shipment-v1` 与 `/v3/api-docs.yaml/shipment-v1`，断言后把 YAML 写入 `api/target/shipment-v1.openapi.yaml`，再落到仓库快照 [docs/api/shipment-v1.openapi.yaml](../../../../docs/api/shipment-v1.openapi.yaml)。快照为 Springdoc 原始输出，未手工改写。
 
 核对结果：
 

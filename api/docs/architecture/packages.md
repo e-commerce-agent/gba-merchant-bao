@@ -64,7 +64,7 @@ api/src/main/java/com/gba/merchantbao/
 
 当前 Controller 仍包含短信发送时的店铺解析/手机号规范化编排，以及成功私有操作后的 `sessions.touch` 调用，并使用 Service 的响应 record。若进一步要求 Controller 只做协议适配，可在后续调整中将用例编排和 touch 策略收拢到 Service；不能把当前实现描述为所有业务编排都已下沉。后续模块统一保持 Controller 不直接访问 Mapper、Service 负责业务与授权、SQL 同时限定范围。路线与前置依赖见 [后续模块路线（本目录入口）](README.md#module-roadmap)。
 
-2026-11-06 包迁移验证：29 个迁移类的方法逻辑保持；`mvn -f api/pom.xml clean test` 通过 44 项单元/契约测试，随后 `mvn -f api/pom.xml verify` 通过 62 项隔离容器集成测试，均无失败或跳过。AuthPersistenceIT 验证真实 Mapper/XML，AuthDevManualIT 验证九个 Springdoc 操作，AuthFlowIT 验证认证/会话行为。报告在 `api/target/surefire-reports` 与 `api/target/failsafe-reports`。
+包迁移验证记录见 [本目录 README](README.md#auth-package-migration)。
 
 旧路由 `/admin` 和 `/user` 保留现有接口契约，新路由使用 `/api/v1`。包名迁移本身不改变业务行为。新基础组件不能直接导入旧项目的实体或 Mapper。
 

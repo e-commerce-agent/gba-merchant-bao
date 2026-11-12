@@ -37,7 +37,7 @@ class AuthDevManualIT {
         var login=http.postForEntity("/api/v1/auth/staff/login",Map.of("merchantCode","M_3C_DEMO","identifier","demo_staff","password","DevOnly-Auth-2026!"),String.class);
         assertThat(login.getStatusCode().value()).as("dev HTTP login").isEqualTo(200);
         var process=new ProcessBuilder("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe","-NoProfile","-ExecutionPolicy","Bypass","-File",
-            Path.of("docs/auth/manual-verification.ps1").toAbsolutePath().toString(),"-BaseUrl","http://127.0.0.1:"+port)
+            Path.of("scripts/test/manual-verification.ps1").toAbsolutePath().toString(),"-BaseUrl","http://127.0.0.1:"+port)
             .redirectErrorStream(true).redirectOutput(Path.of("target/auth-manual-verification.log").toFile()).start();
         assertThat(process.waitFor(90,java.util.concurrent.TimeUnit.SECONDS)).isTrue();
         String output=Files.readString(Path.of("target/auth-manual-verification.log"),java.nio.charset.Charset.forName("GB18030"));

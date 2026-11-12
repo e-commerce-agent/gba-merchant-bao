@@ -13,17 +13,17 @@
 
 ## 3. 验证记录集中为日期事件
 
-- [ ] 3.1 将 architecture/packages.md 的 2026-11-06 包迁移验证段落原文迁至 testing/20261106-auth-package-migration/verification.md，补事件 README 与 testing README 的一行原因/用途；对照命令、测试数量、结果与限制均保持，长期架构正文不再混放该事件。
-- [ ] 3.2 将 commerce-integration-verification.md 移至 testing/20261112-commerce-integration/，保留原文件名和跨日正文；事件 README 链接记录，根 testing README 一行说明电商模块关联整合引起的验证，检查所有有效导航可定位。
-- [ ] 3.3 将各模块、Agent 和 deployment 中其余临时验证文件/段落按实际结束日期归入 testing/YYYYmmdd-事件；保留原文件名或完整原段落、技术规则和验收状态，日常操作留所属目录；逐项对照来源与去向，未知日期不捏造，同一跨日事件不强拆。
-- [ ] 3.4 在 testing README 说明已完成事件停止续写、新事件另建目录的规则，并核验每事件只有一行原因/用途和可达的事件 README；检查日期前置、无重复散落副本，Agent“不做/待完成”等原始差异未被整理擅自统一。
+- [x] 3.1 将 architecture/packages.md 的 2026-11-06 包迁移验证段落原文迁至 testing/20261106-auth-package-migration/verification.md，补事件 README 与 testing README 的一行原因/用途；对照命令、测试数量、结果与限制均保持，长期架构正文不再混放该事件。
+- [x] 3.2 将 commerce-integration-verification.md 移至 testing/20261112-commerce-integration/，保留原文件名和跨日正文；事件 README 链接记录，根 testing README 一行说明电商模块关联整合引起的验证，检查所有有效导航可定位。
+- [x] 3.3 将各模块、Agent 和 deployment 中其余临时验证文件/段落按实际结束日期归入 testing/YYYYmmdd-事件；保留原文件名或完整原段落、技术规则和验收状态，日常操作留所属目录；逐项对照来源与去向，未知日期不捏造，同一跨日事件不强拆。
+- [x] 3.4 在 testing README 说明已完成事件停止续写、新事件另建目录的规则，并核验每事件只有一行原因/用途和可达的事件 README；检查日期前置、无重复散落副本，Agent“不做/待完成”等原始差异未被整理擅自统一。
 
 ## 4. 脚本按执行目标分类
 
-- [ ] 4.1 将 deployment/deploy-prod.ps1 迁 prod，docker-dev.ps1、backup-dev.ps1、dev-seed-upgrade.ps1 迁 dev，auth/manual-verification.ps1 迁 test；修复根路径和 AuthDevManualIT 等调用，每分类 README 给出用途、命令、目标与前提，验证语法/参数及隔离调用，文档档案不留脚本副本，prod-profile 脚本不动不复制。
-- [ ] 4.2 旧 api/docs/deployment/backup-dev.ps1 仅保留到 scripts/dev 实现的参数/退出码透传包装；用隔离替身核验透传、无重复逻辑，不为无调用方旧路径保留空壳，不实际执行生产发布或写 dev 业务库。
-- [ ] 4.3 将通用 Springdoc 导出入口置于 scripts/tools/export-openapi.ps1，支持 base URL 和既有六分组，target 暂存成功后才更新快照；用隔离 HTTP 样例验证成功/空分组/失败行为，不依赖 runtime Java/classpath，不因整理手改或无故重导出快照。
-- [ ] 4.4 校验 scripts/prod、dev、test、tools 的 README 只承担工具导航与必要执行前提，脚本正文引用其他说明材料时经目录 README 定位；在无旧 runtime 内容的等价新检出环境确认入口可定位且无个人路径或真实凭据。
+- [x] 4.1 将 deployment/deploy-prod.ps1 迁 prod，docker-dev.ps1、backup-dev.ps1、dev-seed-upgrade.ps1 迁 dev，auth/manual-verification.ps1 迁 test；修复根路径和 AuthDevManualIT 等调用，每分类 README 给出用途、命令、目标与前提，验证语法/参数及隔离调用，文档档案不留脚本副本，prod-profile 脚本不动不复制。
+- [x] 4.2 旧 api/docs/deployment/backup-dev.ps1 仅保留到 scripts/dev 实现的参数/退出码透传包装；用隔离替身核验透传、无重复逻辑，不为无调用方旧路径保留空壳，不实际执行生产发布或写 dev 业务库。
+- [x] 4.3 将通用 Springdoc 导出入口置于 scripts/tools/export-openapi.ps1，支持 base URL 和既有六分组，target 暂存成功后才更新快照；用隔离 HTTP 样例验证成功/空分组/失败行为，不依赖 runtime Java/classpath，不因整理手改或无故重导出快照。
+- [x] 4.4 校验 scripts/prod、dev、test、tools 的 README 只承担工具导航与必要执行前提，脚本正文引用其他说明材料时经目录 README 定位；在无旧 runtime 内容的等价新检出环境确认入口可定位且无个人路径或真实凭据。
 
 ## 5. 测试按业务职责分包
 

@@ -7,6 +7,8 @@
 
 ## 相关资料
 
+- <a id="auth-package-migration"></a>[auth 包迁移事件](../testing/20261106-auth-package-migration/README.md)：三层包迁移的命令、测试数量与结果。
+
 - <a id="initial-design"></a>[initialization / 设计手稿.md](../../../docs/initialization/设计手稿.md)：原始需求与设计手稿。
-- <a id="agent-verification"></a>[agent / verification.md](../agent/verification.md)：验证记录与实际状态。
+- <a id="agent-verification"></a>[agent / verification.md](../testing/20261108-agent-foundation/verification.md)：验证记录与实际状态。
 - <a id="testing"></a>[testing / README.md](../testing/README.md)：目录资料入口。

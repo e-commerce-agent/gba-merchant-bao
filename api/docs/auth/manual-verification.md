@@ -33,7 +33,7 @@ Get-Content api/target/auth-manual-verification.log
 也可针对自行创建的隔离 dev 后端运行（替换端口；会创建合成账号，不要指向共享业务库）：
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File api/docs/auth/manual-verification.ps1 -BaseUrl http://127.0.0.1:8080
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File api/scripts/test/manual-verification.ps1 -BaseUrl http://127.0.0.1:8080
 ```
 
 脚本顺序：两租户员工用户名/手机号登录 → dev debugCode 取码 → 消费者首次自动建号 200 → 验证码重放 400 → me/本人资源 → 非本人/跨租户 404 与消费者开通员工 403 → 员工开通 201 并独立密码登录 → refresh 带无效 access 仍成功 → 同 UUID 重试同双 token/absolute → 历史 refresh 退出/重复退出 → access/refresh 失效 → 其他设备和店铺仍可使用。使用随机合成号码和用户名重复运行；发送/登录超限应等待 Retry-After，不循环冲击限流。
@@ -55,10 +55,4 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File api/docs/auth/manual-ver
 
 这些浏览器场景是接入验收清单，尚无前端执行证据。时间与竞争通过 AuthFlowIT 可控时钟/并发用例验证，不能把后端测试称为已完成浏览器联调。
 
-## 运行证据
-
-2026-11-06 定向认证回归：43 tests，0 failures、0 errors、0 skipped；命令见 [测试说明（本目录入口）](README.md#testing) 的认证段。本次实际运行包括下述集成测试和脚本，不等于第 9 节的全量验收。
-
-AuthFlowIT 覆盖账号提交/故障、独立挑战并发唯一冲突、双 token、idle/absolute、加密幂等重试/重放、退出竞争、状态检查与 HTTP 权限。AuthSmsRedisIT 覆盖挑战并发一次消费、失败清理、限流和旧 Redis 序列化并存。HttpClientTest 回归旧路由/头/envelope 和新旧 token 交叉拒绝；AuthContextTest 验证正常/异常 finally 清上下文。JsonLoggingTest 读取真实 JSON 日志验证审计字段和分流。
-
-报告与本次脚本输出只在 `api/target/`。第 9 节完整 `test`/`clean verify` 汇总见 [验证记录（本目录入口）](README.md#verification)；Docker 不可用应失败，不跳过或改连固定开发端口。
+运行结果见 [本目录 README](README.md#verification)。

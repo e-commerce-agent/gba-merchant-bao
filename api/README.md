@@ -16,7 +16,8 @@ mvn -f api/pom.xml clean verify
 ## 目录入口
 
 - [后端文档](docs/README.md)：各主题文档入口。
-- [Springdoc 快照](../docs/api/)：已导出的接口文档。
+- [生产脚本](scripts/prod/README.md)、[开发脚本](scripts/dev/README.md)、[隔离联调脚本](scripts/test/README.md)、[通用工具](scripts/tools/README.md)：按执行目标定位工具与前提。
+- [Springdoc 快照](../docs/api)：已导出的接口文档。
 - `src/`：实现、测试和数据库脚本。
 - `target/`：构建产物、测试报告和日志。
 - `.runtime/`：本地运行文件；开发运行工作目录为 `api/`。

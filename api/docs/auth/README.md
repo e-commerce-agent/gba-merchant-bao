@@ -5,9 +5,9 @@
 - [api-design.md](api-design.md)：接口契约与调用方式。
 - <a id="data-design"></a>[data-design.md](data-design.md)：数据结构及数据边界。
 - <a id="manual-verification"></a>[manual-verification.md](manual-verification.md)：人工联调操作与前提。
-- [manual-verification.ps1](manual-verification.ps1)：认证人工联调脚本。
+- [manual-verification.ps1](../../scripts/test/manual-verification.ps1)：认证人工联调脚本。
 - [requirements.md](requirements.md)：需求与场景矩阵。
-- <a id="verification"></a>[verification.md](verification.md)：已有验证过程、结果与限制。
+- <a id="verification"></a>[verification.md](../testing/20261106-auth-acceptance/verification.md)：已有验证过程、结果与限制。
 
 ## 相关资料
 

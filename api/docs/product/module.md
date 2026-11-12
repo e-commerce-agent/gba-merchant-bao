@@ -98,6 +98,4 @@ storeSlug 是公开店铺定位符，初期复用数据库 `merchant_code`；例
 - `ProductAvailabilityIT`（隔离 MySQL/Redis）：匿名/消费者公开布尔、不泄漏精确库存、缺行/零可售/预占、两租户及停售可见性、批量分页、缓存预热后的预占/释放实时性、Redis 故障回源和 MySQL 故障 503；覆盖新路径、slug 规范化/规范缓存键、无效及停用店铺、无效/异店 token、旧路由移除和私有/员工访问权限，并导出实际 OpenAPI 到 `api/target/product-v1.openapi.yaml`。
 - 本地无 Docker 时按仓库惯例 `mvn -f api/pom.xml test` 只跑单元测试；`verify` 需启动 Docker Desktop。
 
-2026-11-11 第 4 节验证：`mvn -f api/pom.xml '-Dtest=InventoryAvailabilityQueryServiceTest,ProductCacheStoreTest,ProductRequestsTest,ProductAvailabilityIT,ProductPersistenceIT,InventoryFlowIT' test` 共 45 项通过，无失败/错误/跳过；全部数据库操作发生于隔离 Testcontainers。IDEA 构建通过；未执行本地 dev 数据库升级或第 5 节及后续任务。
-
-2026-11-11 任务 4.5–4.7 定向验证：`mvn -f api/pom.xml '-Dtest=PublicCatalogSecurityTest,AuthContextTest,AuthInputTest,ProductRequestsTest,ProductCacheStoreTest,ProductAvailabilityIT,ProductPersistenceIT' test` 共 34 项通过，无失败/错误/跳过。MySQL/Redis 使用隔离 Testcontainers；从实际 Springdoc 导出的 `api/target/product-v1.openapi.yaml` 已同步至 `docs/api/product-v1.openapi.yaml`。前端代码未修改，待队友同步的调用差异见接口契约一节；未执行第 5、6、7 节任务、全量 clean verify 或本地 dev 升级。
+定向回归结果见 [本目录 README](README.md#catalog-verification)。

@@ -52,11 +52,7 @@ QA 可选择在 dev profile 环境人工验收，通过后再进入未来 prod�
 
 `align-commerce-module-integration` 第 1、2 组的历史定向验证选择 MigrationScriptContractTest，以及 DevSeedMigrationIT、OrderPersistenceIT、OrderFlowIT、InventoryFlowIT、ShipmentSchemaIT、ShipmentFlowIT、ShipmentSoapIT。新增库存雪花主键任务后，综合迁移/模块验证和本地升级分别位于第 7、8 节；冻结 V5 路径、test/prod 数据隔离、真实 Spring 跨模块用例、遗留版本断言修正、全量构建和本地升级结果统一记录在 [电商整合验收（本目录入口）](README.md#commerce-integration-verification)。
 
-2026-11-11 定向验证通过：执行下列 clean 构建，5 项迁移契约测试和 70 项集成测试全部成功，无失败、错误或跳过。集成测试使用独立 Testcontainers MySQL，不操作本地 gba-dev 数据库。
-
-```powershell
-mvn -f api/pom.xml clean verify '-Dtest=MigrationScriptContractTest' '-Dit.test=DevSeedMigrationIT,OrderPersistenceIT,OrderFlowIT,ShipmentSchemaIT,InventoryFlowIT,ShipmentFlowIT,ShipmentSoapIT'
-```
+历史定向结果见 [本目录 README](README.md#commerce-migration-verification)。
 
 test profile 关闭旧业务定时调度（merchant.scheduling.enabled=false），HTTP 契约测试不会在整分钟后台连接中间件；dev/prod 保持原调度行为。
 
@@ -88,7 +84,7 @@ mvn -f api/pom.xml '-Dtest=ChatAcceptanceIT' test
 
 ChatSchemaIT/ChatPersistenceIT 验证结构和 Mapper；ChatServiceIT 验证两个独立执行上下文共用数据库的运行权、超时恢复和终态竞争；ChatHttpIT 验证分段 SSE、CORS 与 Springdoc（此类的认证采用替身，不代替 ChatAcceptanceIT）。模型协议和预算由 AgentModelProtocolTest/AgentContextTest 等测试验证。默认 clean verify 会包含 ChatAcceptanceIT，缺失 Docker 明确失败。
 
-ChatHttpIT 的 `clientDisconnectCancelsUpstreamAndLeavesAQueryableTerminal` 用 5 秒等待上游取消，全量并行启动多个容器时偶发超时（2026-11-10 首次全量失败，单类重跑与二次全量均通过）。定位失败时先单独重跑该类：`mvn -f api/pom.xml verify -Dit.test=ChatHttpIT -Dtest=none -DfailIfNoTests=false`，再判断是否为本模块回归。
+取消回归的历史结果见 [本目录 README](README.md#agent-regression)。定位失败时先单独重跑该类：`mvn -f api/pom.xml verify -Dit.test=ChatHttpIT -Dtest=none -DfailIfNoTests=false`，再判断是否为本模块回归。
 
 Apifox 与真实网关联调属于独立验收，不能用这些自动化测试代替。证据、实际报告数量及未完成项见 [Agent 验收记录（本目录入口）](README.md#agent-verification)；手工步骤见 [Apifox（本目录入口）](README.md#agent-apifox-verification) 和 [curl/fetch（本目录入口）](README.md#agent-manual-verification)。
 

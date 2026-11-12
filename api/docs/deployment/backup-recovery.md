@@ -7,7 +7,7 @@ InnoDB 使用 --single-transaction，包含 routines/events/triggers，导出期
 ## dev 导出（仓库根 PowerShell）
 
 ```powershell
-./api/docs/deployment/backup-dev.ps1
+./api/scripts/dev/backup-dev.ps1
 ```
 
 脚本读取已运行 dev MySQL 容器中的配置，通过 mysqldump --result-file 在容器 /tmp 生成原始 SQL，再 docker cp 到根 backups/。

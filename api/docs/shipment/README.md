@@ -7,7 +7,7 @@
 - [data-design.md](data-design.md)：数据结构及数据边界。
 - <a id="manual-verification"></a>[manual-verification.md](manual-verification.md)：人工联调操作与前提。
 - [requirements.md](requirements.md)：需求与场景矩阵。
-- <a id="verification"></a>[verification.md](verification.md)：已有验证过程、结果与限制。
+- <a id="verification"></a>[verification.md](../testing/20261110-shipment-acceptance/verification.md)：已有验证过程、结果与限制。
 
 ## 相关资料
 
@@ -15,3 +15,4 @@
 - <a id="devdata"></a>[devdata / README.md](../../src/main/resources/db/devdata/README.md)：目录资料入口。
 - <a id="inventory"></a>[inventory / README.md](../inventory/README.md)：目录资料入口。
 - <a id="order"></a>[order / README.md](../order/README.md)：目录资料入口。
+- <a id="commerce-verification"></a>[订单与物流验证事件](../testing/20261111-shipment-order-integration/README.md)：隔离命令、结果与范围。

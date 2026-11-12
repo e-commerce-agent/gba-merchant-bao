@@ -30,9 +30,9 @@
 
 ## 手动链路与契约
 
-`AuthDevManualIT` 实际启动隔离后端并执行 [manual-verification.ps1](manual-verification.ps1)，输出 `api/target/auth-manual-verification.log` 以 PASS 标识成功，不输出密码、验证码或 token。覆盖两租户员工用户名/手机号登录、短信首次建号、验证码重放、me/账号资源、401/403/404、员工开通、refresh 幂等和退出、多设备互不影响；未据此宣称 Apifox 或浏览器前端已验收。
+`AuthDevManualIT` 实际启动隔离后端并执行 [manual-verification.ps1](../../../scripts/test/manual-verification.ps1)，输出 `api/target/auth-manual-verification.log` 以 PASS 标识成功，不输出密码、验证码或 token。覆盖两租户员工用户名/手机号登录、短信首次建号、验证码重放、me/账号资源、401/403/404、员工开通、refresh 幂等和退出、多设备互不影响；未据此宣称 Apifox 或浏览器前端已验收。
 
-本轮实际 Springdoc 输出为 `api/target/auth-v1.openapi.yaml`。解析后与 [仓库快照](../../../docs/api/auth-v1.openapi.yaml) 比较：忽略随机端口对应的 `servers` 后完全一致，共九个操作。没有独立消费者注册接口，只有店铺短信/消费者登录、员工登录、统一 refresh/logout/me、员工创建和两类账号详情。已核对 Bearer、双 token、字符串 ID、201 Location、no-store、Retry-After 和错误 envelope。没有运行独立 oasdiff 工具，不将结构比较称为 oasdiff 结果。
+本轮实际 Springdoc 输出为 `api/target/auth-v1.openapi.yaml`。解析后与 [仓库快照](../../../../docs/api/auth-v1.openapi.yaml) 比较：忽略随机端口对应的 `servers` 后完全一致，共九个操作。没有独立消费者注册接口，只有店铺短信/消费者登录、员工登录、统一 refresh/logout/me、员工创建和两类账号详情。已核对 Bearer、双 token、字符串 ID、201 Location、no-store、Retry-After 和错误 envelope。没有运行独立 oasdiff 工具，不将结构比较称为 oasdiff 结果。
 
 兼容差异：旧 `/admin/**`、`/user/**` 的路径、请求头和 envelope 保留，但新旧 token 互不通用；规范化 Base64 密钥后旧会话须重登。`POST /api/v1/echo` 匿名变为 401，认证后非法参数仍为 400。消费者首次登录为 200，员工创建为 201，刷新不要求有效 access，不接受客户端指定租户/角色。
 

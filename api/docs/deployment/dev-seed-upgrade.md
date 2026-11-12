@@ -27,7 +27,7 @@ DevSeedUpgrade 按精确 V1–V9 脚本名和 R010–R070 repeatable 白名单�
 3. 在仓库根执行默认 Check。使用新的、位于被忽略 backups/ 下的独立报告目录；工具不会覆盖已有检查证据。Windows 例：
 
    ```powershell
-   ./api/docs/deployment/dev-seed-upgrade.ps1 -ReportDirectory "A:/work/project/ElectricBusiness/backups/dev-seed-实际日期时间"
+   ./api/scripts/dev/dev-seed-upgrade.ps1 -ReportDirectory (Join-Path (Get-Location) "backups/dev-seed-实际日期时间")
    ```
 
    若 docker 不在 PATH，显式追加 `-DockerExecutable '<实际 docker.exe 路径>'`。脚本编译维护入口并构建依赖 classpath，不运行应用或完整测试；它只删除 target/classes 下列明的旧 R/V 资源及认证旧生成类，避免 Maven 保留改名资源。不会执行 Maven clean。
@@ -46,7 +46,7 @@ DevSeedUpgrade 按精确 V1–V9 脚本名和 R010–R070 repeatable 白名单�
 6. 报告和恢复验证通过后，仍在停写窗口显式执行：
 
    ```powershell
-   ./api/docs/deployment/dev-seed-upgrade.ps1 -Mode Execute -MaintenanceConfirmed -ReportDirectory "A:/work/project/ElectricBusiness/backups/dev-seed-实际日期时间"
+   ./api/scripts/dev/dev-seed-upgrade.ps1 -Mode Execute -MaintenanceConfirmed -ReportDirectory (Join-Path (Get-Location) "backups/dev-seed-实际日期时间")
    ```
 
    Execute 重新检查目标、连接、迁移集合、已存在业务行以及备份 hash 对应的恢复证据。repair 仅针对已核验旧 R，校验没有额外对齐或失败清理；再 migrate（精确执行 pendingVersions 后缀，再执行七份 R010–R070）、validate，并逐行确认已有数据未改写。V3 基线为六份 V 加七份 R，共十三项；V4 基线为五份 V 加七份 R，共十二项。旧历史保留，追加 DELETE 退役标记，新名按真实执行登记。Deleted 不删除业务数据；新 R 必须真正执行，不能伪造为已应用。
@@ -65,14 +65,4 @@ mvn -f api/pom.xml clean verify '-Dtest=MigrationScriptContractTest' '-Dit.test=
 
 覆盖空库顺序、旧租户 R/两份旧 R 两个升级分支、历史保留与 Deleted、账号密码/状态/人工修改、显式补种、缺依赖/身份冲突、未知迁移/失败/校验和拦截、备份恢复、CLI 确认门槛和并发独立 Flyway。测试只连接自己的随机端口容器，不操作 gba-dev 卷；Docker 不可用失败，报告仅在 target。实际开发库维护记录单独留在 backups，并将无秘密的结果摘要记录到本说明关联的交付记录。
 
-## 2026-11-06 验证记录
-
-以上定向命令实际运行 33 tests，0 failures、0 errors、0 skipped，BUILD SUCCESS；日志为 `api/target/seed-targeted-verification.log`。其中 DevSeedMigrationIT 15 项、AuthDevManualIT 1 项，使用可销毁实例，真实备份恢复及 CLI 升级已在隔离库验证。该定向阶段尚未执行 tasks 第 9 节的全量验收；后续结果见 [认证验收记录（本目录入口）](README.md#auth-verification)。未执行生产发布。
-
-用户确认采用 B 后，根 Compose 的 `gba-dev` / `gba_dev` 在 18:25–18:27 维护窗口执行了精确 V3 分支。MySQL 8.0.34 与 Redis 均来自现存命名卷；执行时停止后端、无其他同库连接，未重建卷。升级前库 history 为 V1/V2/V3 成功和旧租户 R 成功，两个租户存在；旧业务表没有行，故未发现其他人工业务数据。
-
-完整备份位于忽略目录 `backups/dev-seed-v3-upgrade-20261106-1825/before.sql`，SHA-256 为 `886cdbfbc7b2a45c09ec4f8d35d8aeccea3177b3f618eccd9eac06b49ba706e6`。备份恢复到本次随机命名的临时 MySQL；所有表行摘要和完整旧 history 均匹配，证据在同目录 `restore-evidence.json`。隔离测试 22 项通过：0 failures、0 errors、0 skipped，含 V3→V4→010→020 分支及备份恢复/CLI。
-
-真实执行在 `api/target/seed-real-execute.log` 和忽略的报告目录留有记录。原 `R__local_test_tenants.sql` 成功行保留，Flyway 追加同名 `DELETE` 退役记录；其后 V4、`R__010_local_test_tenants.sql`、`R__020_auth_demo_accounts.sql` 成功，`validate` 通过。history 共 8 行（7 SQL 成功、1 DELETE）；V1–V4 文件未修改。升级后数据库为 2 个租户、2 个员工、3 个消费者。
-
-dev profile 两次成功启动，均校验 8 条 history 记录且显示无待执行迁移。两商户 `M_3C_DEMO` 和 `M_ISOLATION_TEST` 的员工均通过密码登录、`me` 和退出；health 返回 UP，成功 code 为 0。两次启动及登录前后完整业务行摘要和 Flyway history 均一致，报告为 `runtime-result.json`。临时后端进程已关闭，8080 已释放。本维护窗口未执行第 9 节全量验收或生产操作；后续 `clean verify` 结果见 [认证验收记录（本目录入口）](README.md#auth-verification)。
+实际维护结果见 [本目录 README](README.md#dev-seed-verification)。

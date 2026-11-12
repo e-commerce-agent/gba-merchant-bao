@@ -4,7 +4,7 @@
 
 - <a id="api-design"></a>[api-design.md](api-design.md)：接口契约与调用方式。
 - [module.md](module.md)：模块规则、实现与验证说明。 <a id="module-ids"></a>[相关章节](module.md#主键与多副本运行)。
-- <a id="snowflake-verification"></a>[snowflake-verification.md](snowflake-verification.md)：库存雪花主键的定向验证记录。
+- <a id="snowflake-verification"></a>[snowflake-verification.md](../testing/20261111-inventory-snowflake/snowflake-verification.md)：库存雪花主键的定向验证记录。
 
 ## 相关资料
 
