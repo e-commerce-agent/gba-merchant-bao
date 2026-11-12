@@ -24,7 +24,18 @@ export const USE_MOCK = String(import.meta.env.VITE_USE_MOCK) === 'true'
  */
 export const MOCK_UNIMPLEMENTED = String(import.meta.env.VITE_MOCK_UNIMPLEMENTED ?? 'true') !== 'false'
 
-const MOCK_ONLY_PREFIXES = ['/v1/knowledge-bases', '/v1/document-tasks', '/v1/merchant/overview']
+/**
+ * 前端尚未按真实契约联调的接口：即使 USE_MOCK=false 也由本地 Mock 兜底。
+ * 注意 /v1/chat：后端 ChatController 已交付，但契约是游标分页（cursor/size + SSE），
+ * 前端聊天页还是旧的 scope 参数写法，等 Agent 模块负责人按 agent-conversation-v1
+ * 重写 api/chat.ts 后，从列表里删掉对应前缀即可，页面代码不用动。
+ */
+const MOCK_ONLY_PREFIXES = [
+  '/v1/chat',
+  '/v1/knowledge-bases',
+  '/v1/document-tasks',
+  '/v1/merchant/overview'
+]
 
 function shouldMock(url: string): boolean {
   if (USE_MOCK) return true
