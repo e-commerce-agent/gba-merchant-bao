@@ -6,6 +6,10 @@
 
 响应使用 `ApiResponse{code,message,data,requestId}`，成功 code=0；四个 POST 成功均为 HTTP 200、data=null。
 
+实际 Springdoc 分组为 `inventory-v1`：启动 dev 后访问 `/v3/api-docs/inventory-v1`（JSON）或
+`/v3/api-docs.yaml/inventory-v1`（YAML）。该分组覆盖下列六个既有操作，声明 Bearer、员工角色及
+库存错误码；公开有货/无货仍由 `product-v1` 提供，不在此组开放精确库存。
+
 ## 现有路由
 
 | 方法 | 后缀 | 请求/结果 |

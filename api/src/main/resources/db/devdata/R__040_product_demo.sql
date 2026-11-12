@@ -127,18 +127,26 @@ SELECT
   ) THEN NULL ELSE 1 END;
 
 -- Categories: three 3C roots plus one second-level demo child, and one isolation tenant root.
+-- Insert roots in a separate statement: a hash join may reorder a UNION's rows,
+-- and InnoDB checks the parent foreign key immediately for each inserted row.
 INSERT INTO product_category (id, merchant_id, parent_id, name, sort_no, status, created_at, updated_at)
 SELECT s.id, m.id, s.parent_id, s.name, s.sort_no, s.status, '2026-11-01 00:00:00.000', '2026-11-01 00:00:00.000'
 FROM (
   SELECT 2500000000000101 AS id, NULL AS parent_id, '充电器' AS name, 10 AS sort_no, 'ACTIVE' AS status
   UNION ALL SELECT 2500000000000102, NULL, '数据线', 20, 'ACTIVE'
   UNION ALL SELECT 2500000000000103, NULL, '耳机', 30, 'ACTIVE'
-  UNION ALL SELECT 2500000000000104, 2500000000000101, '车载充电器', 10, 'ACTIVE'
   UNION ALL SELECT 2500000000000105, NULL, '对照分类', 10, 'ACTIVE'
 ) s
-JOIN merchant m ON (s.id BETWEEN 2500000000000101 AND 2500000000000104 AND m.merchant_code = 'M_3C_DEMO')
+JOIN merchant m ON (s.id BETWEEN 2500000000000101 AND 2500000000000103 AND m.merchant_code = 'M_3C_DEMO')
               OR (s.id = 2500000000000105 AND m.merchant_code = 'M_ISOLATION_TEST')
 WHERE NOT EXISTS (SELECT 1 FROM product_category c WHERE c.id = s.id);
+
+INSERT INTO product_category (id, merchant_id, parent_id, name, sort_no, status, created_at, updated_at)
+SELECT 2500000000000104, m.id, 2500000000000101, '车载充电器', 10, 'ACTIVE',
+       '2026-11-01 00:00:00.000', '2026-11-01 00:00:00.000'
+FROM merchant m
+WHERE m.merchant_code = 'M_3C_DEMO'
+  AND NOT EXISTS (SELECT 1 FROM product_category c WHERE c.id = 2500000000000104);
 
 -- Products: published 3C demos, one unpublished, one draft, and one isolation-tenant product.
 INSERT INTO product (id, merchant_id, category_id, product_code, name, brand, description, status, created_at, updated_at)

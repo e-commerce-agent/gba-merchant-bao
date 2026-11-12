@@ -56,13 +56,14 @@
 
 ## 7. 验证迁移路径与跨模块整合
 
-- [ ] 7.1 在隔离 Testcontainers MySQL 中覆盖空库到 V9 及冻结原 V5 到 V9 两条路径；扩展 `FlywayMigrationIT`、`DevSeedMigrationIT`，验证最终结构和演示关联一致、库存三表无自增且 seed 显式 ID 有效，原账号/会话/人工值及 V1–V5 history/checksum 保持不变。
-- [ ] 7.2 对升级后的隔离数据库再次 migrate/启动并执行 Flyway validate，验证无新增迁移、无演示数据覆盖；同时验证 test/prod locations 不加载 dev 商品、库存、订单、物流种子，构建产物只包含新的唯一 V/R 清单。
-- [ ] 7.3 在真实 Spring 上下文执行商品查询→库存只读、库存操作→商品引用、物流→订单授权的综合用例；验证雪花改造后无构造依赖环、两租户隔离成立，商品库存变化和历史订单快照行为可同时成立。
-- [ ] 7.4 运行 `mvn -f api/pom.xml clean verify`，记录检查结果并修复本次关联引起的回归；验证 clean 后测试和打包均成功，覆盖库存显式 ID、生成器及跨模块回归，避免重命名 SQL 的旧资源残留。
+- [x] 7.1 在隔离 Testcontainers MySQL 中覆盖空库到 V9 及冻结原 V5 到 V9 两条路径；扩展 `FlywayMigrationIT`、`DevSeedMigrationIT`，验证最终结构和演示关联一致、库存三表无自增且 seed 显式 ID 有效，原账号/会话/人工值及 V1–V5 history/checksum 保持不变。
+- [x] 7.2 对升级后的隔离数据库再次 migrate/启动并执行 Flyway validate，验证无新增迁移、无演示数据覆盖；同时验证 test/prod locations 不加载 dev 商品、库存、订单、物流种子，构建产物只包含新的唯一 V/R 清单。
+- [x] 7.3 在真实 Spring 上下文执行商品查询→库存只读、库存操作→商品引用、物流→订单授权的综合用例；验证雪花改造后无构造依赖环、两租户隔离成立，商品库存变化和历史订单快照行为可同时成立。
+- [x] 7.4 运行 `mvn -f api/pom.xml clean verify`，记录检查结果并修复本次关联引起的回归；验证 clean 后测试和打包均成功，覆盖库存显式 ID、生成器及跨模块回归，避免重命名 SQL 的旧资源残留。
 
 ## 8. 本地 V5 dev 升级及调试验收
 
-- [ ] 8.1 在 `local-development.md` 交付本次升级步骤：后端停止时启动 compose、只读核对 gba-dev/gba_dev 与最高 V5 history/checksum、备份结构及数据并隔离恢复核验；完成这些前置检查并记录结果，目标不符（包括已应用 V7）时停止并另行评审向前迁移，不自动 repair/改 history/checksum/重编号记录/删卷。
-- [ ] 8.2 使用 clean 后端在 IDEA 配置 JDK 21、工作目录 api 和 dev profile，经 dev_admin 自动执行新 V6–V9 与适用 R；验证启动成功、库存三表无自增及 Flyway validate 通过，并记录实际迁移清单与健康检查结果。
-- [ ] 8.3 使用两个租户验证商品库存布尔、员工库存维护及运行时显式雪花 ID、本人订单快照、物流授权及无运单响应，二次启动确认 history 和人工值稳定；记录可用断点入口、实际联调结果及失败时停止后端和保留备份/日志的恢复指引。
+- [x] 8.1 在 `local-development.md` 交付本次升级步骤：后端停止时启动 compose、只读核对 gba-dev/gba_dev 与最高 V5 history/checksum、备份结构及数据并隔离恢复核验；完成这些前置检查并记录结果，目标不符（包括已应用 V7）时停止并另行评审向前迁移，不自动 repair/改 history/checksum/重编号记录/删卷。
+- [x] 8.2 使用 clean 后端在 IDEA 配置 JDK 21、工作目录 api 和 dev profile，经 dev_admin 自动执行新 V6–V9 与适用 R；验证启动成功、库存三表无自增及 Flyway validate 通过，并记录实际迁移清单与健康检查结果。
+- [x] 8.3 在 dev profile 后端启动成功后，分别导出商品 API、库存 API、订单 API 和物流 API 接口文档，保存至现有 `docs/api/` 契约目录；核对导出文档与运行中后端的路由、请求/响应模型及权限契约一致，记录导出来源与结果。
+- [x] 8.4 使用两个租户验证商品库存布尔、员工库存维护及运行时显式雪花 ID、本人订单快照、物流授权及无运单响应，二次启动确认 history 和人工值稳定；记录可用断点入口、实际联调结果及失败时停止后端和保留备份/日志的恢复指引。

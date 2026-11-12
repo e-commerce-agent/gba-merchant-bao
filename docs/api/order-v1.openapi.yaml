@@ -1,0 +1,291 @@
+openapi: 3.1.0
+info:
+  title: Merchant Assistant API
+  description: 订单只读查询：消费者本人订单、员工本商户订单。身份只来自认证 Actor；越界与不存在同为 404/10004。订单项为成交快照，不含手机号与地址。
+  version: v1
+servers:
+- url: /
+tags:
+- name: order-v1
+  description: "Read-only order queries scoped by the trusted Actor: consumers see\
+    \ their own orders, staff sees the merchant's. Out-of-scope and missing resources\
+    \ are both 404/10004. IDs are strings and times are UTC. Errors: 400/10001, 500/10500."
+paths:
+  /api/v1/orders:
+    get:
+      tags:
+      - order-v1
+      summary: 订单分页列表
+      description: 消费者返回本人订单，员工返回本商户订单。pageNum 默认 1，pageSize 默认 10、上限 100。
+      operationId: listOrders
+      parameters:
+      - name: query
+        in: query
+        required: true
+        schema:
+          $ref: "#/components/schemas/OrderListQuery"
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponsePage"
+        "500":
+          description: 10500 非预期错误
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderErrorEnvelope"
+        "401":
+          description: 10002 会话无效
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderErrorEnvelope"
+        "400":
+          description: 10001 分页参数无效
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderErrorEnvelope"
+        "404":
+          description: 10004 订单不存在或越界
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderErrorEnvelope"
+      security:
+      - bearerAuth: []
+  /api/v1/orders/{orderId}:
+    get:
+      tags:
+      - order-v1
+      summary: 订单详情含成交快照
+      description: 消费者限本人订单，员工限本商户订单；越界与不存在同为 404。订单项为下单时的名称、SKU 属性与价格快照。
+      operationId: getOrderDetail
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseDetail"
+        "500":
+          description: 10500 非预期错误
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderErrorEnvelope"
+        "401":
+          description: 10002 会话无效
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderErrorEnvelope"
+        "400":
+          description: 10001 分页参数无效
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderErrorEnvelope"
+        "404":
+          description: 10004 订单不存在或越界
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderErrorEnvelope"
+      security:
+      - bearerAuth: []
+components:
+  schemas:
+    OrderListQuery:
+      type: object
+      properties:
+        pageNum:
+          type: integer
+          format: int32
+          minimum: 1
+        pageSize:
+          type: integer
+          format: int32
+          maximum: 100
+          minimum: 1
+    ApiResponsePage:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/Page"
+        requestId:
+          type: string
+    Page:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/Summary"
+        total:
+          type: integer
+          format: int64
+        current:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+    Summary:
+      type: object
+      properties:
+        orderId:
+          type: string
+        orderNo:
+          type: string
+        status:
+          type: string
+        payStatus:
+          type: string
+        totalAmount:
+          type: number
+        paidAmount:
+          type: number
+        currency:
+          type: string
+        placedAt:
+          type: string
+          format: date-time
+    ApiResponseDetail:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/Detail"
+        requestId:
+          type: string
+    Detail:
+      type: object
+      properties:
+        orderId:
+          type: string
+        orderNo:
+          type: string
+        status:
+          type: string
+        payStatus:
+          type: string
+        totalAmount:
+          type: number
+        paidAmount:
+          type: number
+        currency:
+          type: string
+        placedAt:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ItemView"
+    ItemView:
+      type: object
+      properties:
+        itemId:
+          type: string
+        productId:
+          type: string
+        skuId:
+          type: string
+        productName:
+          type: string
+        skuAttributes:
+          type: string
+        unitPrice:
+          type: number
+        quantity:
+          type: integer
+          format: int32
+        amount:
+          type: number
+    OrderErrorEnvelope:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data: {}
+        requestId:
+          type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      in: header
+      scheme: bearer
+      bearerFormat: JWT

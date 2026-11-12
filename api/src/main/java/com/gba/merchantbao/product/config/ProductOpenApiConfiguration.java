@@ -14,6 +14,9 @@ public class ProductOpenApiConfiguration {
         return GroupedOpenApi.builder()
                 .group("product-v1")
                 .packagesToScan("com.gba.merchantbao.product.controller")
+                .pathsToMatch("/api/v1/product-categories", "/api/v1/product-categories/**",
+                        "/api/v1/products", "/api/v1/products/**", "/api/v1/skus/**",
+                        "/api/v1/stores/*/products", "/api/v1/stores/*/products/*", "/api/v1/stores/*/skus/*")
                 .addOpenApiCustomizer(api -> {
                     Info info = new Info();
                     info.setTitle("Product module API");

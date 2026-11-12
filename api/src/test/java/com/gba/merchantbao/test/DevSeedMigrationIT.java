@@ -56,6 +56,24 @@ class DevSeedMigrationIT {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM consumer_account", Integer.class)).isEqualTo(3);
     }
 
+    @Test void productSeedCreatesParentCategoriesBeforeChildrenWithRefreshedMerchantStatistics() throws Exception {
+        structure();
+        execute("db/seed/nonprod/R__010_local_test_tenants.sql");
+        // Restoring the V5 dump refreshes statistics. The resulting hash join can emit
+        // the child before its parent even when the UNION lists the parent first.
+        jdbc.execute("ANALYZE TABLE merchant");
+        execute("db/devdata/R__040_product_demo.sql");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM product_category", Integer.class)).isEqualTo(5);
+        assertThat(jdbc.queryForObject("SELECT parent_id FROM product_category WHERE id=2500000000000104", Long.class))
+                .isEqualTo(2500000000000101L);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM product_category c JOIN product_category p "
+                + "ON p.id=c.parent_id AND p.merchant_id=c.merchant_id", Integer.class)).isEqualTo(1);
+        jdbc.update("UPDATE product_category SET sort_no=88,status='INACTIVE' WHERE id=2500000000000101");
+        var before = tool.snapshot();
+        execute("db/devdata/R__040_product_demo.sql");
+        assertThat(tool.snapshot()).isEqualTo(before);
+    }
+
     @Test void commerceSeedsPreserveManualValuesOnExplicitRerun() throws Exception {
         tool.flyway().migrate();
         jdbc.update("UPDATE inventory SET available_qty=77,reserved_qty=4,version=9 WHERE sku_id=2500000000000301");
@@ -87,6 +105,53 @@ class DevSeedMigrationIT {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM trade_order_item", Integer.class)).isEqualTo(8);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM shipment_track", Integer.class)).isEqualTo(6);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM product_attribute", Integer.class)).isEqualTo(8);
+    }
+
+    @Test void frozenV5UpgradeMatchesFreshSchemaAndPreservesAccountsChatAndHistory() throws Exception {
+        Path frozen = files.resolve("frozen-v5");
+        Files.createDirectories(frozen);
+        for (String name : List.of("V1__legacy_schema_baseline.sql", "V2__merchant_tenant_root.sql",
+                "V3__merchant_currency_compatibility.sql", "V4__auth_accounts.sql", "V5__agent_conversation.sql")) {
+            Files.copy(Path.of("src/main/resources/db/migration", name), frozen.resolve(name));
+        }
+        for (String name : List.of("R__020_auth_demo_accounts.sql", "R__030_chat_demo.sql")) {
+            Files.copy(Path.of("src/main/resources/db/devdata", name), frozen.resolve(name));
+        }
+        Flyway.configure().dataSource(url, "root", MYSQL.getPassword())
+                .locations("filesystem:" + frozen, "classpath:db/seed/nonprod").load().migrate();
+        jdbc.update("UPDATE merchant_staff_account SET password_hash='manual-digest',version=7 WHERE id=2100000000000101");
+        jdbc.update("UPDATE consumer_account SET display_name='manual consumer',version=9 WHERE id=2100000000000201");
+        jdbc.update("UPDATE chat_session SET title='manual session' WHERE id=2200000000000001");
+        jdbc.update("UPDATE chat_message SET content='manual message' WHERE id=2300000000000001");
+        var history = jdbc.queryForList("SELECT * FROM flyway_schema_history ORDER BY installed_rank");
+        var before = tool.snapshot();
+        assertThat(tool.flyway().migrate().migrationsExecuted).isEqualTo(8);
+        tool.flyway().validate();
+        tool.assertPreserved(before);
+        assertThat(jdbc.queryForList("SELECT * FROM flyway_schema_history ORDER BY installed_rank")).containsAll(history);
+        assertCommerceSeedRelations();
+
+        String fresh = "gba_seed_it_" + UUID.randomUUID().toString().replace("-", "");
+        jdbc.execute("CREATE DATABASE `" + fresh + "`");
+        var freshTool = new DevSeedUpgrade(url.replace("/" + database + "?", "/" + fresh + "?"),
+                "root", MYSQL.getPassword(), fresh);
+        freshTool.flyway().migrate();
+        assertThat(schema(fresh)).isEqualTo(schema(database));
+
+        jdbc.update("UPDATE inventory SET available_qty=37,version=11 WHERE id=2500000000000501");
+        var upgraded = tool.snapshot();
+        var upgradedHistory = tool.history();
+        assertThat(tool.flyway().migrate().migrationsExecuted).isZero();
+        tool.flyway().validate();
+        assertThat(tool.snapshot()).isEqualTo(upgraded);
+        assertThat(tool.history()).isEqualTo(upgradedHistory);
+    }
+
+    private List<String> schema(String name) {
+        return jdbc.queryForList("SELECT CONCAT(table_name,':',column_name,':',column_type,':',is_nullable,':',"
+                + "COALESCE(column_default,'<null>'),':',extra) FROM information_schema.columns "
+                + "WHERE table_schema=? AND table_name<>'flyway_schema_history' ORDER BY table_name,ordinal_position",
+                String.class, name);
     }
 
     @org.junit.jupiter.params.ParameterizedTest
@@ -509,6 +574,10 @@ class DevSeedMigrationIT {
 
     void structure() { Flyway.configure().dataSource(url, "root", MYSQL.getPassword()).locations("classpath:db/migration").load().migrate(); }
     private void assertCommerceSeedRelations() {
+        assertThat(jdbc.queryForList("SELECT table_name FROM information_schema.columns WHERE table_schema=DATABASE() "
+                + "AND table_name IN ('inventory','inventory_transaction','inventory_idempotent') AND column_name='id' "
+                + "AND column_default IS NULL AND extra NOT LIKE '%auto_increment%'", String.class))
+                .containsExactlyInAnyOrder("inventory", "inventory_transaction", "inventory_idempotent");
         assertThat(jdbc.queryForList("SELECT sku_id FROM trade_order_item ORDER BY id", Long.class))
                 .containsExactly(2500000000000301L, 2500000000000304L, 2500000000000308L,
                         2500000000000306L, 2500000000000302L, 2500000000000305L,

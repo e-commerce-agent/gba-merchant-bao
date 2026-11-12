@@ -50,7 +50,7 @@ ProductionInfrastructureIT 复用生产初始化脚本验证 DML/迁移权限分
 QA 可选择在 dev profile 环境人工验收，通过后再进入未来 prod；没有 QA 也可直接进入 prod，无 qa profile。本次没有云发布或 CI/tag 流水线。
 资源移动后务必运行 clean verify，清除 target/classes 中残留的 application-local/test 及旧 devdata SQL，再执行 Surefire 和 Failsafe。
 
-`align-commerce-module-integration` 当前按用户范围只实施第 1、2 组。其定向验证选择 MigrationScriptContractTest，以及 DevSeedMigrationIT、OrderPersistenceIT、OrderFlowIT、InventoryFlowIT、ShipmentSchemaIT、ShipmentFlowIT、ShipmentSoapIT。全量验证、冻结 V5 升级路径及 FlywayMigrationIT 中遗留 V8 断言的同步属于第 6 组，尚未执行；定向成功不表示全量验收完成。
+`align-commerce-module-integration` 第 1、2 组的历史定向验证选择 MigrationScriptContractTest，以及 DevSeedMigrationIT、OrderPersistenceIT、OrderFlowIT、InventoryFlowIT、ShipmentSchemaIT、ShipmentFlowIT、ShipmentSoapIT。新增库存雪花主键任务后，综合迁移/模块验证和本地升级分别位于第 7、8 节；冻结 V5 路径、test/prod 数据隔离、真实 Spring 跨模块用例、遗留版本断言修正、全量构建和本地升级结果统一记录在 [电商整合验收](commerce-integration-verification.md)。
 
 2026-11-11 定向验证通过：执行下列 clean 构建，5 项迁移契约测试和 70 项集成测试全部成功，无失败、错误或跳过。集成测试使用独立 Testcontainers MySQL，不操作本地 gba-dev 数据库。
 
