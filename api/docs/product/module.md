@@ -5,7 +5,7 @@
 管理 3C 商品及其可售规格：分类（两级）、商品/SPU、SKU、结构化兼容性属性；提供公开商城查询、登录读取与商户员工维护接口，并向后续 Agent 商品 Tool 输出 `ProductQueryService` 只读事实。库存、订单、物流依赖本模块冻结的 SKU 标识与商户归属。
 
 - change：`openspec/changes/add-product-module/`
-- 当前集成对齐：`openspec/changes/align-commerce-module-integration/` 第 4 节（公开店铺路径、匿名访问边界及库存布尔）
+- 集成对齐归档：`openspec/changes/archive/2026-11-12-align-commerce-module-integration/` 第 4 节（公开店铺路径、匿名访问边界及库存布尔）
 - 缓存：`product/cache/ProductCacheStore`（Redis，公开读路径；写操作 O(1) 版本失效）
 - 迁移：`db/migration/V6__product_module.sql`（V1–V5 冻结）
 - dev 演示数据：`db/devdata/R__040_product_demo.sql`（仅 dev；依赖 R010 租户）
