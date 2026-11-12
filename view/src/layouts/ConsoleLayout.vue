@@ -33,6 +33,7 @@ const menus = computed(() =>
         { label: '工作台', to: '/merchant/dashboard', icon: DataBoard },
         { label: '会话工作台', to: '/merchant/conversations', icon: ChatLineSquare },
         { label: '商品与 SKU', to: '/merchant/products', icon: Goods },
+        { label: '订单管理', to: '/merchant/orders', icon: Tickets },
         { label: '库存管理', to: '/merchant/inventory', icon: Box },
         { label: '知识库', to: '/merchant/knowledge', icon: Collection },
         { label: '文档任务', to: '/merchant/tasks', icon: Files }
