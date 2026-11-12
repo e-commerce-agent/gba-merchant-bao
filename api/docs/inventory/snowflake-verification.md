@@ -1,6 +1,6 @@
 # 库存雪花主键定向验收
 
-对应 `align-commerce-module-integration` 第 6 节，2026-11-11（Asia/Shanghai）。规则见 [库存模块](README.md#主键与多副本运行)；第 1–5 节的历史结果保持原记录。本次使用 Testcontainers MySQL 8.0.34 / Redis 隔离环境，不连接或升级本地 dev 库。
+对应 `align-commerce-module-integration` 第 6 节，2026-11-11（Asia/Shanghai）。规则见 [库存模块（本目录入口）](README.md#module-ids)；第 1–5 节的历史结果保持原记录。本次使用 Testcontainers MySQL 8.0.34 / Redis 隔离环境，不连接或升级本地 dev 库。
 
 | 测试 | 数量 | 验证内容 |
 | --- | ---: | --- |

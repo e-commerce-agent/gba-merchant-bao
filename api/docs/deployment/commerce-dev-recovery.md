@@ -3,7 +3,7 @@
 变更：`align-commerce-module-integration`，任务 8.2–8.4。
 本方案针对 2026-11-11 的 R040 分类种子失败；2026-11-12 已在隔离副本验证修复。
 用户于 2026-11-12 确认执行；已按下述路线完成真实开发库恢复及任务 8.2–8.4。
-实际证据见 [整合验收记录](../testing/commerce-integration-verification.md#2026-11-12-授权恢复与实际-dev-启动)。
+实际证据见 [整合验收记录（本目录入口）](README.md#testing-commerce-integration-verification-dev-recovery)。
 
 ## 故障与修复
 
@@ -34,7 +34,7 @@ hash join，实际首先输出子分类，父分类尚未插入。InnoDB 即时�
    未生成库存业务流水或幂等记录。Flyway validate 通过，再次 migrate 为 0，业务摘要及 history 不变。
 
 演练证据目录：`backups/commerce-category-repro-20261112/`（Git 忽略）。
-完整验收和测试结果见 [commerce-integration-verification.md](../testing/commerce-integration-verification.md)。
+完整验收和测试结果见 [commerce-integration-验收记录（本目录入口）](README.md#testing-commerce-integration-verification)。
 隔离 migrate 的二次执行验证不替代任务 8.4 的真实应用二次启动验收。
 
 ## 已执行路线：完整恢复 V5 后重新升级

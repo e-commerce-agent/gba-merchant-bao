@@ -1,0 +1,2620 @@
+{
+  "capturedAt": "2026-11-12T19:50:13+08:00",
+  "sourceCommit": "ebc2c58096437b84058046a02a07fb9624e1c9fd",
+  "mappingFile": "test-file-mapping.json",
+  "runs": [
+    {
+      "kind": "surefire",
+      "command": "mvn -f api/pom.xml test",
+      "exitCode": 0,
+      "reportsDirectory": "api/target/surefire-reports",
+      "reportCount": 29,
+      "totals": {
+        "tests": 109,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reports": [
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.chat.controller.ChatSseLifecycleTest.xml",
+          "modifiedAt": "2026-11-12T19:27:44+08:00",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "babc0142c1b9a86feb30289ac3dc93115204fee8f2637ef23a43d8589a83aaf1"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.chat.service.ChatRunExecutionTest.xml",
+          "modifiedAt": "2026-11-12T19:27:53+08:00",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "2c213b1e4ea2ee1b1a2f6d388a4a64e10e2c15c598e57d19490cb2c18bbbe94b"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.AccessTokenServiceTest.xml",
+          "modifiedAt": "2026-11-12T19:27:53+08:00",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "6010bd8ab53ede6c977521a8ff3085dc57a8e943993576f77fd2c2eb63294e69"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.AgentAttemptsTest.xml",
+          "modifiedAt": "2026-11-12T19:27:53+08:00",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "336f0baca8a4123d55ba10d1ebca06894a8de175dcc0463a9591be23de96f629"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.AgentConfigurationTest.xml",
+          "modifiedAt": "2026-11-12T19:27:54+08:00",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "6ee22edddc715b439de690d1e2027f78506c51b2ca522b73164cf767b6eced11"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.AgentContextTest.xml",
+          "modifiedAt": "2026-11-12T19:27:54+08:00",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "545ce3a28a7fc749f5db7aa606cb22983ededdda068835d67b9c8ece00bbabdb"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.AgentModelProtocolTest.xml",
+          "modifiedAt": "2026-11-12T19:27:55+08:00",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "6f188d2f89675f1811155bab390be55505cce94a2737799f5f942fa6c8ec7543"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.AuthContextTest.xml",
+          "modifiedAt": "2026-11-12T19:27:55+08:00",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "cec27718cf804459e77b58aa44995dc622170a731a23cc0bebc23625b262e748"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.AuthCredentialTest.xml",
+          "modifiedAt": "2026-11-12T19:27:58+08:00",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "f0533bc4e0bc026debfc7e04a1ad0895391c492eb6bc606dec4d4779b458a23c"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.AuthInputTest.xml",
+          "modifiedAt": "2026-11-12T19:27:58+08:00",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "fd510d98c97d9ea7133f23b7c60e0e3a0952c24afe40850f7dc7ce80a2679ce2"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.AuthJwtConfigurationTest.xml",
+          "modifiedAt": "2026-11-12T19:27:58+08:00",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "5c1b6dd2157833567a78d5fb1531b43659221407771707e3297712faabd2983a"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.AuthSmsConfigurationTest.xml",
+          "modifiedAt": "2026-11-12T19:27:58+08:00",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "326dbddbfba984040f437876ee82b71462fe792c9982a419820c4b15a8c4da0d"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.ChatControllerTest.xml",
+          "modifiedAt": "2026-11-12T19:27:59+08:00",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "dd7e32235ae985246f020f5c690836ef4c73235cb38406363b9b0f25ebe235c3"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.FoundationContractTest.xml",
+          "modifiedAt": "2026-11-12T19:27:59+08:00",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "5733593828be9229ecaa72656400d9c0c0ab477a182432eedd498e0152f9dfd3"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.FoundationSchemaContractTest.xml",
+          "modifiedAt": "2026-11-12T19:27:59+08:00",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "f5fb28ad8a69ef880a62ec3ff03ebf1e6d87ea63240681e3fe2414c4e9144593"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.HttpClientTest.xml",
+          "modifiedAt": "2026-11-12T19:28:09+08:00",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "71558dc2de4c9e1732f1291e8205b71f65fbdc9898206b8387f6506d95910d71"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.InventoryAvailabilityQueryServiceTest.xml",
+          "modifiedAt": "2026-11-12T19:28:09+08:00",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "977e83ccbf9ab8ddf2ed161ac70f1c80d1d9f34eef0ab89f6961fe49dea1fddd"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.JsonLoggingTest.xml",
+          "modifiedAt": "2026-11-12T19:28:09+08:00",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "4bc3f10f77feb1ea8e13dd3c00701ea89317e403f5521f619b486f88407ebcfb"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.LegacyJwtCompatibilityTest.xml",
+          "modifiedAt": "2026-11-12T19:28:09+08:00",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "6af33c6d67e6bcc7a2ea954fb2cdffcaefddcd5eee795b2eb64acb6cd42f93ac"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.MigrationScriptContractTest.xml",
+          "modifiedAt": "2026-11-12T19:28:09+08:00",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "c2de7f1fbf266a2536308dafacb00d5e72fc17365cadb29b65b74e1d1e42f769"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.OrderQueryServiceTest.xml",
+          "modifiedAt": "2026-11-12T19:28:10+08:00",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "e887edaac51e30ebe2523e38ac78bbe43581ca303094ba0462595fa5f4520f6e"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.ProductCacheStoreTest.xml",
+          "modifiedAt": "2026-11-12T19:28:10+08:00",
+          "tests": 8,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "ca0720f31d1bde71b19ac4aa1f5e09ab5ddb592dd8c68eef7522b18300daba0c"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.ProductReferenceServiceTest.xml",
+          "modifiedAt": "2026-11-12T19:28:10+08:00",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "43429acb372d824ed770d694f55ff8ea8dec9f766a148a36cd6884672f2e4473"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.ProductRequestsTest.xml",
+          "modifiedAt": "2026-11-12T19:28:10+08:00",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "5d272b4e0c7a84a6270fbb93220f4d9e9ea613ce024a2ea6c755a741452afb05"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.PublicCatalogSecurityTest.xml",
+          "modifiedAt": "2026-11-12T19:28:10+08:00",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "7dcab8d5bb047b983c84a33e48cc6131f8aafa35b8bf5caa9feae5cbb494362f"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.RuntimeConfigurationTest.xml",
+          "modifiedAt": "2026-11-12T19:28:10+08:00",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "2079341a77da27baaf77a4f1d17b707f4d7146fd42a31d14572a14f58a95c099"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.ShipmentQueryServiceTest.xml",
+          "modifiedAt": "2026-11-12T19:28:10+08:00",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "bdb739fac564b1da198ded2260b494b569cf2ce9968ec77668ded3165369799c"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.ShipmentServiceTokenInterceptorTest.xml",
+          "modifiedAt": "2026-11-12T19:28:10+08:00",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "4b54f3435af440c8fede623f362248497549ecb74e399f29333b269b435103d1"
+        },
+        {
+          "file": "api/target/surefire-reports/TEST-com.gba.merchantbao.test.SnowflakeIdGeneratorTest.xml",
+          "modifiedAt": "2026-11-12T19:28:10+08:00",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "238e7bf9711241b16be2fde42376827b56c691e5d07f123356bcf8a280e02cd4"
+        }
+      ],
+      "cases": [
+        {
+          "class": "com.gba.merchantbao.chat.controller.ChatSseLifecycleTest",
+          "method": "commentHeartbeatsDoNotCreateBusinessEvents",
+          "status": "passed",
+          "simpleClass": "ChatSseLifecycleTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatSseLifecycleTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.chat.controller.ChatSseLifecycleTest",
+          "method": "boundedQueueRejectsSlowConsumersAndLateTokensAreDiscarded",
+          "status": "passed",
+          "simpleClass": "ChatSseLifecycleTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatSseLifecycleTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.chat.controller.ChatSseLifecycleTest",
+          "method": "aBlockedWriterExceedsItsTimeLimitAndReleasesTheWorker",
+          "status": "passed",
+          "simpleClass": "ChatSseLifecycleTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatSseLifecycleTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.chat.controller.ChatSseLifecycleTest",
+          "method": "writeFailureRequestsCancellationAndStopsFurtherWrites",
+          "status": "passed",
+          "simpleClass": "ChatSseLifecycleTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatSseLifecycleTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.chat.service.ChatRunExecutionTest",
+          "method": "outputLimitFailsAndCancelsTransportWithoutAcceptingLateCallbacks",
+          "status": "passed",
+          "simpleClass": "ChatRunExecutionTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatRunExecutionTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.chat.service.ChatRunExecutionTest",
+          "method": "terminalAuditAndMetricsContainMetadataButNeverCredentialsOrBody",
+          "status": "passed",
+          "simpleClass": "ChatRunExecutionTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatRunExecutionTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AccessTokenServiceTest",
+          "method": "expiryIsCappedByOriginalAbsoluteDeadlineIncludingSubseconds",
+          "status": "passed",
+          "simpleClass": "AccessTokenServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AccessTokenServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AccessTokenServiceTest",
+          "method": "missingClaimsAndMalformedIdentityAreRejectedAfterSignatureVerification",
+          "status": "passed",
+          "simpleClass": "AccessTokenServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AccessTokenServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AccessTokenServiceTest",
+          "method": "bothRolesRoundTripWithIndependentSigningKeysAndCompleteClaims",
+          "status": "passed",
+          "simpleClass": "AccessTokenServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AccessTokenServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AccessTokenServiceTest",
+          "method": "wrongIssuerAudienceRoleKeyAndLifetimeAreRejected",
+          "status": "passed",
+          "simpleClass": "AccessTokenServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AccessTokenServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AccessTokenServiceTest",
+          "method": "tamperingUnknownKeysAndAlgorithmSubstitutionNeverProduceIdentity",
+          "status": "passed",
+          "simpleClass": "AccessTokenServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AccessTokenServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AgentAttemptsTest",
+          "method": "timeoutCancelsAHandleReturnedAfterTheTerminalCallback",
+          "status": "passed",
+          "simpleClass": "AgentAttemptsTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AgentAttemptsTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AgentAttemptsTest",
+          "method": "onlyTransientFailuresBeforeBodyRetryWithinOriginalDeadline",
+          "status": "passed",
+          "simpleClass": "AgentAttemptsTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AgentAttemptsTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AgentAttemptsTest",
+          "method": "duplicateAndLateCallbacksFromAFailedAttemptCannotFinishItsSuccessor",
+          "status": "passed",
+          "simpleClass": "AgentAttemptsTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AgentAttemptsTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AgentAttemptsTest",
+          "method": "emittedBodyAndExhaustedDeadlineNeverRetry",
+          "status": "passed",
+          "simpleClass": "AgentAttemptsTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AgentAttemptsTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AgentConfigurationTest",
+          "method": "enabledRejectsMissingOrInvalidConfigWithoutEchoingSecrets",
+          "status": "passed",
+          "simpleClass": "AgentConfigurationTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AgentConfigurationTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AgentConfigurationTest",
+          "method": "disabledNeedsNoModelCredentials",
+          "status": "passed",
+          "simpleClass": "AgentConfigurationTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AgentConfigurationTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AgentConfigurationTest",
+          "method": "apiRootAndLimitsAreValidatedOnStartup",
+          "status": "passed",
+          "simpleClass": "AgentConfigurationTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AgentConfigurationTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AgentContextTest",
+          "method": "onlyRecentCompleteSuccessfulPairsAreInjectedInChronologicalOrder",
+          "status": "passed",
+          "simpleClass": "AgentContextTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AgentContextTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AgentContextTest",
+          "method": "deterministicModelSupportsDeltasErrorsDelayAndCancellation",
+          "status": "passed",
+          "simpleClass": "AgentContextTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AgentContextTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AgentContextTest",
+          "method": "budgetReservesOutputAndNeverTruncatesCurrentInputOrUsesHalfARound",
+          "status": "passed",
+          "simpleClass": "AgentContextTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AgentContextTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AgentModelProtocolTest",
+          "method": "sdkTransportCanBeCancelledBeforeTheFirstBodyToken",
+          "status": "passed",
+          "simpleClass": "AgentModelProtocolTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AgentModelProtocolTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AgentModelProtocolTest",
+          "method": "sdkSendsCompatibleRolesAndParsesFragmentedStream(String)[1]",
+          "status": "passed",
+          "simpleClass": "AgentModelProtocolTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AgentModelProtocolTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AgentModelProtocolTest",
+          "method": "sdkSendsCompatibleRolesAndParsesFragmentedStream(String)[2]",
+          "status": "passed",
+          "simpleClass": "AgentModelProtocolTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AgentModelProtocolTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthContextTest",
+          "method": "contextsClearOnSameThreadAfterSuccessAndException",
+          "status": "passed",
+          "simpleClass": "AuthContextTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthContextTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthContextTest",
+          "method": "authHasNoLegacyImportsOrUnimplementedDomainModels",
+          "status": "passed",
+          "simpleClass": "AuthContextTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthContextTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthCredentialTest",
+          "method": "missingMerchantAndAccountStillPerformRealDummyBCrypt",
+          "status": "passed",
+          "simpleClass": "AuthCredentialTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthCredentialTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthCredentialTest",
+          "method": "disabledAndWrongPasswordHaveIdenticalCredentialErrors",
+          "status": "passed",
+          "simpleClass": "AuthCredentialTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthCredentialTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthCredentialTest",
+          "method": "sameUsernameUsesTenantPasswordAndPrincipal",
+          "status": "passed",
+          "simpleClass": "AuthCredentialTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthCredentialTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthInputTest",
+          "method": "publicLocatorResolvesOnlyActiveAndRequiresContext",
+          "status": "passed",
+          "simpleClass": "AuthInputTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthInputTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthInputTest",
+          "method": "passwordsRetainSpacesAndRespectBcryptBytes",
+          "status": "passed",
+          "simpleClass": "AuthInputTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthInputTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthInputTest",
+          "method": "canonicalIdentifiersAreUnambiguous",
+          "status": "passed",
+          "simpleClass": "AuthInputTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthInputTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthJwtConfigurationTest",
+          "method": "independentStrongKeysStartAndPropertiesDoNotExposeSecrets",
+          "status": "passed",
+          "simpleClass": "AuthJwtConfigurationTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthJwtConfigurationTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthJwtConfigurationTest",
+          "method": "missingAndInvalidKeysFailStartupWithoutIncludingTheirValues",
+          "status": "passed",
+          "simpleClass": "AuthJwtConfigurationTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthJwtConfigurationTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthJwtConfigurationTest",
+          "method": "equalKeysAndProtocolOverridesFailStartupWithoutExposingKeys",
+          "status": "passed",
+          "simpleClass": "AuthJwtConfigurationTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthJwtConfigurationTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthSmsConfigurationTest",
+          "method": "disabledFailsWithoutPretendingToSendAndTestCanReplaceTransport",
+          "status": "passed",
+          "simpleClass": "AuthSmsConfigurationTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthSmsConfigurationTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthSmsConfigurationTest",
+          "method": "mockIsNonproductionAndEchoRequiresExplicitDevFlag",
+          "status": "passed",
+          "simpleClass": "AuthSmsConfigurationTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthSmsConfigurationTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatControllerTest",
+          "method": "duplicateMessagesReturnJsonAndNeverOpenAStream",
+          "status": "passed",
+          "simpleClass": "ChatControllerTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatControllerTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatControllerTest",
+          "method": "createReturnsStringIdsUtcTimeAndRequestCorrelation",
+          "status": "passed",
+          "simpleClass": "ChatControllerTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatControllerTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatControllerTest",
+          "method": "strictTypesLengthsIdsAndMimeErrorsUseSafeJsonBeforeCallingTheService",
+          "status": "passed",
+          "simpleClass": "ChatControllerTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatControllerTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatControllerTest",
+          "method": "newMessagesStreamOrderedPublicEventsAndNoNullExtensionFields",
+          "status": "passed",
+          "simpleClass": "ChatControllerTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatControllerTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatControllerTest",
+          "method": "unknownIdentityAndModelOverridesAreRejectedBeforeServiceCalls",
+          "status": "passed",
+          "simpleClass": "ChatControllerTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatControllerTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.FoundationContractTest",
+          "method": "specialProtocolContractIsDocumented",
+          "status": "passed",
+          "simpleClass": "FoundationContractTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/FoundationContractTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.FoundationContractTest",
+          "method": "phoneIsMaskedAtPresentationBoundary",
+          "status": "passed",
+          "simpleClass": "FoundationContractTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/FoundationContractTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.FoundationSchemaContractTest",
+          "method": "tenantBoundaryRulesAreDocumentedForWritesAndDeletes",
+          "status": "passed",
+          "simpleClass": "FoundationSchemaContractTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/FoundationSchemaContractTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.FoundationSchemaContractTest",
+          "method": "publishedMigrationChecksumsRemainImmutable",
+          "status": "passed",
+          "simpleClass": "FoundationSchemaContractTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/FoundationSchemaContractTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.FoundationSchemaContractTest",
+          "method": "tenantRootUsesStableCodeAndTenantSafeIndexes",
+          "status": "passed",
+          "simpleClass": "FoundationSchemaContractTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/FoundationSchemaContractTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.FoundationSchemaContractTest",
+          "method": "foundationPackageDoesNotReachLegacyPersistencePackages",
+          "status": "passed",
+          "simpleClass": "FoundationSchemaContractTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/FoundationSchemaContractTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.HttpClientTest",
+          "method": "springdocEndpointsAreAvailable",
+          "status": "passed",
+          "simpleClass": "HttpClientTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/HttpClientTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.HttpClientTest",
+          "method": "anonymousEchoUsesPublicUnauthorizedEnvelopeAndRequestId",
+          "status": "passed",
+          "simpleClass": "HttpClientTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/HttpClientTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.HttpClientTest",
+          "method": "legacyUserRouteKeepsAuthenticationBoundary",
+          "status": "passed",
+          "simpleClass": "HttpClientTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/HttpClientTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.HttpClientTest",
+          "method": "foundationHealthUsesVersionedEnvelope",
+          "status": "passed",
+          "simpleClass": "HttpClientTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/HttpClientTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.HttpClientTest",
+          "method": "legacyLoginPathsHeadersAndEnvelopeRemainCompatible",
+          "status": "passed",
+          "simpleClass": "HttpClientTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/HttpClientTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryAvailabilityQueryServiceTest",
+          "method": "storageFailureIsNeverTurnedIntoOutOfStock",
+          "status": "passed",
+          "simpleClass": "InventoryAvailabilityQueryServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryAvailabilityQueryServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryAvailabilityQueryServiceTest",
+          "method": "emptyBatchDoesNotReadStorage",
+          "status": "passed",
+          "simpleClass": "InventoryAvailabilityQueryServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryAvailabilityQueryServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryAvailabilityQueryServiceTest",
+          "method": "returnsOnlyRequestedBooleansAndPassesTheMerchantScope",
+          "status": "passed",
+          "simpleClass": "InventoryAvailabilityQueryServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryAvailabilityQueryServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.JsonLoggingTest",
+          "method": "jsonFilesPreserveCorrelationAndKeepAuditSeparate",
+          "status": "passed",
+          "simpleClass": "JsonLoggingTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/JsonLoggingTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.LegacyJwtCompatibilityTest",
+          "method": "legacyTokensUseBase64BytesAndExplicitHs256EvenWithLongKeys",
+          "status": "passed",
+          "simpleClass": "LegacyJwtCompatibilityTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/LegacyJwtCompatibilityTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.LegacyJwtCompatibilityTest",
+          "method": "newAndLegacyTokensCannotCrossProtocolsEvenWhenUsingTheSameKey",
+          "status": "passed",
+          "simpleClass": "LegacyJwtCompatibilityTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/LegacyJwtCompatibilityTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.LegacyJwtCompatibilityTest",
+          "method": "weakOrNonBase64LegacyPasswordsAreNotPadded",
+          "status": "passed",
+          "simpleClass": "LegacyJwtCompatibilityTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/LegacyJwtCompatibilityTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.MigrationScriptContractTest",
+          "method": "authMigrationIsDdlOnlyAndAuthFixturesAreNotFlywaySeeds",
+          "status": "passed",
+          "simpleClass": "MigrationScriptContractTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/MigrationScriptContractTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.MigrationScriptContractTest",
+          "method": "commerceMigrationVersionsAreUniqueDdlOnlyAndOrdered",
+          "status": "passed",
+          "simpleClass": "MigrationScriptContractTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/MigrationScriptContractTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.MigrationScriptContractTest",
+          "method": "tenantFixturesAreIdempotentAndProductionDoesNotLoadThem",
+          "status": "passed",
+          "simpleClass": "MigrationScriptContractTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/MigrationScriptContractTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.MigrationScriptContractTest",
+          "method": "inventoryMigrationRequiresApplicationAssignedPrimaryKeys",
+          "status": "passed",
+          "simpleClass": "MigrationScriptContractTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/MigrationScriptContractTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.MigrationScriptContractTest",
+          "method": "legacyBaselineContainsSchemaOnlyStatements",
+          "status": "passed",
+          "simpleClass": "MigrationScriptContractTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/MigrationScriptContractTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.MigrationScriptContractTest",
+          "method": "frozenMigrationsAndSeedsKeepTheirRecordedDigests",
+          "status": "passed",
+          "simpleClass": "MigrationScriptContractTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/MigrationScriptContractTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.OrderQueryServiceTest",
+          "method": "serviceLookupUsesMerchantAndOrderNumberWithoutConsumerScope",
+          "status": "passed",
+          "simpleClass": "OrderQueryServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/OrderQueryServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.OrderQueryServiceTest",
+          "method": "ownerAndMerchantStaffCanLocateWithoutLoadingItems",
+          "status": "passed",
+          "simpleClass": "OrderQueryServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/OrderQueryServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.OrderQueryServiceTest",
+          "method": "otherConsumerForeignActorsAndUnknownOrderHaveSame404",
+          "status": "passed",
+          "simpleClass": "OrderQueryServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/OrderQueryServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductCacheStoreTest",
+          "method": "pageEntryRoundTripsWithItems",
+          "status": "passed",
+          "simpleClass": "ProductCacheStoreTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductCacheStoreTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductCacheStoreTest",
+          "method": "redisOutageDegradesToNullWithoutThrowing",
+          "status": "passed",
+          "simpleClass": "ProductCacheStoreTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductCacheStoreTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductCacheStoreTest",
+          "method": "versionDefaultsToOneAndBumpIncrements",
+          "status": "passed",
+          "simpleClass": "ProductCacheStoreTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductCacheStoreTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductCacheStoreTest",
+          "method": "disabledStoreNeverTouchesRedis",
+          "status": "passed",
+          "simpleClass": "ProductCacheStoreTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductCacheStoreTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductCacheStoreTest",
+          "method": "entryRoundTripsThroughJson",
+          "status": "passed",
+          "simpleClass": "ProductCacheStoreTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductCacheStoreTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductCacheStoreTest",
+          "method": "oldEntriesAreNotReadAndPageSizesHaveDistinctKeys",
+          "status": "passed",
+          "simpleClass": "ProductCacheStoreTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductCacheStoreTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductCacheStoreTest",
+          "method": "skuCacheContainsCatalogOnlyAndUsesANewFormatNamespace",
+          "status": "passed",
+          "simpleClass": "ProductCacheStoreTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductCacheStoreTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductCacheStoreTest",
+          "method": "bumpOnFreshKeySetsOneAndOnExistingKeyIncrements",
+          "status": "passed",
+          "simpleClass": "ProductCacheStoreTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductCacheStoreTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductReferenceServiceTest",
+          "method": "returnsOwnershipAndStatusWithoutApplyingPublicProductVisibility(String)[1]",
+          "status": "passed",
+          "simpleClass": "ProductReferenceServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductReferenceServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductReferenceServiceTest",
+          "method": "returnsOwnershipAndStatusWithoutApplyingPublicProductVisibility(String)[2]",
+          "status": "passed",
+          "simpleClass": "ProductReferenceServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductReferenceServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductReferenceServiceTest",
+          "method": "missingAndForeignSkusAreInvisible",
+          "status": "passed",
+          "simpleClass": "ProductReferenceServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductReferenceServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductRequestsTest",
+          "method": "skuCreateValidatesPriceScaleAndStatus",
+          "status": "passed",
+          "simpleClass": "ProductRequestsTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductRequestsTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductRequestsTest",
+          "method": "categoryCreateRejectsUnknownFieldsAndRequiresName",
+          "status": "passed",
+          "simpleClass": "ProductRequestsTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductRequestsTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductRequestsTest",
+          "method": "attributesUpdateRequiresEntriesAndMapsRows",
+          "status": "passed",
+          "simpleClass": "ProductRequestsTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductRequestsTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductRequestsTest",
+          "method": "categoryUpdateOnlyAllowsKnownStatuses",
+          "status": "passed",
+          "simpleClass": "ProductRequestsTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductRequestsTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductRequestsTest",
+          "method": "productCreateValidatesCodeNameAndCategory",
+          "status": "passed",
+          "simpleClass": "ProductRequestsTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductRequestsTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.PublicCatalogSecurityTest",
+          "method": "publicCatalogIgnoresCredentialsWithoutAuthenticatingOrTouchingSessions",
+          "status": "passed",
+          "simpleClass": "PublicCatalogSecurityTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/PublicCatalogSecurityTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.PublicCatalogSecurityTest",
+          "method": "anonymousCatalogDoesNotExtendToOtherStoreResourcesOrMethods",
+          "status": "passed",
+          "simpleClass": "PublicCatalogSecurityTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/PublicCatalogSecurityTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.RuntimeConfigurationTest",
+          "method": "productionSeparatesMigrationCredentialsAndPackagesTheJarInJava21Image",
+          "status": "passed",
+          "simpleClass": "RuntimeConfigurationTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/RuntimeConfigurationTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.RuntimeConfigurationTest",
+          "method": "jwtProfilesUseOneSourceWithoutDevelopmentFallbackOrComposeSecrets",
+          "status": "passed",
+          "simpleClass": "RuntimeConfigurationTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/RuntimeConfigurationTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.RuntimeConfigurationTest",
+          "method": "profilesEnforceTheMigrationAndSeedMatrix",
+          "status": "passed",
+          "simpleClass": "RuntimeConfigurationTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/RuntimeConfigurationTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentQueryServiceTest",
+          "method": "soapKnownOrderWithoutShipmentReturnsNotShippedWithRealOrderNumber",
+          "status": "passed",
+          "simpleClass": "ShipmentQueryServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentQueryServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentQueryServiceTest",
+          "method": "orderStorageFailureDoesNotReadShipmentAndReturnsInternalError",
+          "status": "passed",
+          "simpleClass": "ShipmentQueryServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentQueryServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentQueryServiceTest",
+          "method": "foundShipmentReturnsViewWithTenantScopedTracks",
+          "status": "passed",
+          "simpleClass": "ShipmentQueryServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentQueryServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentQueryServiceTest",
+          "method": "soapPathResolvesTenantFromCodeAndRejectsUnknowns",
+          "status": "passed",
+          "simpleClass": "ShipmentQueryServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentQueryServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentQueryServiceTest",
+          "method": "existingShipmentCannotBypassDeniedOrderAuthorization",
+          "status": "passed",
+          "simpleClass": "ShipmentQueryServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentQueryServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentQueryServiceTest",
+          "method": "missingShipmentWithUnresolvableOrderIsUnified404",
+          "status": "passed",
+          "simpleClass": "ShipmentQueryServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentQueryServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentQueryServiceTest",
+          "method": "soapPathNeverTouchesShipmentDataWithoutTenantScope",
+          "status": "passed",
+          "simpleClass": "ShipmentQueryServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentQueryServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentQueryServiceTest",
+          "method": "missingShipmentWithKnownOrderSynthesizesNotShipped",
+          "status": "passed",
+          "simpleClass": "ShipmentQueryServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentQueryServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentQueryServiceTest",
+          "method": "storageFailureIsInternalErrorWithoutLeakage",
+          "status": "passed",
+          "simpleClass": "ShipmentQueryServiceTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentQueryServiceTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentServiceTokenInterceptorTest",
+          "method": "unconfiguredCredentialRejectsEveryRequest",
+          "status": "passed",
+          "simpleClass": "ShipmentServiceTokenInterceptorTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentServiceTokenInterceptorTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentServiceTokenInterceptorTest",
+          "method": "headerNamespaceIsTheShipmentContractNamespace",
+          "status": "passed",
+          "simpleClass": "ShipmentServiceTokenInterceptorTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentServiceTokenInterceptorTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentServiceTokenInterceptorTest",
+          "method": "matchingTokenPassesAndMismatchesAreRejected",
+          "status": "passed",
+          "simpleClass": "ShipmentServiceTokenInterceptorTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentServiceTokenInterceptorTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentServiceTokenInterceptorTest",
+          "method": "extractTokenReadsFirstNonBlankNamespacedValue",
+          "status": "passed",
+          "simpleClass": "ShipmentServiceTokenInterceptorTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentServiceTokenInterceptorTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.SnowflakeIdGeneratorTest",
+          "method": "twoApplicationWorkersGenerateConcurrentlyAtTheSameMillisecondWithoutDuplicates",
+          "status": "passed",
+          "simpleClass": "SnowflakeIdGeneratorTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/SnowflakeIdGeneratorTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.SnowflakeIdGeneratorTest",
+          "method": "workerConfigurationIsRequiredAndRangeChecked",
+          "status": "passed",
+          "simpleClass": "SnowflakeIdGeneratorTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/SnowflakeIdGeneratorTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.SnowflakeIdGeneratorTest",
+          "method": "rollbackIsRejectedUntilClockRecovers",
+          "status": "passed",
+          "simpleClass": "SnowflakeIdGeneratorTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/SnowflakeIdGeneratorTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.SnowflakeIdGeneratorTest",
+          "method": "sequenceExhaustionCannotWrapAndEpochCannotOverflow",
+          "status": "passed",
+          "simpleClass": "SnowflakeIdGeneratorTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/SnowflakeIdGeneratorTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.SnowflakeIdGeneratorTest",
+          "method": "concurrentCallsRemainUniqueAndDifferentWorkersDoNotCollide",
+          "status": "passed",
+          "simpleClass": "SnowflakeIdGeneratorTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/SnowflakeIdGeneratorTest.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.SnowflakeIdGeneratorTest",
+          "method": "apiIdsSerializeAsDecimalStringsWithoutChangingOtherNumbers",
+          "status": "passed",
+          "simpleClass": "SnowflakeIdGeneratorTest",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/SnowflakeIdGeneratorTest.java"
+        }
+      ],
+      "freshnessCheck": {
+        "reportsModifiedAfter": "2026-11-12T19:27:00+08:00",
+        "sourceTestClassCount": 29,
+        "missingSourceClasses": [],
+        "unexpectedReportClasses": []
+      }
+    },
+    {
+      "kind": "failsafe",
+      "command": "mvn -f api/pom.xml failsafe:integration-test failsafe:verify",
+      "exitCode": 1,
+      "reportsDirectory": "api/target/failsafe-reports",
+      "reportCount": 26,
+      "totals": {
+        "tests": 183,
+        "failures": 1,
+        "errors": 0,
+        "skipped": 0
+      },
+      "reports": [
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.AuthDevManualIT.xml",
+          "modifiedAt": "2026-11-12T19:31:08+08:00",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "90e25c8a9495de78bb3b191fc2c042cbdf2f8187dc7a1fe069a2e15a7051b070"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.AuthFlowIT.xml",
+          "modifiedAt": "2026-11-12T19:31:54+08:00",
+          "tests": 15,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "fc2e99bb3525be9fdc5449a457ab8a5034f209eac39b14ea1d73ce6e0efb2378"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.AuthPersistenceIT.xml",
+          "modifiedAt": "2026-11-12T19:32:26+08:00",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "ca0f5c78b73493aabbe159f181b165471b6afd55e252cae1a5a2e0898d0eb65c"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.AuthSchemaIT.xml",
+          "modifiedAt": "2026-11-12T19:32:53+08:00",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "2dc5871539bb0da9d89624c8e11f0f4a1e9dc5db9557c572bf73bcdc8a3af0e6"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.AuthSmsRedisIT.xml",
+          "modifiedAt": "2026-11-12T19:32:55+08:00",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "26fee17e13a9b224897540a8b2e636088ee8df30b09b10af1bfbe11d7d7ce64f"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.ChatAcceptanceIT.xml",
+          "modifiedAt": "2026-11-12T19:33:31+08:00",
+          "tests": 4,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "8ba08f4e82aaea1b651ed78303e298f3d0568d30e5d2a6b26c89cf3ba8964afa"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.ChatHttpIT.xml",
+          "modifiedAt": "2026-11-12T19:33:59+08:00",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "d4e5eaa12c2ffd5176d0e1cb489a920d76aa508ab165541a3d2019d93c84f954"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.ChatPersistenceIT.xml",
+          "modifiedAt": "2026-11-12T19:34:28+08:00",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "a652491740550c8aa338f0ad2e6ca966027fc88232765c7ca2add68b2227668f"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.ChatSchemaIT.xml",
+          "modifiedAt": "2026-11-12T19:35:08+08:00",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "bd9d4c2fbebee75494b7a0b402d6b755ca57d05abd07e10dc22f675465fb64c4"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.ChatServiceIT.xml",
+          "modifiedAt": "2026-11-12T19:35:41+08:00",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "3198338ce3cd313970660fe4f7c7b4ffb209c32eee3260b5d4359c1a341b3915"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.CommerceIntegrationIT.xml",
+          "modifiedAt": "2026-11-12T19:36:14+08:00",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "76dcad79cb2ca34b6f07e4fa0d9a5c1a442a02cbd0688fb3902be0f983fbf5d2"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.DevSeedMigrationIT.xml",
+          "modifiedAt": "2026-11-12T19:41:04+08:00",
+          "tests": 37,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "248431385285f90476ff8d5763d3f909444f173f9feafaf33b0378fc97eafe0d"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.FlywayMigrationIT.xml",
+          "modifiedAt": "2026-11-12T19:43:45+08:00",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "1f9d7fd71c2e98717cb69dd8b6c2b1968b6967d6137363c4a445a30cd2900ae1"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.FoundationApplicationIT.xml",
+          "modifiedAt": "2026-11-12T19:44:18+08:00",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "7e030c54ebbd308f6fb107d786aa16e466fd8e33e5963ed5de42624f0be09087"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.InventoryFlowIT.xml",
+          "modifiedAt": "2026-11-12T19:44:54+08:00",
+          "tests": 23,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "b4f44c69d641baa38b5f9fef2d6f325494ac990def30696897095fde870e6175"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.InventorySchemaIT.xml",
+          "modifiedAt": "2026-11-12T19:45:19+08:00",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "3a98534b69a6deb29fc90b7a98759d5f4a6bce510defb2795b0beab13d2b90b8"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.JwtPackagingIT.xml",
+          "modifiedAt": "2026-11-12T19:45:19+08:00",
+          "tests": 1,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "13812da15a47c7ff21934d0687236772671e56d7c222eb460f707bf7512f98cb"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.OrderFlowIT.xml",
+          "modifiedAt": "2026-11-12T19:45:49+08:00",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "5ede11147d2d17e27d30386439bb7026bc2bdcaa753f35bfd3771dfbb95028ba"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.OrderPersistenceIT.xml",
+          "modifiedAt": "2026-11-12T19:46:21+08:00",
+          "tests": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "79314939c9c7151444b7ddc3d3d9d75bff3fa29a786109defcd88e4350ab79bf"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.ProductAvailabilityIT.xml",
+          "modifiedAt": "2026-11-12T19:46:53+08:00",
+          "tests": 11,
+          "failures": 1,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "06dd73775c896b833b04bc7bcc00c7af59556ba43e6b5f814e64ba6255e11982"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.ProductionInfrastructureIT.xml",
+          "modifiedAt": "2026-11-12T19:47:28+08:00",
+          "tests": 2,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "7d1a702b3d588d15536aa3debc6cfae88afda725c2fd4669bd769cc86c8cb7ee"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.ProductPersistenceIT.xml",
+          "modifiedAt": "2026-11-12T19:47:55+08:00",
+          "tests": 3,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "e0fe9d07a7a4e73973bc15b264be88f706ac9d91c76846ffa68c706253c1aee0"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.RedisIT.xml",
+          "modifiedAt": "2026-11-12T19:47:56+08:00",
+          "tests": 6,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "036e551f8db07968c65c2ae76a774cd274c3d12dc35416e946f6bb70af1acad1"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.ShipmentFlowIT.xml",
+          "modifiedAt": "2026-11-12T19:48:27+08:00",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "cc9498a453269b6dbbc17e4b9748b1f69596e03dcf52ee00f300f28c634c4261"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.ShipmentSchemaIT.xml",
+          "modifiedAt": "2026-11-12T19:48:53+08:00",
+          "tests": 9,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "27e7f56c21b1e9e44af32c73308470a55c6672cc4b15c9c73889b8ef16be9311"
+        },
+        {
+          "file": "api/target/failsafe-reports/TEST-com.gba.merchantbao.test.ShipmentSoapIT.xml",
+          "modifiedAt": "2026-11-12T19:49:21+08:00",
+          "tests": 10,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "sha256": "a98990e681d36f0abe3736bac1212bf0c67fcb07fdcd2874eb806b9f14af2168"
+        }
+      ],
+      "cases": [
+        {
+          "class": "com.gba.merchantbao.test.AuthDevManualIT",
+          "method": "executeManualScriptAndExportActualSpringdocThenVerifyDevSeedIsNonDestructive",
+          "status": "passed",
+          "simpleClass": "AuthDevManualIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthDevManualIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthFlowIT",
+          "method": "independentChallengesRacingFirstLoginReuseOneCommittedAccount",
+          "status": "passed",
+          "simpleClass": "AuthFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthFlowIT",
+          "method": "subjectDisableRejectsPrivateAndRefreshButAllowsLogout",
+          "status": "passed",
+          "simpleClass": "AuthFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthFlowIT",
+          "method": "oldGenerationWindowAndTamperedCacheNeverReturnCredentials",
+          "status": "passed",
+          "simpleClass": "AuthFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthFlowIT",
+          "method": "concurrentSameRefreshRequestReturnsOnePairAndDependencyFaultsUse503",
+          "status": "passed",
+          "simpleClass": "AuthFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthFlowIT",
+          "method": "rotationRetryIsEncryptedIdempotentAndReplayRevokesOnlyItsDevice",
+          "status": "passed",
+          "simpleClass": "AuthFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthFlowIT",
+          "method": "databaseFailureConsumesChallengeAndSessionFailureKeepsCommittedAccount",
+          "status": "passed",
+          "simpleClass": "AuthFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthFlowIT",
+          "method": "initialSessionsAreIndependentAndContainOnlyDigests",
+          "status": "passed",
+          "simpleClass": "AuthFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthFlowIT",
+          "method": "consumerFirstLoginCommitsOnceAndDisabledCannotRecreate",
+          "status": "passed",
+          "simpleClass": "AuthFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthFlowIT",
+          "method": "forwardedHeaderCannotBypassRemoteAddressQuota",
+          "status": "passed",
+          "simpleClass": "AuthFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthFlowIT",
+          "method": "touchOnlyOnSuccessfulAllowedWorkAndCannotResurrectLogout",
+          "status": "passed",
+          "simpleClass": "AuthFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthFlowIT",
+          "method": "logoutIsIdempotentSupportsHistoricalRefreshAndKeepsOtherDevices",
+          "status": "passed",
+          "simpleClass": "AuthFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthFlowIT",
+          "method": "concurrentRefreshAndLogoutNeverResurrects",
+          "status": "passed",
+          "simpleClass": "AuthFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthFlowIT",
+          "method": "idleCanRecoverButAbsoluteAndLostControlOrIndexCannot",
+          "status": "passed",
+          "simpleClass": "AuthFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthFlowIT",
+          "method": "staffLoginSharesIdentifierLockAndAllCredentialFailuresLookTheSame",
+          "status": "passed",
+          "simpleClass": "AuthFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthFlowIT",
+          "method": "httpContractStrictInputRolesResourcesAndDedicatedBranches",
+          "status": "passed",
+          "simpleClass": "AuthFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthPersistenceIT",
+          "method": "staffIdentifiersUseSeparateIndexesAndCreatorWritesCannotCrossTenants",
+          "status": "passed",
+          "simpleClass": "AuthPersistenceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthPersistenceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthPersistenceIT",
+          "method": "explicitFixtureUsesStableTenantCodesAndIsolatesResourcesAndUniqueIdentifiers",
+          "status": "passed",
+          "simpleClass": "AuthPersistenceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthPersistenceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthPersistenceIT",
+          "method": "tenantResolverRequiresAnActiveLocatedTenantAndBothMapperTreesLoad",
+          "status": "passed",
+          "simpleClass": "AuthPersistenceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthPersistenceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthPersistenceIT",
+          "method": "consumerQueriesAndWritesStayInTenantAndOwnerScope",
+          "status": "passed",
+          "simpleClass": "AuthPersistenceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthPersistenceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthSchemaIT",
+          "method": "staffUniquenessAndCreatorReferenceCannotCrossTenants",
+          "status": "passed",
+          "simpleClass": "AuthSchemaIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthSchemaIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthSchemaIT",
+          "method": "consumerConstraintsEnforceTenantPhoneStatusAndDefaults",
+          "status": "passed",
+          "simpleClass": "AuthSchemaIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthSchemaIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthSmsRedisIT",
+          "method": "expiryResendAndFifthFailureInvalidate",
+          "status": "passed",
+          "simpleClass": "AuthSmsRedisIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthSmsRedisIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthSmsRedisIT",
+          "method": "phoneAndIpSmsQuotasAndRefreshQuotaRecoverWithExpiry",
+          "status": "passed",
+          "simpleClass": "AuthSmsRedisIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthSmsRedisIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthSmsRedisIT",
+          "method": "quotasAreAtomicHaveTtlRecoverAndCoexistWithLegacy",
+          "status": "passed",
+          "simpleClass": "AuthSmsRedisIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthSmsRedisIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthSmsRedisIT",
+          "method": "pendingCannotBeUsedAndOldSendFailureCannotDeleteNewChallenge",
+          "status": "passed",
+          "simpleClass": "AuthSmsRedisIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthSmsRedisIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthSmsRedisIT",
+          "method": "concurrentConsumptionHasExactlyOneWinner",
+          "status": "passed",
+          "simpleClass": "AuthSmsRedisIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthSmsRedisIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.AuthSmsRedisIT",
+          "method": "codesAreScopedHashedExpiringAndSingleUse",
+          "status": "passed",
+          "simpleClass": "AuthSmsRedisIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AuthSmsRedisIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatAcceptanceIT",
+          "method": "disconnectCancelsAndRevokedTokenCannotRecoverHistory",
+          "status": "passed",
+          "simpleClass": "ChatAcceptanceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatAcceptanceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatAcceptanceIT",
+          "method": "busyRetryTimeoutAndDependencyFailureRemainQueryableThroughRealAuthentication",
+          "status": "passed",
+          "simpleClass": "ChatAcceptanceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatAcceptanceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatAcceptanceIT",
+          "method": "loginToStreamToHistoryAndArchivePreservesIdentityAndIdempotency",
+          "status": "passed",
+          "simpleClass": "ChatAcceptanceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatAcceptanceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatAcceptanceIT",
+          "method": "realStaffAndOtherTenantCannotReadOrModifyAnotherOwnersSession",
+          "status": "passed",
+          "simpleClass": "ChatAcceptanceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatAcceptanceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatHttpIT",
+          "method": "actualSpringdocGroupExportsSixOperationsAndBothSuccessMimeTypes",
+          "status": "passed",
+          "simpleClass": "ChatHttpIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatHttpIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatHttpIT",
+          "method": "securityCorsJsonAndSseWorkThroughRealServletAsyncDispatch",
+          "status": "passed",
+          "simpleClass": "ChatHttpIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatHttpIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatHttpIT",
+          "method": "clientDisconnectCancelsUpstreamAndLeavesAQueryableTerminal",
+          "status": "passed",
+          "simpleClass": "ChatHttpIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatHttpIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatPersistenceIT",
+          "method": "messagesAndConditionalRunWritesAreScopedOrderedAndRejectLateCallbacks",
+          "status": "passed",
+          "simpleClass": "ChatPersistenceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatPersistenceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatPersistenceIT",
+          "method": "ownedSessionsHaveStableCursorPagesAndCannotBeReadOrArchivedByOthers",
+          "status": "passed",
+          "simpleClass": "ChatPersistenceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatPersistenceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatPersistenceIT",
+          "method": "explicitFixturesHaveTwoTenantsMultipleOwnersAndCompleteHistoryWithoutDevData",
+          "status": "passed",
+          "simpleClass": "ChatPersistenceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatPersistenceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatSchemaIT",
+          "method": "emptyDatabaseAndV4UpgradeKeepHistoricalChecksumsAndRows",
+          "status": "passed",
+          "simpleClass": "ChatSchemaIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatSchemaIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatSchemaIT",
+          "method": "constraintsKeepTenantIdempotencySequenceAndLegalMessageStates",
+          "status": "passed",
+          "simpleClass": "ChatSchemaIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatSchemaIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatServiceIT",
+          "method": "aStorageFailureCannotBeReportedAsACommittedSuccess",
+          "status": "passed",
+          "simpleClass": "ChatServiceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatServiceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatServiceIT",
+          "method": "abortCancelsTheUpstreamAndPersistsCancelledState",
+          "status": "passed",
+          "simpleClass": "ChatServiceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatServiceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatServiceIT",
+          "method": "totalDeadlinePersistsPartialTextAndCancelsAStreamThatAlreadyProducedAToken",
+          "status": "passed",
+          "simpleClass": "ChatServiceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatServiceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatServiceIT",
+          "method": "consumersAndStaffCanOnlyManageTheirOwnSessionsAndArchiveIsIdempotent",
+          "status": "passed",
+          "simpleClass": "ChatServiceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatServiceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatServiceIT",
+          "method": "anotherExecutionContextRecoversAnAbandonedRunAndOldCallbacksCannotReleaseItsSuccessor",
+          "status": "passed",
+          "simpleClass": "ChatServiceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatServiceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatServiceIT",
+          "method": "onlyOneTerminalCommitsAndLateCallbacksCannotOverwriteTheNextRun",
+          "status": "passed",
+          "simpleClass": "ChatServiceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatServiceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatServiceIT",
+          "method": "firstTokenTimeoutReleasesTheRunAndDropsLateCallbacks",
+          "status": "passed",
+          "simpleClass": "ChatServiceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatServiceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatServiceIT",
+          "method": "modelStartsAfterMessagesCommitAndCompletionIsSentOnlyAfterTerminalCommit",
+          "status": "passed",
+          "simpleClass": "ChatServiceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatServiceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ChatServiceIT",
+          "method": "concurrentMessagesSerializeInTheDatabaseAndIdempotencyPrecedesBusy",
+          "status": "passed",
+          "simpleClass": "ChatServiceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ChatServiceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.CommerceIntegrationIT",
+          "method": "commerceExportsContainOnlyTheirOwnModuleOperations",
+          "status": "passed",
+          "simpleClass": "CommerceIntegrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/CommerceIntegrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.CommerceIntegrationIT",
+          "method": "stockChangesAndHistoricalSnapshotsCoexistWithoutTenantLeaks",
+          "status": "passed",
+          "simpleClass": "CommerceIntegrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/CommerceIntegrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "chatDependenciesAndIdentityConflictsFailBeforeBusinessWrites",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "historicalV4WithOnlyOldNamesUpgradesTheExplicitV5ThroughV9AndSevenSeeds",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "shipmentSeedRejectsChangedOrderNumberBeforeAddingTracks",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "commerceSeedIdentityConflictsFailBeforeBusinessWrites(String, String, String)[1]",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "commerceSeedIdentityConflictsFailBeforeBusinessWrites(String, String, String)[2]",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "commerceSeedIdentityConflictsFailBeforeBusinessWrites(String, String, String)[3]",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "commerceSeedIdentityConflictsFailBeforeBusinessWrites(String, String, String)[4]",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "commerceSeedIdentityConflictsFailBeforeBusinessWrites(String, String, String)[5]",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "commerceSeedIdentityConflictsFailBeforeBusinessWrites(String, String, String)[6]",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "commerceSeedIdentityConflictsFailBeforeBusinessWrites(String, String, String)[7]",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "commerceSeedIdentityConflictsFailBeforeBusinessWrites(String, String, String)[8]",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "concurrentIndependentFlywayInstancesSerializeOnAnEmptyDatabase",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "cliRequiresBackupRestoreEvidenceAndReportsNoSecrets(boolean)[1]",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "cliRequiresBackupRestoreEvidenceAndReportsNoSecrets(boolean)[2]",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "pendingVersionOutsideApprovedV4ThroughV9SuffixIsRejectedWithoutRepair",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "accountIdsUsernamesPhonesAndOwnershipCannotBeSilentlySkipped",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "tenantAndAccountExplicitReexecutionPreservesAllManualChanges",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "inventorySeedRejectsAStableIdOwnedByAnotherMerchantBeforeAddingMissingRows",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "frozenV5UpgradeMatchesFreshSchemaAndPreservesAccountsChatAndHistory",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "tenantIdAndBusinessCodeConflictsFailBeforeWrites",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "unexpectedMissingFailedAndVersionChecksumDifferencesStopBeforeRepair",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "commerceSeedsPreserveManualValuesOnExplicitRerun",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "historicalAccountsUpgradeRetainsPasswordsDisabledStatesAndHistory",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "chatExplicitReexecutionPreservesManualChangesAndRepairsOnlyMissingStableRows",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "flywayDependencyFailurePreventsSpringContextFromStarting",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "secondMissingTenantAndStaffPhoneConflictAreExplicit",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "invalidTargetsAndOtherLiveConnectionsAreRejected",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "commerceSeedGuardsRejectMissingOrMismatchedCatalogBeforeWrites",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "unknownHistoricalRepeatableIsRejectedWithoutRepair",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "previouslyNumberedV6ThroughV9LayoutIsRejectedWithoutRepair",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "shipmentSeedRequiresParentOrdersAndRejectsStolenTrackIdsBeforeWriting",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "historicalTenantsOnlyUpgradeRetainsHistoryAndRows",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "missingDependenciesFailExplicitlyAndFlywayDoesNotRecordSuccess",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "oldAuthSeedWithUnrecordedV4IsNotAcceptedAsTheV3Branch",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "productSeedCreatesParentCategoriesBeforeChildrenWithRefreshedMerchantStatistics",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "freshOrderAndUnchangedMigrateHaveExactlyOneExecutionPerSeed",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.DevSeedMigrationIT",
+          "method": "versionChecksumMismatchCannotBeAlignedByRenameTool",
+          "status": "passed",
+          "simpleClass": "DevSeedMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DevSeedMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.FlywayMigrationIT",
+          "method": "freshDatabaseMigratesStructureWithoutDemoRows",
+          "status": "passed",
+          "simpleClass": "FlywayMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/FlywayMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.FlywayMigrationIT",
+          "method": "configuredTestAndProductionLocationsNeverLoadCommerceDemoSeeds(String)[1]",
+          "status": "passed",
+          "simpleClass": "FlywayMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/FlywayMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.FlywayMigrationIT",
+          "method": "configuredTestAndProductionLocationsNeverLoadCommerceDemoSeeds(String)[2]",
+          "status": "passed",
+          "simpleClass": "FlywayMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/FlywayMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.FlywayMigrationIT",
+          "method": "existingLegacySchemaRequiresExplicitBaselineAndPreservesRows",
+          "status": "passed",
+          "simpleClass": "FlywayMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/FlywayMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.FlywayMigrationIT",
+          "method": "registeredVersionThreeUpgradesOnlyStructureAndRepeatedMigratePreservesDataAndHistory",
+          "status": "passed",
+          "simpleClass": "FlywayMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/FlywayMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.FlywayMigrationIT",
+          "method": "testSeedsAreIdempotentAndUseStableTenantCodes",
+          "status": "passed",
+          "simpleClass": "FlywayMigrationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/FlywayMigrationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.FoundationApplicationIT",
+          "method": "applicationStartsWithFlywayFixturesAndContainerRedis",
+          "status": "passed",
+          "simpleClass": "FoundationApplicationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/FoundationApplicationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.FoundationApplicationIT",
+          "method": "fixtureIsLocatedByStableTenantCodeAndRolledBack",
+          "status": "passed",
+          "simpleClass": "FoundationApplicationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/FoundationApplicationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.FoundationApplicationIT",
+          "method": "runningServerExposesHealthAndOpenApiYaml",
+          "status": "passed",
+          "simpleClass": "FoundationApplicationIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/FoundationApplicationIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "simultaneousFirstAdjustmentsSerializeThroughTheMerchantSkuUniqueKey",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "catalogReferencesIncludeUnpublishedAndDraftSkusButHideOtherMerchants",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "generatorFailureAtEachInsertCannotLeavePartialStockLedgerOrSuccess(int)[1]",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "generatorFailureAtEachInsertCannotLeavePartialStockLedgerOrSuccess(int)[2]",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "generatorFailureAtEachInsertCannotLeavePartialStockLedgerOrSuccess(int)[3]",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "allNewInventoryRowsPersistIdsFromTheInjectedGeneratorAndReplayPreservesThem",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "generatorFailureDuringLedgerAllocationRollsBackAnExistingStockUpdate",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "missingStockIsNotInitializedByNegativeAdjustmentOrOtherOperations",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "crossTenantAndMissingStockAreIndistinguishable404",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "inventoryAndLedgerRequireSameMerchantCatalogSkuWithoutCascadeDelete",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "versionConflictRetriesNewTransactionAndExhaustionRollsBackInitialization",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "sameKeyDuringFirstAdjustmentNeverCreatesDuplicateStockOrLedger",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "anonymousIs401AndInvalidBodiesAre400With13006",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "exactStockQueriesRejectConsumersAndAnonymousBeforeReadingInventory",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "concurrentReserveCannotOversellAvailableStock",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "sameIdempotentKeyAppliesTheStockChangeExactlyOnce",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "staffReadsAndPagesOnlyItsAuthenticatedMerchantOnTheUnifiedRoute",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "firstPositiveAdjustmentStocksUnpublishedSkuOnceWithZeroBasedLedger",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "oldMerchantPrefixedRoutesAreRetiredWithoutChangingStock",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "unknownAndForeignSkusCannotCreateStockOrLedgerEvenWithASuccessfulKey",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "successfulReplayStillRequiresCurrentIdentityAndCatalogState",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "ledgerFailureRollsBackStockCreationAndFailedKeyCanRetry",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventoryFlowIT",
+          "method": "discontinuedSkuRejectsNewSupplyAndReserveButAllowsCleanup",
+          "status": "passed",
+          "simpleClass": "InventoryFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventoryFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventorySchemaIT",
+          "method": "allInventoryPrimaryKeysAreRequiredBigintsWithoutGeneratedDefaults",
+          "status": "passed",
+          "simpleClass": "InventorySchemaIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventorySchemaIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.InventorySchemaIT",
+          "method": "missingPrimaryKeyIsRejectedRatherThanGenerated",
+          "status": "passed",
+          "simpleClass": "InventorySchemaIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/InventorySchemaIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.JwtPackagingIT",
+          "method": "deployableJarExcludesActualDevelopmentAndTestProfiles",
+          "status": "passed",
+          "simpleClass": "JwtPackagingIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/JwtPackagingIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.OrderFlowIT",
+          "method": "pageSizeAboveCapIsRejectedAndAnonymousIsUnauthorized",
+          "status": "passed",
+          "simpleClass": "OrderFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/OrderFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.OrderFlowIT",
+          "method": "detailReturnsSnapshotAndOutOfScopeOrMissingIsIndistinguishable404",
+          "status": "passed",
+          "simpleClass": "OrderFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/OrderFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.OrderFlowIT",
+          "method": "historicalSnapshotSurvivesCatalogChangesWithoutInventoryOperations",
+          "status": "passed",
+          "simpleClass": "OrderFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/OrderFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.OrderFlowIT",
+          "method": "staffSeesWholeMerchantButNeverAnotherTenant",
+          "status": "passed",
+          "simpleClass": "OrderFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/OrderFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.OrderFlowIT",
+          "method": "consumerListsOnlyOwnOrdersWithEnvelopeAndPagination",
+          "status": "passed",
+          "simpleClass": "OrderFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/OrderFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.OrderPersistenceIT",
+          "method": "commerceFixturesCanBeLoadedAndCleanedTwiceWithForeignKeysEnabled",
+          "status": "passed",
+          "simpleClass": "OrderPersistenceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/OrderPersistenceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.OrderPersistenceIT",
+          "method": "fixtureScopesStayInTenantAndOwnerBounds",
+          "status": "passed",
+          "simpleClass": "OrderPersistenceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/OrderPersistenceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.OrderPersistenceIT",
+          "method": "serviceReturnsSnapshotDetailAnd404ForOutOfScopeOrMissingOrders",
+          "status": "passed",
+          "simpleClass": "OrderPersistenceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/OrderPersistenceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.OrderPersistenceIT",
+          "method": "itemRowsCannotEscapeTheirOrderOrTenantByForeignKeys",
+          "status": "passed",
+          "simpleClass": "OrderPersistenceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/OrderPersistenceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.OrderPersistenceIT",
+          "method": "paginationHonoursLimitOffsetAndIsExplainable",
+          "status": "passed",
+          "simpleClass": "OrderPersistenceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/OrderPersistenceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductAvailabilityIT",
+          "method": "inventoryStorageFailureReturns503EvenWithAWarmCatalog",
+          "status": "passed",
+          "simpleClass": "ProductAvailabilityIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductAvailabilityIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductAvailabilityIT",
+          "method": "invisibleOrForeignCatalogIsFilteredBeforeAnyInventoryRead",
+          "status": "passed",
+          "simpleClass": "ProductAvailabilityIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductAvailabilityIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductAvailabilityIT",
+          "method": "oldCacheEntriesAreIgnoredAndRedisOutageFallsBackToCatalogStorage",
+          "status": "passed",
+          "simpleClass": "ProductAvailabilityIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductAvailabilityIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductAvailabilityIT",
+          "method": "pageBatchesOnlyVisibleSkusAndKeepsPageSizesAndCursorsSeparate",
+          "status": "passed",
+          "simpleClass": "ProductAvailabilityIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductAvailabilityIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductAvailabilityIT",
+          "method": "oldRoutesAreRemovedAndPrivateAndWriteResourcesStillRequireAuthorization",
+          "status": "passed",
+          "simpleClass": "ProductAvailabilityIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductAvailabilityIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductAvailabilityIT",
+          "method": "anonymousAndConsumerSeeOnlyBooleanStockForTheirChosenStore",
+          "status": "passed",
+          "simpleClass": "ProductAvailabilityIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductAvailabilityIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductAvailabilityIT",
+          "method": "warmedCatalogStillReflectsCommittedReserveAndReleaseWithoutInvalidation",
+          "status": "passed",
+          "simpleClass": "ProductAvailabilityIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductAvailabilityIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductAvailabilityIT",
+          "method": "batchSqlTreatsMissingAndZeroAsFalseAndNeverReadsForeignOrUnrequestedStock",
+          "status": "passed",
+          "simpleClass": "ProductAvailabilityIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductAvailabilityIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductAvailabilityIT",
+          "method": "publicStoreSelectionIgnoresInvalidAndForeignTokensAndNeverUsesTheSession",
+          "status": "passed",
+          "simpleClass": "ProductAvailabilityIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductAvailabilityIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductAvailabilityIT",
+          "method": "storeSlugUsesAuthNormalizationAndRejectsMissingOrDisabledStores",
+          "status": "passed",
+          "simpleClass": "ProductAvailabilityIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductAvailabilityIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductAvailabilityIT",
+          "method": "exportsActualProductOpenApiWithThePublicBooleanContract",
+          "status": "failed",
+          "details": [
+            {
+              "kind": "failure",
+              "message": "\nExpecting value to be true but was false",
+              "type": "org.opentest4j.AssertionFailedError",
+              "text": "org.opentest4j.AssertionFailedError: \n\nExpecting value to be true but was false\n\tat com.gba.merchantbao.test.ProductAvailabilityIT.exportsActualProductOpenApiWithThePublicBooleanContract(ProductAvailabilityIT.java:306)\n\tat java.base/java.lang.reflect.Method.invoke(Method.java:580)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)\n\tat java.base/java.util.ArrayList.forEach(ArrayList.java:1596)"
+            }
+          ],
+          "simpleClass": "ProductAvailabilityIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductAvailabilityIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductionInfrastructureIT",
+          "method": "productionRedisRequiresAuthenticationAndSupportsAuthenticatedHealthCheck",
+          "status": "passed",
+          "simpleClass": "ProductionInfrastructureIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductionInfrastructureIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductionInfrastructureIT",
+          "method": "migrationAccountCanMigrateButApplicationHasOnlyDmlAndBackupCanRestore",
+          "status": "passed",
+          "simpleClass": "ProductionInfrastructureIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductionInfrastructureIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductPersistenceIT",
+          "method": "fixturesExposeRoleVisibilityTenantIsolationAndAgentFacts",
+          "status": "passed",
+          "simpleClass": "ProductPersistenceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductPersistenceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductPersistenceIT",
+          "method": "publishTransitionsAreGuardedAndDiscontinueIsIdempotent",
+          "status": "passed",
+          "simpleClass": "ProductPersistenceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductPersistenceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ProductPersistenceIT",
+          "method": "catalogRowsAreScopedByMerchantAndVisibilityFiltersApply",
+          "status": "passed",
+          "simpleClass": "ProductPersistenceIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ProductPersistenceIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.RedisIT",
+          "method": "listPreservesOrderAndSupportsPop",
+          "status": "passed",
+          "simpleClass": "RedisIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/RedisIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.RedisIT",
+          "method": "keysExposeTypeAndCanBeDeleted",
+          "status": "passed",
+          "simpleClass": "RedisIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/RedisIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.RedisIT",
+          "method": "hashFieldsCanBeReadAndDeleted",
+          "status": "passed",
+          "simpleClass": "RedisIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/RedisIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.RedisIT",
+          "method": "stringValuesRoundTripWithExpiryAndConditionalWrite",
+          "status": "passed",
+          "simpleClass": "RedisIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/RedisIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.RedisIT",
+          "method": "sortedSetOrdersMembersAndUpdatesScore",
+          "status": "passed",
+          "simpleClass": "RedisIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/RedisIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.RedisIT",
+          "method": "setDeduplicatesMembers",
+          "status": "passed",
+          "simpleClass": "RedisIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/RedisIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentFlowIT",
+          "method": "otherConsumersExistingShipmentIs404BeforeAnyShipmentRead",
+          "status": "passed",
+          "simpleClass": "ShipmentFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentFlowIT",
+          "method": "ownedOrderWithoutShipmentRowSynthesizesNotShippedAndForeignStays404",
+          "status": "passed",
+          "simpleClass": "ShipmentFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentFlowIT",
+          "method": "isolationTenantSeesOnlyItsOwnData",
+          "status": "passed",
+          "simpleClass": "ShipmentFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentFlowIT",
+          "method": "exportsActualSpringdocContractForShipmentV1",
+          "status": "passed",
+          "simpleClass": "ShipmentFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentFlowIT",
+          "method": "deliveredShipmentCarriesDeliveredAtAndNoSynthesizedEstimate",
+          "status": "passed",
+          "simpleClass": "ShipmentFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentFlowIT",
+          "method": "anonymousIs401AndInvalidOrderIdIs400",
+          "status": "passed",
+          "simpleClass": "ShipmentFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentFlowIT",
+          "method": "staffReadsOwnTenantShipmentWithTracksAndStringIds",
+          "status": "passed",
+          "simpleClass": "ShipmentFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentFlowIT",
+          "method": "consumerMayQueryOwnShipment",
+          "status": "passed",
+          "simpleClass": "ShipmentFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentFlowIT",
+          "method": "crossTenantIsIndistinguishableFromMissing",
+          "status": "passed",
+          "simpleClass": "ShipmentFlowIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentFlowIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSchemaIT",
+          "method": "oneShipmentPerMerchantOrder",
+          "status": "passed",
+          "simpleClass": "ShipmentSchemaIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSchemaIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSchemaIT",
+          "method": "trackingNumberIsUniquePerMerchant",
+          "status": "passed",
+          "simpleClass": "ShipmentSchemaIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSchemaIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSchemaIT",
+          "method": "statusSetIsClosed",
+          "status": "passed",
+          "simpleClass": "ShipmentSchemaIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSchemaIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSchemaIT",
+          "method": "merchantForeignKeyIsEnforced",
+          "status": "passed",
+          "simpleClass": "ShipmentSchemaIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSchemaIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSchemaIT",
+          "method": "sameTrackingNumberAcrossTenantsIsAllowed",
+          "status": "passed",
+          "simpleClass": "ShipmentSchemaIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSchemaIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSchemaIT",
+          "method": "trackEventIsUniquePerShipment",
+          "status": "passed",
+          "simpleClass": "ShipmentSchemaIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSchemaIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSchemaIT",
+          "method": "shipmentRequiresAnExistingOrderInTheSameMerchant",
+          "status": "passed",
+          "simpleClass": "ShipmentSchemaIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSchemaIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSchemaIT",
+          "method": "trackRequiresItsShipmentToBelongToTheSameMerchant",
+          "status": "passed",
+          "simpleClass": "ShipmentSchemaIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSchemaIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSchemaIT",
+          "method": "orphanTracksAndDeletingReferencedParentsAreRejected",
+          "status": "passed",
+          "simpleClass": "ShipmentSchemaIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSchemaIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSoapIT",
+          "method": "wrongCredentialIsRejected",
+          "status": "passed",
+          "simpleClass": "ShipmentSoapIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSoapIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSoapIT",
+          "method": "validCredentialReturnsShipmentSummary",
+          "status": "passed",
+          "simpleClass": "ShipmentSoapIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSoapIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSoapIT",
+          "method": "missingCredentialIsRejected",
+          "status": "passed",
+          "simpleClass": "ShipmentSoapIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSoapIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSoapIT",
+          "method": "pingRequiresCredentialAndEchoesServiceName",
+          "status": "passed",
+          "simpleClass": "ShipmentSoapIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSoapIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSoapIT",
+          "method": "unknownOrderOrForeignTenantIsNotFoundFault",
+          "status": "passed",
+          "simpleClass": "ShipmentSoapIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSoapIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSoapIT",
+          "method": "sameOrderNumberIsResolvedWithinEachMerchant",
+          "status": "passed",
+          "simpleClass": "ShipmentSoapIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSoapIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSoapIT",
+          "method": "consumerBearerCannotReplaceServiceCredential",
+          "status": "passed",
+          "simpleClass": "ShipmentSoapIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSoapIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSoapIT",
+          "method": "wsdlIsReachableWithoutCredential",
+          "status": "passed",
+          "simpleClass": "ShipmentSoapIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSoapIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSoapIT",
+          "method": "realOrderWithoutShipmentReturnsNotShipped",
+          "status": "passed",
+          "simpleClass": "ShipmentSoapIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSoapIT.java"
+        },
+        {
+          "class": "com.gba.merchantbao.test.ShipmentSoapIT",
+          "method": "restSecurityChainIsUnaffectedByServicesServlet",
+          "status": "passed",
+          "simpleClass": "ShipmentSoapIT",
+          "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ShipmentSoapIT.java"
+        }
+      ],
+      "freshnessCheck": {
+        "reportsModifiedAfter": "2026-11-12T19:30:00+08:00",
+        "sourceTestClassCount": 26,
+        "missingSourceClasses": [],
+        "unexpectedReportClasses": []
+      }
+    }
+  ],
+  "note": "逐类核对本次 XML 与 59 文件清单中的默认测试类，未混入旧报告；参数化名称按 provider 原文保留。首次沙箱运行因 Docker 管道权限失败，本文件的 Failsafe 结果来自随后完成的授权重跑。",
+  "executionScope": "先执行 mvn test，再使用其编译产物执行 Failsafe；本轮未执行 clean verify，也未修改 Java 或 SQL。",
+  "excludedFiles": [
+    {
+      "sourceFile": "api/src/test/java/com/gba/merchantbao/test/AgentApifoxWorkspace.java",
+      "reason": "显式手工入口，不属于默认 *Test/*IT 发现"
+    },
+    {
+      "sourceFile": "api/src/test/java/com/gba/merchantbao/test/DockerRequired.java",
+      "reason": "辅助类，不是测试类"
+    },
+    {
+      "sourceFile": "api/src/test/java/com/gba/merchantbao/test/MutableAuthClock.java",
+      "reason": "辅助类，不是测试类"
+    },
+    {
+      "sourceFile": "api/src/test/java/com/gba/merchantbao/test/ScriptedAgentModel.java",
+      "reason": "辅助类，不是测试类"
+    }
+  ]
+}

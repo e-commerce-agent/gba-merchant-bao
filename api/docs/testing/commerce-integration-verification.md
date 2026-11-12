@@ -31,7 +31,7 @@ JAR 内 SQL 清单与源码逐项一致：V1–V9 共 9 份，R010–R070 共 7 
 
 ## 本地开发库
 
-操作步骤、停止条件和恢复指引见 [local-development.md](../deployment/local-development.md#v5-开发库升级到商品库存订单物流-v9)。
+操作步骤、停止条件和恢复指引见 [本地开发说明（本目录入口）](README.md#deployment-local-development-v9-upgrade)。
 实际备份、逐行摘要及含运行环境信息的日志存于忽略 Git 的 `backups/` 和 `api/.runtime/`。
 API 快照目录沿用 `docs/api/`，来源必须是本地 dev 后端实际 Springdoc 分组。
 
@@ -113,7 +113,7 @@ mvn -f api/pom.xml clean verify '-Dtest=MigrationScriptContractTest' '-Dit.test=
 `openspec validate align-commerce-module-integration --strict` 通过。
 隔离演练专用容器及其匿名卷已清理，开发卷保留；汇总证据为同目录 `summary.json`。
 
-待确认执行步骤见 [本地电商开发库恢复方案](../deployment/commerce-dev-recovery.md)。
+待确认执行步骤见 [本地电商开发库恢复方案（本目录入口）](README.md#deployment-commerce-dev-recovery)。
 建议先保留并隔离核验当前失败现场，再完整恢复已核验的 V5 快照并正常升级。
 真实库未恢复；8.2–8.4 仍未完成，change 进度保持 39/42。
 
@@ -189,4 +189,4 @@ workerId=0 启动（最终启动移除本次临时 mock SMS/debug-code 参数覆
 
 最终 `align-commerce-module-integration` 42/42，8.2–8.4 全部完成。
 dev 后端留在 IDEA 运行，地址 `http://localhost:8080`；原 V5、失败现场两份完整备份和全部证据保留。
-恢复步骤、停止条件及回退说明见 [commerce-dev-recovery.md](../deployment/commerce-dev-recovery.md)。
+恢复步骤、停止条件及回退说明见 [电商开发库恢复说明（本目录入口）](README.md#deployment-commerce-dev-recovery)。

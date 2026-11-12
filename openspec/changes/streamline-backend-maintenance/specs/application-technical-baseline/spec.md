@@ -118,7 +118,15 @@
 
 ### Requirement: Backend tests shall be discoverable by domain without reducing coverage
 
-测试源码 MUST 在 `com.gba.merchantbao.test` 下按业务域、公共基础、跨模块集成和共享辅助职责分包。分包 MUST 保留测试类名、用例与断言、fixture 资源路径及单元/集成命名约定；Maven 默认发现范围与已有手工验收入口的显式选择语义 MUST 保持。完整验证仍使用隔离容器，Docker 不可用时失败。
+测试源码 MUST 在 `com.gba.merchantbao.test` 下按业务域、公共基础、跨模块集成和共享辅助职责分包。分包 MUST 保留测试类名、用例与断言、fixture 资源路径及单元/集成命名约定；仅允许下述已确认的 OpenAPI 分组断言归属修正，不得减少覆盖。Maven 默认发现范围与已有手工验收入口的显式选择语义 MUST 保持。完整验证仍使用隔离容器，Docker 不可用时失败。
+
+#### Scenario: Maintenance baselines are committed
+- **WHEN** 保存本 change 的来源、保护范围、测试映射和实际发现结果
+- **THEN** artifacts/protected-baseline.json、artifacts/test-file-mapping.json、artifacts/test-discovery-baseline.json 随 change 提交并随其归档保留，原始 XML/日志仍留忽略的 api/target/；基线只含脱敏元信息和测试结果，后续修复不得覆盖初始失败或重算保护哈希掩盖差异
+
+#### Scenario: The product contract test checks an authentication schema
+- **WHEN** 修正初始基线中 ProductAvailabilityIT 对 StaffLogin 的错误分组断言
+- **THEN** product-v1 不包含 StaffLogin，AuthDevManualIT 在 auth-v1 验证 StaffLogin.merchantCode；商品 inStock、公开路径和敏感字段断言保留，不扩大扫描范围或改运行接口，定向测试与最终完整验证通过，初始失败结果保留
 
 #### Scenario: A developer looks for module tests
 - **WHEN** 开发者打开某个业务域的测试包

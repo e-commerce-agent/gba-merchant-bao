@@ -58,7 +58,7 @@
 - 本模块迁移为 `V9__shipment_tables.sql`，devdata 为 `R__070_shipment_demo_data.sql`。
 - 统一定序：商品 V6、库存 V7、订单 V8、物流 V9；dev 种子 R040、R050、R060、R070 按相同依赖执行。V1–V5 与 R010/R020/R030 保持原摘要。
 - `trade_order` 由 V8 创建，`shipment` 对其建立同商户复合外键；订单项继续保留自己的成交快照。test/prod 不加载这些 dev seeds。
-- 仅支持新库及本地尚在 V5 的 dev 基线，已执行旧 V6–V9 布局的其他库不兼容。稳定运单/订单/轨迹 ID 对照及受控补种见 [dev 数据登记](../../src/main/resources/db/devdata/README.md)。
+- 仅支持新库及本地尚在 V5 的 dev 基线，已执行旧 V6–V9 布局的其他库不兼容。稳定运单/订单/轨迹 ID 对照及受控补种见 [dev 数据登记（本目录入口）](README.md#devdata)。
 
 ## 5. 数据分层
 

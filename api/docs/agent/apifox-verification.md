@@ -54,4 +54,4 @@ FROM chat_message WHERE merchant_id = ? AND session_id = ? AND run_id = ?
 ORDER BY message_seq;
 ```
 
-每轮记录 HTTP/MIME、事件顺序、业务标识、预设正文比对、DB 终态和清理结果；不用整表计数或空表假设。归档测试会话并退出临时认证。真实模型只断言非空输出、完成状态和历史一致，实际结果见 [verification.md](verification.md)。
+每轮记录 HTTP/MIME、事件顺序、业务标识、预设正文比对、DB 终态和清理结果；不用整表计数或空表假设。归档测试会话并退出临时认证。真实模型只断言非空输出、完成状态和历史一致，实际结果见 [验收记录（本目录入口）](README.md#verification)。

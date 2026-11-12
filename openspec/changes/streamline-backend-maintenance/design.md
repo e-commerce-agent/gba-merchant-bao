@@ -14,7 +14,7 @@
 
 **Goals:** 通过目录 README 找到资料；五个基础模块分开冻结；验证事件集中；脚本按执行目标查找；测试按业务域定位；新检出仓库不依赖个人 runtime 中的代码。
 
-**Non-Goals:** 不改业务规则、测试断言、接口、SQL 内容与编号，不补缺失 PRD/API/表设计，不实现 Agent 新能力，不改根 README、prod-profile 或前端，不扩展为全仓资料治理、CI 或远程发布。
+**Non-Goals:** 不改业务规则、接口、SQL 内容与编号，测试断言仅允许下文明确的 OpenAPI 分组归属修正；不补缺失 PRD/API/表设计，不实现 Agent 新能力，不改根 README、prod-profile 或前端，不扩展为全仓资料治理、CI 或远程发布。
 
 ## Decisions
 
@@ -114,6 +114,10 @@ Springdoc 通用导出提升到 tools，接收 base URL，读取既有六分组�
 辅助类仅开放跨包必需访问；AgentApifoxWorkspace 与 ChatAcceptanceIT 同 chat 包，保持包级继承协作且手工入口不改成 *Test/*IT。Surefire/Failsafe 默认发现语义、简单类名选择、所有用例和断言保留；不靠 include/exclude 缩范围，不移动 fixture，不改变容器数据隔离。
 
 对比迁移前后实际“简单类名 + 测试方法/参数化用例”的发现清单，不能只比总数或 BUILD SUCCESS。当前文档与脚本同步实际类路径；冻结前完成对应机械更新，不能在冻结后追着包名反复改档案。
+
+本 change 目录下的 `artifacts/protected-baseline.json`（来源和保护范围）、`artifacts/test-file-mapping.json`（59 文件唯一目标映射）、`artifacts/test-discovery-baseline.json`（实际类/方法/参数化发现与结果）随 change 提交并保留，用于后续校验和对比；不是要求日常续写的模块文档。只提交脱敏元信息与用例结果，不提交凭据、SQL 正文或原始报告；XML/日志仍留忽略的 `api/target/`。后续修复结果单独记录，不覆盖初始来源、保护哈希及已知失败；change 归档时这三份基线随之保留。`db/upgrade-history` 及其测试引用本次不处理。
+
+已确认的断言修正例外：初始基线为 Surefire 109 项通过、Failsafe 183 项中 1 项失败，失败在 ProductAvailabilityIT 对商品分组要求存在认证 StaffLogin。后续任务 5.4 使 product-v1 验证不包含 StaffLogin，并由 AuthDevManualIT 在 auth-v1 验证 StaffLogin.merchantCode；保持商品 inStock、公开路径、敏感字段断言及运行接口不变，不扩大 Springdoc 扫描范围。定向两类及最终完整验证必须通过；此例外不允许删除用例、减少覆盖或把原失败记录改成成功。
 
 ### 6. Runtime 分离运行状态与历史
 

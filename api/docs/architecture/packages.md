@@ -62,18 +62,18 @@ api/src/main/java/com/gba/merchantbao/
 
 账号业务主链路为 Controller → Service → Mapper。安全入口仍保留 refresh/logout 的现有凭证分支：security.AuthSecurityFilter 调用 service.SessionService，Controller 返回处理结果；SessionService 通过 cache.AuthRedis 管理会话，通过 service.AccountDirectory 查询账号状态。过滤器是 HTTP 安全入口，Redis 操作不需要绕行 MySQL Mapper。MapperScan、Springdoc、ControllerAdvice、XML namespace/resultType 和测试引用已同步到新包名。
 
-当前 Controller 仍包含短信发送时的店铺解析/手机号规范化编排，以及成功私有操作后的 `sessions.touch` 调用，并使用 Service 的响应 record。若进一步要求 Controller 只做协议适配，可在后续调整中将用例编排和 touch 策略收拢到 Service；不能把当前实现描述为所有业务编排都已下沉。后续模块统一保持 Controller 不直接访问 Mapper、Service 负责业务与授权、SQL 同时限定范围。路线与前置依赖见 [后续模块路线](module-roadmap.md)。
+当前 Controller 仍包含短信发送时的店铺解析/手机号规范化编排，以及成功私有操作后的 `sessions.touch` 调用，并使用 Service 的响应 record。若进一步要求 Controller 只做协议适配，可在后续调整中将用例编排和 touch 策略收拢到 Service；不能把当前实现描述为所有业务编排都已下沉。后续模块统一保持 Controller 不直接访问 Mapper、Service 负责业务与授权、SQL 同时限定范围。路线与前置依赖见 [后续模块路线（本目录入口）](README.md#module-roadmap)。
 
 2026-11-06 包迁移验证：29 个迁移类的方法逻辑保持；`mvn -f api/pom.xml clean test` 通过 44 项单元/契约测试，随后 `mvn -f api/pom.xml verify` 通过 62 项隔离容器集成测试，均无失败或跳过。AuthPersistenceIT 验证真实 Mapper/XML，AuthDevManualIT 验证九个 Springdoc 操作，AuthFlowIT 验证认证/会话行为。报告在 `api/target/surefire-reports` 与 `api/target/failsafe-reports`。
 
 旧路由 `/admin` 和 `/user` 保留现有接口契约，新路由使用 `/api/v1`。包名迁移本身不改变业务行为。新基础组件不能直接导入旧项目的实体或 Mapper。
 
-后端维护文档统一放在 `api/docs/` 下，按主题分类。架构说明放在当前目录，测试运行说明见 [自动化测试说明](../testing/README.md)。业务规划、OpenSpec 和历史交付记录继续保留在仓库级目录中。后端根目录的 README 作为文档导航入口。
+后端文档在 `api/docs/` 下按主题分类，由目录 README 集中导航；持续维护以 OpenSpec、`docs/interview` 和 GitHub 组织仓库为准。架构说明放在当前目录，测试运行说明的入口见 [本目录 README](README.md#testing)。业务规划、OpenSpec 和历史交付记录继续保留在仓库级目录中。后端根目录的 README 作为运行与文档导航入口。
 
 `/api/v1/**` 使用 stateless Spring Security 链，RequestIdFilter 在安全链之前；AuthSecurityFilter 仅在链内创建，避免重复 servlet 注册。refresh/logout 走各自凭证验证分支，旧链继续交给 legacy 拦截器。SecurityContext 与 legacy BaseContext 都在 finally 清理。
 
 后续领域入口接收安全链构造的不可变 Actor；不得从 body/header 自报 merchantId/role。通用私有 SQL 必带 Actor.merchantId，消费者再带 Actor.accountId；公开店铺只按 URL 定位 ACTIVE 商户。先角色、再带范围查资源；越界和不存在同为 404。通用路由若收到 A token 就处理 A，无法知道浏览器停在 B 页面；未来显式保护店铺路径才核对 URL/token 租户并返回 403。Agent 的 V5 新增 chat_session/chat_message，消费者和员工均限定本商户本人角色与账号；员工不能读取消费者会话。
 
-对话调用为 ChatController → ChatService → ChatSessionMapper/ChatMessageMapper。ChatService 在提交消息占位和运行权后，经 AgentModel 调用模型；OpenAiAgentModel 使用 LangChain4j 转换协议，AgentContext 从 MySQL 成功完整轮次组装上下文。后续 RAG/FC 可复用此边界及可信 Actor，不能把模型返回的身份当授权。MySQL 保存完整历史；当前没有 Redis ChatMemory 键、摘要、Tool 或 RAG 编排。验收与剩余 Apifox 工作见 [Agent 验收记录](../agent/verification.md)。
+对话调用为 ChatController → ChatService → ChatSessionMapper/ChatMessageMapper。ChatService 在提交消息占位和运行权后，经 AgentModel 调用模型；OpenAiAgentModel 使用 LangChain4j 转换协议，AgentContext 从 MySQL 成功完整轮次组装上下文。后续 RAG/FC 可复用此边界及可信 Actor，不能把模型返回的身份当授权。MySQL 保存完整历史；当前没有 Redis ChatMemory 键、摘要、Tool 或 RAG 编排。验收与剩余 Apifox 工作见 [Agent 验收记录（本目录入口）](README.md#agent-verification)。
 
 auth 不导入 legacy 账号/Mapper/BaseContext，依赖检查由 AuthContextTest 覆盖。common 只承载 ID/envelope 等通用边界，不把 legacy 会话当可信 Actor。

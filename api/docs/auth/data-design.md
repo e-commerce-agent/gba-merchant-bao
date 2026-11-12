@@ -1,6 +1,6 @@
 # 认证数据设计
 
-本页记录 add-redis-auth-sessions 的账号持久化、短信与 Redis 会话实现。后续模块仅交付路线，完整验收见 [验证记录](verification.md)；这里不表示生产发布。
+本页记录 add-redis-auth-sessions 的账号持久化、短信与 Redis 会话实现。后续模块仅交付路线，完整验收见 [验证记录（本目录入口）](README.md#verification)；这里不表示生产发布。
 
 ## 表与字段
 
@@ -72,7 +72,7 @@ MySQL TIMESTAMP 按时区转换并保存时刻，持久化行使用 `Instant`，
 
 空 dev 库中先执行所有待执行 V，再按描述排序执行 R：`010_local_test_tenants` 先于 `020_auth_demo_accounts`，locations 的列举顺序不是依赖。没有迁移完成回调或启动补写。租户与账号只插缺失记录，保留密码、状态和人工资料；缺少预期租户或固定 ID/业务标识冲突以 `dev_seed_*` 列名明确失败。普通 test 不加载 devdata，专用隔离联调测试才显式启用。
 
-已记录历史旧名 R 的开发库须先按 [种子升级说明](../deployment/dev-seed-upgrade.md) 完成一次性受控维护；运行目录不保留旧名空脚本。旧执行记录保留，repair 仅将核验过的旧 R 标记 Deleted（不删除业务数据），再执行新 R 并 validate。应用启动不自动 repair。R 仅首次或校验和变化执行，上游变化不自动触发下游，手工删除数据后普通重启不自动补回；补种须显式受控执行，不改 history 伪造待执行。
+已记录历史旧名 R 的开发库须先按 [种子升级说明（本目录入口）](README.md#deployment-dev-seed-upgrade) 完成一次性受控维护；运行目录不保留旧名空脚本。旧执行记录保留，repair 仅将核验过的旧 R 标记 Deleted（不删除业务数据），再执行新 R 并 validate。应用启动不自动 repair。R 仅首次或校验和变化执行，上游变化不自动触发下游，手工删除数据后普通重启不自动补回；补种须显式受控执行，不改 history 伪造待执行。
 
 fixture 按 `M_3C_DEMO` / `M_ISOLATION_TEST` 商户编码解析 merchant.id，不复制租户内部 ID。两个租户各有 fixture_staff；样板租户两名消费者，对照租户一名复用手机号消费者。使用合成号码、固定测试主键和独立 test-only BCrypt cost=12 凭证，与后续 dev 演示密码分离，不发送真实短信。
 
@@ -82,9 +82,9 @@ fixture 按 `M_3C_DEMO` / `M_ISOLATION_TEST` 商户编码解析 merchant.id，�
 
 空库顺序 V1→V2→V3→V4；已登记 V3 仅追加 V4。V1/V2/V3 文件及校验和保持不变，V4 不修改旧 employee/user，也不导入旧账号、MD5、微信 openid 或旧会话。新表创建后没有自动认证账号，生产首员工/商户开通延期。
 
-未登记非空旧库仍拒绝自动 migrate；仅在完整结构核验与备份恢复演练后显式 baseline1，再执行 V2/V3/V4，见 [Flyway 接管手册](../deployment/flyway-baseline.md)。继续启用 validate-on-migrate、clean-disabled，关闭 baseline-on-migrate、out-of-order。
+未登记非空旧库仍拒绝自动 migrate；仅在完整结构核验与备份恢复演练后显式 baseline1，再执行 V2/V3/V4，见 [Flyway 接管手册（本目录入口）](README.md#deployment-flyway-baseline)。继续启用 validate-on-migrate、clean-disabled，关闭 baseline-on-migrate、out-of-order。
 
-迁移前确认目标实例与停写窗口，按 [备份恢复手册](../deployment/backup-recovery.md) 导出结构＋数据（包含 history），先恢复到隔离库核对代表性行、索引与外键。MySQL DDL 可能部分提交；失败即停止后续应用启动，保留日志与 history，评审后向前修复，不修改已发布迁移，不自动 clean/repair/drop 新表或删除卷。
+迁移前确认目标实例与停写窗口，按 [备份恢复手册（本目录入口）](README.md#deployment-backup-recovery) 导出结构＋数据（包含 history），先恢复到隔离库核对代表性行、索引与外键。MySQL DDL 可能部分提交；失败即停止后续应用启动，保留日志与 history，评审后向前修复，不修改已发布迁移，不自动 clean/repair/drop 新表或删除卷。
 
 应用回退前核对新增表与旧应用兼容，通常保留两张新增表即可回退代码；如需数据库恢复，先评估新增账号写入的丢失与补偿，再从完整备份隔离恢复后受控切换。不能把生产恢复当普通测试或自动降级。
 
@@ -133,4 +133,4 @@ logout 支持有效 access 或已知历史 refresh，原子撤销 control、当�
 
 ## 账号维护
 
-devdata 按商户编码关联，只插入缺失的稳定用户名/手机号，不覆盖现存 hash/status；首员工 created_by=NULL，普通开通只取 Actor。演示密码与 fixture 分离，见 [联调手册](manual-verification.md)。新员工密码由调用方生成，经模块外安全渠道交付；不提供查回明文、自动替同事登录、重置/停用管理或生产 bootstrap。
+devdata 按商户编码关联，只插入缺失的稳定用户名/手机号，不覆盖现存 hash/status；首员工 created_by=NULL，普通开通只取 Actor。演示密码与 fixture 分离，见 [联调手册（本目录入口）](README.md#manual-verification)。新员工密码由调用方生成，经模块外安全渠道交付；不提供查回明文、自动替同事登录、重置/停用管理或生产 bootstrap。

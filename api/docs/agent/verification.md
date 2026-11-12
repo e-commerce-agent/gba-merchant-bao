@@ -13,13 +13,13 @@
 | 可选 Apifox 隔离服务启动/停止 | 本机 fixture 可读取、真实登录临时凭证就绪；主动停止后 1 项成功，23:00:22。只证明服务可用，不算 Apifox 协议通过 | `.runtime/agent-apifox-workspace.log` |
 | 真实兼容模型 HTTP/SSE → 历史 → MySQL | 通过，详见下文；不属于 Apifox 操作证据 | `.runtime/agent-real-model-result.json`、`.runtime/agent-dev-startup.log` |
 | dev V4→V5 | 通过，V1–V5 全 success=1 | `.runtime/agent-dev-startup.log`、数据库 flyway_schema_history |
-| Apifox 6.1/6.2 | 2026-11-09 用户已确认导入 Agent 与认证模块；环境/凭证引用和协议验收待核对。原生客户端连接不可用，当前只读 MCP 未指向所需模块 | [实际状态与续做步骤](apifox-verification.md) |
+| Apifox 6.1/6.2 | 2026-11-09 用户已确认导入 Agent 与认证模块；环境/凭证引用和协议验收待核对。原生客户端连接不可用，当前只读 MCP 未指向所需模块 | [实际状态与续做步骤（本目录入口）](README.md#apifox-verification) |
 
-测试报告位置为 `api/target/surefire-reports` 和 `api/target/failsafe-reports`；XML 汇总为 68/86，均无失败/错误/跳过。可选 AgentApifoxWorkspace 不计入默认 68 项，定向测试与全量测试有重叠，不能将重复执行次数累加为不同用例数。前次重跑被用户中断，没有最终报告，已另存 `.runtime/agent-clean-verify-interrupted.log`；本次使用完整重跑的最终结果。target 与 .runtime 不作为永久仓库附件，本文保留脱敏结果，复现命令见 [测试说明](../testing/README.md)。
+测试报告位置为 `api/target/surefire-reports` 和 `api/target/failsafe-reports`；XML 汇总为 68/86，均无失败/错误/跳过。可选 AgentApifoxWorkspace 不计入默认 68 项，定向测试与全量测试有重叠，不能将重复执行次数累加为不同用例数。前次重跑被用户中断，没有最终报告，已另存 `.runtime/agent-clean-verify-interrupted.log`；本次使用完整重跑的最终结果。target 与 .runtime 不作为永久仓库附件，本文保留脱敏结果，复现命令见 [测试说明（本目录入口）](README.md#testing)。
 
 ## 需求、接口和持久化证据
 
-[需求矩阵](requirements.md) 的 RT/CV 编号对应以下证据。测试文件均位于 `api/src/test/java/com/gba/merchantbao/test`；这些是自动化覆盖，不能代替尚未执行的 Apifox 或浏览器实测。
+RT/CV 编号对应以下证据；矩阵入口见 [本目录 README](README.md#requirements)。测试文件均位于 `api/src/test/java/com/gba/merchantbao/test`；这些是自动化覆盖，不能代替尚未执行的 Apifox 或浏览器实测。
 
 | 需求 | 证据和主要断言 |
 | --- | --- |
@@ -45,7 +45,7 @@
 | CV-06 | ChatServiceIT 原失败消息可查、后续新 run 不受迟到回调影响 |
 | CV-07 | ChatAcceptanceIT 新消息 SSE，与按 run 定位的 MySQL 终态/正文一致 |
 | CV-08 | ChatControllerTest 严格类型、长度、ID/MIME 与安全 JSON 错误；ChatAcceptanceIT 实际鉴权 |
-| CV-09 | ChatHttpIT 实际 Servlet POST Bearer/CORS 与两种 MIME；manual-verification.md 提供 fetch。完整浏览器 UI 尚未实测 |
+| CV-09 | ChatHttpIT 实际 Servlet POST Bearer/CORS 与两种 MIME；fetch 示例入口见 [本目录 README](README.md#manual-verification)。完整浏览器 UI 尚未实测 |
 | CV-10 | ChatServiceIT 的另一个 ChatService 执行上下文读取/恢复同库历史；没有部署第二个进程或 Nginx |
 | CV-11 | ChatPersistenceIT 稳定会话/消息游标分页；ChatControllerTest/ChatHttpIT 非法分页被拒绝 |
 | CV-12 | ChatRunExecutionTest 日志不含 key/token/正文/Prompt；HTTP/VO 白名单和上游安全错误映射 |
@@ -56,7 +56,7 @@
 | CV-17 | ChatServiceIT 并发数据库运行权及另一执行上下文的共享状态测试；无真实多进程竞争压测 |
 | CV-18 | ChatServiceIT 另一执行上下文以过期时钟终结旧 run，接收后继 run，旧回调不能释放新权 |
 
-接口基线见 [api-design.md](api-design.md)，实际 Springdoc 六操作与 SSE/JSON 由 ChatHttpIT 导出并解析 [快照](../../../docs/api/agent-conversation-v1.openapi.yaml)。表结构、复合租户外键、USER 幂等键与 messageSeq 唯一性见 [data-design.md](data-design.md)、ChatSchemaIT；空库/V4 升级保持 V1–V4 校验和。ChatPersistenceIT 显式 @Sql 加载多租户、多本人 fixture，事务回滚后按 fixture 主键核对。
+接口基线见 [本目录 README 中的接口契约入口](README.md#api-design)，实际 Springdoc 六操作与 SSE/JSON 由 ChatHttpIT 导出并解析 [快照](../../../docs/api/agent-conversation-v1.openapi.yaml)。表结构、复合租户外键、USER 幂等键与 messageSeq 唯一性见 [本目录 README 中的数据设计入口](README.md#data-design)、ChatSchemaIT；空库/V4 升级保持 V1–V4 校验和。ChatPersistenceIT 显式 @Sql 加载多租户、多本人 fixture，事务回滚后按 fixture 主键核对。
 
 ## 真实认证与隔离边界
 
@@ -100,7 +100,7 @@ chat_session/chat_message 已存在；没有 repair、删除数据卷或改写�
 
 ## 尚未交付与模块验收门槛
 
-Apifox 6.1、6.2 未完成：2026-11-09 用户已完成 Agent/认证契约导入，本轮原生客户端连接持续报 pipe unavailable，重试与 kernel 重置无法恢复；只读 MCP 仅返回 `/api/health`，无法配置或执行目标模块。保留 tasks.md 未勾选，不以自动化或真实网关的命令行结果替代。已准备 [隔离服务与14项导入用例](apifox-verification.md)，语法检查通过，但用例尚未在 Apifox 运行。完整前端、浏览器实测、真实 Nginx 多实例/负载均衡压测、RAG、Function Calling、RabbitMQ、Redis ChatMemory 均未交付。citation/tool_call 只预留扩展，不发送伪造事件；Redis 只服务既有认证，没有新增 ChatMemory 键/摘要机制。
+Apifox 6.1、6.2 未完成：2026-11-09 用户已完成 Agent/认证契约导入，本轮原生客户端连接持续报 pipe unavailable，重试与 kernel 重置无法恢复；只读 MCP 仅返回 `/api/health`，无法配置或执行目标模块。保留 tasks.md 未勾选，不以自动化或真实网关的命令行结果替代。已准备隔离服务与14项导入用例，语法检查通过；具体入口见 [本目录 README](README.md#apifox-verification)，但用例尚未在 Apifox 运行。完整前端、浏览器实测、真实 Nginx 多实例/负载均衡压测、RAG、Function Calling、RabbitMQ、Redis ChatMemory 均未交付。citation/tool_call 只预留扩展，不发送伪造事件；Redis 只服务既有认证，没有新增 ChatMemory 键/摘要机制。
 
 后续可复用 AgentModel、MySQL 完整历史和可信 Actor，按既有租户/本人限制接入 RAG/只读 Tool。只有剩余 Apifox 用例有真实证据、全量构建通过且任务矩阵一致后，才能提交整个模块验收；本轮不自动提交、合并或归档。
 

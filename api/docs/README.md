@@ -1,0 +1,16 @@
+# 后端文档导航
+
+持续维护以 OpenSpec、`docs/interview` 和 GitHub 组织仓库 `e-commerce-agent/gba-merchant-bao` 为准；REST 接口以 Springdoc 导出为准，DDL 和种子、测试数据以 V/R/fixture SQL 为准。这里集中提供现有资料的查找入口。
+
+## 目录
+
+- [Agent 文档](agent/README.md)：查看该目录的文件与用途。
+- [架构文档](architecture/README.md)：查看该目录的文件与用途。
+- [认证文档](auth/README.md)：查看该目录的文件与用途。
+- [运行与部署文档](deployment/README.md)：查看该目录的文件与用途。
+- [库存文档](inventory/README.md)：查看该目录的文件与用途。
+- [订单文档](order/README.md)：查看该目录的文件与用途。
+- [商品文档](product/README.md)：查看该目录的文件与用途。
+- [物流文档](shipment/README.md)：查看该目录的文件与用途。
+- [测试文档](testing/README.md)：查看该目录的文件与用途。
+- [生产配置](prod-profile/)：现有生产配置与运行手稿。

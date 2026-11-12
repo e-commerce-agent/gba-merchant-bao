@@ -37,7 +37,7 @@
 
 1. schema 名改为实现类名（`Shipment` → `ShipmentView`、`Track` → `TrackView`、`ApiResponseShipment` → `ApiResponseShipmentView`）。
 2. 200 响应的 content 为 `*/*`：Controller 未声明 `produces`，与 `auth-v1`、`agent-conversation-v1` 快照的现状一致；实际响应体为 JSON。如后续统一声明 `produces = application/json`，三个快照应一并重导。
-3. `nullable` 与字段描述未出现在快照中：record 组件未加 `@Schema`，语义仍以本文与 [api-design.md](api-design.md) 为准。
+3. `nullable` 与字段描述未出现在快照中：record 组件未加 `@Schema`，语义仍以本文与 [接口契约（本目录入口）](README.md#api-design) 为准。
 4. `info.title` 设为 `Merchant Shipment API`，避免与 `auth-v1` 快照同名导致 Apifox 导入混淆。
 
 ## 变更校验

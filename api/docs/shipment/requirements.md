@@ -1,6 +1,6 @@
 # 物流模块需求与验收
 
-> 状态：已实现（联调态，2026-11-10），未合并 main、未发布生产。依据 `api/docs/architecture/module-roadmap.md` 第 5 节与 `openspec/changes/add-shipment-web-service/`；验收证据见 [verification.md](verification.md)，联调步骤见 [manual-verification.md](manual-verification.md)。
+> 状态：已实现（联调态，2026-11-10），未合并 main、未发布生产。依据模块路线第 5 节（入口见 [本目录 README](README.md#architecture-module-roadmap)）与 `openspec/changes/add-shipment-web-service/`；验收证据见 [验收记录（本目录入口）](README.md#verification)，联调步骤见 [人工联调说明（本目录入口）](README.md#manual-verification)。
 
 ## 1. 模块定位
 
@@ -27,7 +27,7 @@
 | SOAP 客户端（服务间） | 按 merchantCode+orderNo，独立信任域 | 服务间凭证（配置注入，随 SOAP Header） |
 
 - 订单归属校验已接 `OrderQueryService.locateForActor`，由 `OrderBackedOrderAccessGuard` 适配；运单存在与否均须先授权，拒绝时不读取运单或轨迹。
-- SOAP 服务凭证通过后，经 `TenantResolver` 与 `OrderQueryService.locateForService` 解析真实订单，再按 orderId 查物流；真实订单无运单返回 `NOT_SHIPPED`，未知订单为 Fault。消费者 Bearer 不能替代服务凭证。验证见 [订单与物流整合记录](commerce-integration.md)。
+- SOAP 服务凭证通过后，经 `TenantResolver` 与 `OrderQueryService.locateForService` 解析真实订单，再按 orderId 查物流；真实订单无运单返回 `NOT_SHIPPED`，未知订单为 Fault。消费者 Bearer 不能替代服务凭证。验证见 [订单与物流整合记录（本目录入口）](README.md#commerce-integration)。
 - 请求中出现 customerId/merchantId/订单号仅作定位参数，不能替代授权。
 
 ## 4. WebService 边界（与 WebSocket 的区分）

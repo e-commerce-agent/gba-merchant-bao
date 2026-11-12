@@ -1,6 +1,6 @@
 # 认证模块 API 契约
 
-状态：以下九操作已实现，隔离测试与联调见 [联调手册](manual-verification.md)。[认证 OpenAPI 快照](../../../docs/api/auth-v1.openapi.yaml) 来自实际 Springdoc auth-v1 分组；最终验收见 [验证记录](verification.md)，未发布生产。
+状态：以下九操作已实现，隔离测试与联调见 [联调手册（本目录入口）](README.md#manual-verification)。[认证 OpenAPI 快照](../../../docs/api/auth-v1.openapi.yaml) 来自实际 Springdoc auth-v1 分组；最终验收见 [验证记录（本目录入口）](README.md#verification)，未发布生产。
 
 ## 通用约定
 
@@ -165,11 +165,11 @@ POST /api/v1/auth/logout；有效未过期 access 可提交空 body 或 {}。acc
 
 ## 验收与延期
 
-定向 HTTP/Redis/MySQL 测试覆盖首次/已有登录、唯一冲突、码重放、A/B 与本人隔离、idle 恢复、absolute 失效、短时重试/真正重放、停用、退出刷新竞争/重复退出、故障 503、独立多设备。数据仍 devdata/fixture 分层，生产首员工、平台管理、RBAC、真实短信、前端和 Cookie 迁移均延期。旧协议兼容与 echo 认证变化登记旧接口迁移清单；全量 test/clean verify 的结果见 [验证记录](verification.md)。
+定向 HTTP/Redis/MySQL 测试覆盖首次/已有登录、唯一冲突、码重放、A/B 与本人隔离、idle 恢复、absolute 失效、短时重试/真正重放、停用、退出刷新竞争/重复退出、故障 503、独立多设备。数据仍 devdata/fixture 分层，生产首员工、平台管理、RBAC、真实短信、前端和 Cookie 迁移均延期。旧协议兼容与 echo 认证变化登记旧接口迁移清单；全量 test/clean verify 的结果见 [验证记录（本目录入口）](README.md#verification)。
 
 ## 配置与前端协调细节
 
-dev YAML 显式 `merchant.auth.sms.provider: mock` 和 `expose-debug-code: true` 才回显 debugCode；默认 disabled 返回 503/11502。test 可替换 SmsSender，test 单独 profile 不回显；prod 禁止 mock/debug 并在启动时拒绝。生产真实短信留待独立集成。限流默认与 Redis key/TTL 见 [数据设计](data-design.md)。
+dev YAML 显式 `merchant.auth.sms.provider: mock` 和 `expose-debug-code: true` 才回显 debugCode；默认 disabled 返回 503/11502。test 可替换 SmsSender，test 单独 profile 不回显；prod 禁止 mock/debug 并在启动时拒绝。生产真实短信留待独立集成。限流默认与 Redis key/TTL 见 [数据设计（本目录入口）](README.md#data-design)。
 
 建议 localStorage 键 `merchantbao.auth:{accountType}:{storeSlug}`，保存双 token、principal、截止时刻及本地 epoch。对同一个键使用 Web Locks 或同源协调器形成单次刷新；共享同一在途 refreshRequestId，丢响应的短时重试复用 UUID，后续正常刷新用新 UUID。BroadcastChannel/storage event 同步结果与退出，不能让两个 tab 各用不同 UUID 刷同一个旧 token。锁失败不得无限后台重试。
 

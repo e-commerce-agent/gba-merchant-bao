@@ -1,6 +1,6 @@
 # 订单授权、SOAP 与成交快照整合
 
-此记录对应 `align-commerce-module-integration` 第 5 节（2026-11-11，Asia/Shanghai），补充原 [物流验收记录](verification.md)；不改写原 change 的完成状态或历史测试结果。订单服务契约见 [订单模块说明](../order/README.md)，对外语义见 [REST/SOAP API](api-design.md)。
+此记录对应 `align-commerce-module-integration` 第 5 节（2026-11-11，Asia/Shanghai），补充原 [物流验收记录（本目录入口）](README.md#verification)；不改写原 change 的完成状态或历史测试结果。订单服务契约见 [订单模块说明（本目录入口）](README.md#order)，对外语义见 [REST/SOAP API（本目录入口）](README.md#api-design)。
 
 REST 调用顺序：可信 Actor → `ShipmentQueryService.getForActor` → `OrderBackedOrderAccessGuard` → `OrderQueryService.locateForActor` → 按商户和订单 ID 查运单 → 按商户和运单 ID 查轨迹。消费者限本人，员工限本商户；未知、同商户他人和跨商户订单统一 404/10004，且拒绝时不读取运单或轨迹。合法订单无运单继续返回 `NOT_SHIPPED` 与空轨迹。
 
@@ -29,4 +29,4 @@ mvn -f api/pom.xml '-Dtest=OrderQueryServiceTest,ShipmentQueryServiceTest,Shipme
 
 静态核对：`product/inventory/order/shipment` 下没有跨域 Mapper import；订单 Controller 仍只有列表/详情 GET，物流 Controller 仍只有按订单查物流 GET；`git diff --check` 与 `openspec validate align-commerce-module-integration --strict` 通过。
 
-新增第 6 节统一库存主键为雪花 ID；迁移路径综合验证及完整 `clean verify` 顺延到第 7 节，本地 dev 升级验收顺延到第 8 节并另行执行。本记录只覆盖第 5 节；库存主键规则见 [库存模块](../inventory/README.md)。订单与物流仍仅提供既有查询入口，没有下单、支付、取消或发货写接口。
+新增第 6 节统一库存主键为雪花 ID；迁移路径综合验证及完整 `clean verify` 顺延到第 7 节，本地 dev 升级验收顺延到第 8 节并另行执行。本记录只覆盖第 5 节；库存主键规则见 [库存模块（本目录入口）](README.md#inventory)。订单与物流仍仅提供既有查询入口，没有下单、支付、取消或发货写接口。

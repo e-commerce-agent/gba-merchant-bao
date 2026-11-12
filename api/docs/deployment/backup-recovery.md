@@ -67,7 +67,7 @@ ProductionInfrastructureIT 已用隔离 MySQL 验证结构、代表性行及 ver
 4. 迁移后已有新写入时先评估丢失范围、补偿和对账；禁止直接覆盖。旧镜像回退只适用于当前数据库向后兼容，不等于数据库自动降级。
 5. 不承诺 Flyway undo 或自动反向 SQL。history 的任何人工修复都需另行调查和评审，不能作为常规恢复捷径。
 
-唯一已规划的开发种子改名维护见 [dev-seed-upgrade](dev-seed-upgrade.md)：停同库应用、完整备份及隔离恢复逐行核验后，才显式 repair 已知旧 R 并校验仅追加预期 Deleted 标记，再 migrate 新 R、validate。保留旧执行记录，不删业务数据；该工具不是失败恢复捷径，也不接入应用/Compose 自动启动或生产。
+唯一已规划的开发种子改名维护见 [dev-seed-upgrade（本目录入口）](README.md#dev-seed-upgrade)：停同库应用、完整备份及隔离恢复逐行核验后，才显式 repair 已知旧 R 并校验仅追加预期 Deleted 标记，再 migrate 新 R、validate。保留旧执行记录，不删业务数据；该工具不是失败恢复捷径，也不接入应用/Compose 自动启动或生产。
 
 ## Redis
 

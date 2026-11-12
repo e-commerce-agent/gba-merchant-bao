@@ -1,10 +1,10 @@
 # 认证后端联调
 
-范围为 add-redis-auth-sessions 第 4–7 节。这里记录后端操作与前端接入要求；未实现前端、未发布生产；第 9 节全量验收结果见 [验证记录](verification.md)。
+范围为 add-redis-auth-sessions 第 4–7 节。这里记录后端操作与前端接入要求；未实现前端、未发布生产；第 9 节全量验收结果见 [验证记录（本目录入口）](README.md#verification)。
 
 ## 开发配置与账号
 
-仅 dev 加载 `db/devdata/R__020_auth_demo_accounts.sql`，在 010 租户种子之后由 Flyway 正常执行，无迁移回调；已执行旧名 R 的开发库先按 [种子升级说明](../deployment/dev-seed-upgrade.md) 完成一次性受控维护。生产没有首员工 bootstrap。本地 dev YAML 使用两把独立随机 Base64 JWT key，并显式配置：
+仅 dev 加载 `db/devdata/R__020_auth_demo_accounts.sql`，在 010 租户种子之后由 Flyway 正常执行，无迁移回调；已执行旧名 R 的开发库先按 [种子升级说明（本目录入口）](README.md#deployment-dev-seed-upgrade) 完成一次性受控维护。生产没有首员工 bootstrap。本地 dev YAML 使用两把独立随机 Base64 JWT key，并显式配置：
 
 ```yaml
 merchant:
@@ -57,8 +57,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File api/docs/auth/manual-ver
 
 ## 运行证据
 
-2026-11-06 定向认证回归：43 tests，0 failures、0 errors、0 skipped；命令见 [测试说明](../testing/README.md) 的认证段。本次实际运行包括下述集成测试和脚本，不等于第 9 节的全量验收。
+2026-11-06 定向认证回归：43 tests，0 failures、0 errors、0 skipped；命令见 [测试说明（本目录入口）](README.md#testing) 的认证段。本次实际运行包括下述集成测试和脚本，不等于第 9 节的全量验收。
 
 AuthFlowIT 覆盖账号提交/故障、独立挑战并发唯一冲突、双 token、idle/absolute、加密幂等重试/重放、退出竞争、状态检查与 HTTP 权限。AuthSmsRedisIT 覆盖挑战并发一次消费、失败清理、限流和旧 Redis 序列化并存。HttpClientTest 回归旧路由/头/envelope 和新旧 token 交叉拒绝；AuthContextTest 验证正常/异常 finally 清上下文。JsonLoggingTest 读取真实 JSON 日志验证审计字段和分流。
 
-报告与本次脚本输出只在 `api/target/`。第 9 节完整 `test`/`clean verify` 汇总见 [验证记录](verification.md)；Docker 不可用应失败，不跳过或改连固定开发端口。
+报告与本次脚本输出只在 `api/target/`。第 9 节完整 `test`/`clean verify` 汇总见 [验证记录（本目录入口）](README.md#verification)；Docker 不可用应失败，不跳过或改连固定开发端口。

@@ -1,6 +1,6 @@
 # 物流模块 API 设计
 
-> 状态：已实现（联调态，2026-11-10）。REST 契约机读版 `docs/api/shipment-v1.openapi.yaml` 已由实际 Springdoc `shipment-v1` 分组导出（替换早前的评审稿，见 [verification.md](verification.md)）；本文同时登记 SOAP WebService 契约。统一响应 `{code, message, data, requestId}`，成功 `code=0`；IDs 字符串化、时间 UTC；私有响应 `Cache-Control: no-store`。
+> 状态：已实现（联调态，2026-11-10）。REST 契约机读版 `docs/api/shipment-v1.openapi.yaml` 已由实际 Springdoc `shipment-v1` 分组导出（替换早前的评审稿，见 [验收记录（本目录入口）](README.md#verification)）；本文同时登记 SOAP WebService 契约。统一响应 `{code, message, data, requestId}`，成功 `code=0`；IDs 字符串化、时间 UTC；私有响应 `Cache-Control: no-store`。
 
 ## 1. REST 契约
 
@@ -91,7 +91,7 @@ ShipmentSummaryDTO queryShipmentByOrderNo(String merchantCode, String orderNo)
 3. 端点**不接**浏览器 Bearer 会话；REST 授权边界不被绕过——SOAP 客户端模拟外部承运商系统，本来就没有浏览器会话。
 4. 定位：课程「分布式框架初识」演示 + 模拟与外部承运商系统对接；不开放为生产对公能力。
 
-订单号仅作定位，SOAP 不直接按 `shipment.order_no` 判断订单存在性，也不构造消费者 Actor。REST 与 SOAP 的授权前提各自独立，随后均按真实订单 ID 读取同商户物流。实现与定向测试记录见 [订单与物流整合记录](commerce-integration.md)。
+订单号仅作定位，SOAP 不直接按 `shipment.order_no` 判断订单存在性，也不构造消费者 Actor。REST 与 SOAP 的授权前提各自独立，随后均按真实订单 ID 读取同商户物流。实现与定向测试记录见 [订单与物流整合记录（本目录入口）](README.md#commerce-integration)。
 
 ### 2.4 与 WebSocket 的区分
 

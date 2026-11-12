@@ -1,6 +1,6 @@
 # Agent 会话数据设计
 
-本文件对应 change 的任务 2，聚焦持久化设计；接口见 [api-design.md](api-design.md)，需求见 [requirements.md](requirements.md)。模型调用、Service 编排与 HTTP/SSE 的实现证据见 [verification.md](verification.md)；Redis ChatMemory 仍属后续工作。
+本文件对应 change 的任务 2，聚焦持久化设计；接口见 [接口契约（本目录入口）](README.md#api-design)，需求见 [requirements 文档（本目录入口）](README.md#requirements)。模型调用、Service 编排与 HTTP/SSE 的实现证据见 [验收记录（本目录入口）](README.md#verification)；Redis ChatMemory 仍属后续工作。
 
 ## 迁移与数据约定
 

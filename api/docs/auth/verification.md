@@ -1,6 +1,6 @@
 # add-redis-auth-sessions 最终验收记录
 
-日期：2026-11-06，Asia/Shanghai。针对认证模块及本次三层包迁移，未执行真实生产发布。后续商品、库存、订单、物流与 Agent 仅交付 [模块路线](../architecture/module-roadmap.md)，不属于已实现能力。
+日期：2026-11-06，Asia/Shanghai。针对认证模块及本次三层包迁移，未执行真实生产发布。后续商品、库存、订单、物流与 Agent 仅交付 [模块路线（本目录入口）](README.md#architecture-module-roadmap)，不属于已实现能力。
 
 ## 自动化结果
 
@@ -40,7 +40,7 @@
 
 V4 仅增加 `consumer_account`、`merchant_staff_account` 及租户内唯一/组合外键；已发布 V1–V3 未改写。dev 演示数据与 test fixture 分离，prod 不加载演示租户/账号。种子统一为 `R__010_local_test_tenants.sql` → `R__020_auth_demo_accounts.sql`，正常启动无补种回调或自动 repair。
 
-18:25–18:27 已获授权执行的真实开发库维护属于任务 8.10，详见 [开发种子升级记录](../deployment/dev-seed-upgrade.md)：备份经隔离恢复核验后，旧租户 R 保留历史并退役，再执行 V4/010/020；升级后 2 租户、2 员工、3 消费者，重复启动与登录未改业务行。最终全量测试未重复此维护，也未修改真实业务卷。
+18:25–18:27 已获授权执行的真实开发库维护属于任务 8.10，详见 [开发种子升级记录（本目录入口）](README.md#deployment-dev-seed-upgrade)：备份经隔离恢复核验后，旧租户 R 保留历史并退役，再执行 V4/010/020；升级后 2 租户、2 员工、3 消费者，重复启动与登录未改业务行。最终全量测试未重复此维护，也未修改真实业务卷。
 
 auth 的 29 个类迁到 `controller/service/mapper` 与 `entity/dto/security/cache/handler/exception/enums/util/logging`。逐类对比确认方法体保持不变；同步 MapperScan、XML namespace/resultType、Springdoc、ControllerAdvice 与测试引用，完整 clean verify 已覆盖迁移后的代码。未来业务域沿用该结构。
 
