@@ -1,6 +1,7 @@
 
 # 非项目源码, 不提交
 .agents/
+.claude/skills/
 skills-lock.json
 
 # 本地 Compose 凭据和数据库备份

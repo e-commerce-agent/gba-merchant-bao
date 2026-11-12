@@ -12,6 +12,5 @@ import java.util.List;
 @Mapper
 public interface ShipmentMapper {
     ShipmentRow findByOrder(@Param("merchantId") long merchantId, @Param("orderId") long orderId);
-    ShipmentRow findByOrderNo(@Param("merchantId") long merchantId, @Param("orderNo") String orderNo);
     List<ShipmentTrackRow> findTracks(@Param("merchantId") long merchantId, @Param("shipmentId") long shipmentId);
 }

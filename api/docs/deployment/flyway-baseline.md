@@ -1,12 +1,16 @@
 # Flyway 空库初始化与旧库接管
 
-日常 dev、所有新开发者和常规集成测试从空库执行 V1→V2→V3→V4，不执行 baseline。
+日常 dev、所有新开发者和常规集成测试从空库执行 V1→V9，不执行 baseline。
 默认 baseline-version=1 只是显式 baseline 操作的版本参数；baseline-on-migrate=false 时空库不会跳过 V1。
-所有执行方保持 validate-on-migrate=true、clean-disabled=true、out-of-order=false，已应用 V1/V2/V3 不可改写。
+所有执行方保持 validate-on-migrate=true、clean-disabled=true、out-of-order=false，已应用 V1–V5 不可改写。
 
 V1 是11张旧餐饮表的结构快照，无数据；V2 增加 merchant 租户根；V3 增加其 currency_code。
-V4 仅新增 consumer_account / merchant_staff_account 结构与约束，已登记 V3 的库只追加 V4；旧账号不迁入，账号数据分层见 [认证数据设计](../auth/data-design.md)。
+V4 仅新增 consumer_account / merchant_staff_account 结构与约束，已登记 V3 的库只追加 V4；旧账号不迁入，账号数据分层见 [认证数据设计](../auth/data-design.md)。V5 会话结构和 R030 会话种子已在 dev 基线中执行并冻结。
 V2/V3 不会替旧业务表补 merchant_id，不会把旧餐饮数据转换成新商贸数据。租户根种子与后续业务数据有单独层次。
+
+V5 之后当前 dev V5 基线的新增结构按依赖排序：V6 商品目录、V7 库存、V8 只读订单、V9 物流。V6–V9 仅结构 DDL，跨域复合外键约束库存/SKU、订单项/商品 SKU、运单/订单及轨迹/运单的同商户关系。R040–R070 依次提供商品、库存、订单、物流演示数据；编号、稳定 ID 和重跑边界见 [dev 演示数据登记](../../src/main/resources/db/devdata/README.md)。当前 change 只支持本地尚在 V5 的 dev 库与新库，不兼容已执行旧 V6–V9 顺序的其他库；维护工具会拒绝旧布局。
+
+库存 V7 的三张表 `inventory`、`inventory_transaction`、`inventory_idempotent` 使用无默认值、无 AUTO_INCREMENT 的 BIGINT 主键。运行时服务注入现有单例 IdGenerator，INSERT 前分配雪花 ID；dev R050 和测试 fixture 显式写固定 ID。本次修订只适用于尚未执行该 V7 的新库/已约定 V5 基线；已应用 V7（包括旧自增版）的库必须停止并另行评审向前迁移，不能靠修 checksum、repair、改 history 或重编号现有记录适配。本 change 不新增 V10，也不自动改造已有库。部署副本的 worker 与重启约定见 [库存模块](../inventory/README.md#主键与多副本运行)。
 
 ## 仅接管已核验旧库
 
@@ -45,8 +49,8 @@ if ($LASTEXITCODE -ne 0) { throw '校验失败，停止' }
 ```
 
 其他环境按核验的地址/网络替换，不照抄目标库。baseline 会向 flyway_schema_history 写入 type=BASELINE、version=1，表示旧结构已存在，不执行 V1。
-migrate 随后只执行 V2/V3/V4。核对 history 中 BASELINE1、SQL2/3/4 均成功，merchant 与两张认证新表结构存在，旧表行数和代表性行不变。
-空库 history 应是 SQL1/2/3/4，而不是 BASELINE1。后续日常流程只 validate/migrate，不再 baseline。
+migrate 随后执行 V2–V9。核对 history 中 BASELINE1、SQL2–9 均成功，租户、认证、会话及商品/库存/订单/物流结构存在，旧表行数和代表性行不变。
+空库 history 应是 SQL1–9，而不是 BASELINE1。后续日常流程只 validate/migrate，不再 baseline。
 失败时按备份恢复或向前修复处理，绝不能通过 clean、删卷、repair 来掩盖差异。
 
-FlywayMigrationIT 的小型独立测试验证 V1 构造旧结构→普通 migrate 拒绝→显式 baseline1→V2/V3/V4→旧行保留；不替代真实旧库人工结构核验。
+FlywayMigrationIT 保留了 V1 构造旧结构→普通 migrate 拒绝→显式 baseline1→追加迁移→旧行保留的测试。本 change 第 7 组将同步其中遗留的 V8 断言并扩展冻结 V5 升级路径；第 6 组只验证库存主键及相关定向回归，不替代迁移路径综合验收或真实旧库人工结构核验。第 8 组才执行本地 dev 升级。

@@ -54,11 +54,15 @@ try {
     try {
         # Maven does not remove renamed resources. Remove only these exact obsolete build outputs.
         foreach ($relative in @('db/seed/nonprod/R__local_test_tenants.sql','db/devdata/R__auth_demo_accounts.sql',
+            'db/migration/V6__shipment_tables.sql','db/migration/V7__order_tables.sql',
+            'db/migration/V8__inventory_tables.sql','db/migration/V9__product_module.sql',
+            'db/devdata/R__040_shipment_demo_data.sql','db/devdata/R__050_order_demo_orders.sql',
+            'db/devdata/R__060_product_demo.sql',
             'com/gba/merchantbao/auth/config/AuthDevDataConfiguration.class','com/gba/merchantbao/auth/config/AuthDevDataConfiguration$1.class')) {
             $buildClasses = [IO.Path]::GetFullPath((Join-Path $moduleRoot 'target/classes'))
             $stalePath = [IO.Path]::GetFullPath((Join-Path $buildClasses $relative))
             if (-not $stalePath.StartsWith($buildClasses + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid build cleanup target' }
-            if (Test-Path -LiteralPath $stalePath) { Remove-Item -LiteralPath $stalePath }
+            if (Test-Path -LiteralPath $stalePath) { Remove-Item -LiteralPath $stalePath -Force }
         }
         & mvn -q -DskipTests compile dependency:build-classpath '-Dmdep.outputFile=target/dev-seed-classpath.txt'
         if ($LASTEXITCODE -ne 0) { throw 'Maintenance tool build failed' }

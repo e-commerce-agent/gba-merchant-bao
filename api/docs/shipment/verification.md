@@ -1,6 +1,6 @@
 # add-shipment-web-service 实现与验收记录
 
-日期：2026-11-10，Asia/Shanghai。针对物流模块（REST + SOAP）与本次迁移编号顺延（物流 V6/R040、订单 V7/R050、库存 V8），未合并 main、未发布生产。
+日期：2026-11-10，Asia/Shanghai。此记录描述原物流交付时的验证布局（物流 V6/R040、订单 V7/R050、库存 V8）；`align-commerce-module-integration` 将尚未执行的 V6–V9 重排为商品、库存、订单、物流，保留本记录对原实现范围的历史描述。
 
 ## 自动化结果
 

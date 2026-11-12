@@ -121,7 +121,7 @@
 
     <build>
         <plugins>
-            <!-- 打包jar部署上线的时候，把`application-dev.yml / application-dev.yaml` 排除掉 -->
+            <!-- 打包jar部署上线的时候, 自动把`application-dev.yml / application-dev.yaml` 排除掉 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>

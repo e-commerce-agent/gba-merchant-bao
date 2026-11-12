@@ -1,8 +1,8 @@
 package com.gba.merchantbao.product.cache;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gba.merchantbao.product.vo.ProductViews.PublicProductView;
-import com.gba.merchantbao.product.vo.ProductViews.PublicSkuView;
+import com.gba.merchantbao.product.cache.ProductCatalog.Product;
+import com.gba.merchantbao.product.cache.ProductCatalog.Sku;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -61,48 +61,48 @@ public class ProductCacheStore {
         }
     }
 
-    /** merchantCode → merchantId mapping; short TTL keeps a deactivated store going dark within a minute. */
-    public Long readMerchantId(String merchantCode) {
+    /** storeSlug → merchantId mapping; short TTL keeps a deactivated store going dark within a minute. */
+    public Long readMerchantId(String storeSlug) {
         if (!enabled) return null;
         try {
-            String value = redis.opsForValue().get(mappingKey(merchantCode));
+            String value = redis.opsForValue().get(mappingKey(storeSlug));
             return value == null ? null : Long.valueOf(value);
         } catch (RuntimeException e) {
             return null;
         }
     }
 
-    public void putMerchantId(String merchantCode, long merchantId) {
+    public void putMerchantId(String storeSlug, long merchantId) {
         if (!enabled) return;
         try {
-            redis.opsForValue().set(mappingKey(merchantCode), Long.toString(merchantId), MAPPING_TTL);
+            redis.opsForValue().set(mappingKey(storeSlug), Long.toString(merchantId), MAPPING_TTL);
         } catch (RuntimeException ignored) {
             // degrade to database
         }
     }
 
-    public PublicProductView readProduct(long merchantId, long productId) {
-        return readEntry(merchantId, KIND_PRODUCT, Long.toString(productId), PublicProductView.class);
+    public Product readProduct(long merchantId, long productId) {
+        return readEntry(merchantId, KIND_PRODUCT, Long.toString(productId), Product.class);
     }
 
-    public void putProduct(long merchantId, long productId, PublicProductView view) {
+    public void putProduct(long merchantId, long productId, Product view) {
         putEntry(merchantId, KIND_PRODUCT, Long.toString(productId), view);
     }
 
-    public PublicSkuView readSku(long merchantId, long skuId) {
-        return readEntry(merchantId, KIND_SKU, Long.toString(skuId), PublicSkuView.class);
+    public Sku readSku(long merchantId, long skuId) {
+        return readEntry(merchantId, KIND_SKU, Long.toString(skuId), Sku.class);
     }
 
-    public void putSku(long merchantId, long skuId, PublicSkuView view) {
+    public void putSku(long merchantId, long skuId, Sku view) {
         putEntry(merchantId, KIND_SKU, Long.toString(skuId), view);
     }
 
-    public PageEntry readPage(long merchantId, Long categoryId) {
-        return readEntry(merchantId, KIND_PAGE, pageKey(categoryId), PageEntry.class);
+    public PageEntry readPage(long merchantId, Long categoryId, int size) {
+        return readEntry(merchantId, KIND_PAGE, pageKey(categoryId, size), PageEntry.class);
     }
 
-    public void putPage(long merchantId, Long categoryId, PageEntry entry) {
-        putEntry(merchantId, KIND_PAGE, pageKey(categoryId), entry);
+    public void putPage(long merchantId, Long categoryId, int size, PageEntry entry) {
+        putEntry(merchantId, KIND_PAGE, pageKey(categoryId, size), entry);
     }
 
     /** Generic entry read; returns null on miss, Redis outage or deserialization mismatch (never throws). */
@@ -137,16 +137,20 @@ public class ProductCacheStore {
     }
 
     /** First mall page per store/category (cursor-less requests only). */
-    public record PageEntry(java.util.List<PublicProductView> items, String nextCursor, boolean hasMore) {
-        public static PageEntry of(java.util.List<PublicProductView> items, String nextCursor, boolean hasMore) {
+    public record PageEntry(java.util.List<Product> items, String nextCursor, boolean hasMore) {
+        public static PageEntry of(java.util.List<Product> items, String nextCursor, boolean hasMore) {
             return new PageEntry(items, nextCursor, hasMore);
         }
     }
 
-    public static String versionKey(long merchantId) { return "gba:product:ver:" + merchantId; }
-    public static String mappingKey(String merchantCode) { return "gba:product:store:" + merchantCode; }
-    public static String pageKey(Long categoryId) { return categoryId == null ? "0" : Long.toString(categoryId); }
+    public static final String CATALOG_NAMESPACE = "gba:product:catalog:v2:";
+
+    public static String versionKey(long merchantId) { return CATALOG_NAMESPACE + "ver:" + merchantId; }
+    public static String mappingKey(String storeSlug) { return "gba:product:store:" + storeSlug; }
+    public static String pageKey(Long categoryId, int size) {
+        return (categoryId == null ? "0" : Long.toString(categoryId)) + ":size:" + size;
+    }
     public static String entryKey(long merchantId, long version, String kind, String id) {
-        return "gba:product:e:" + merchantId + ":v" + version + ":" + kind + ":" + id;
+        return CATALOG_NAMESPACE + "e:" + merchantId + ":v" + version + ":" + kind + ":" + id;
     }
 }

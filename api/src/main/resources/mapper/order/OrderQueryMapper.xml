@@ -9,6 +9,10 @@
     SELECT <include refid="columns"/> FROM trade_order
     WHERE merchant_id = #{merchantId} AND id = #{orderId} AND customer_id = #{customerId}
   </select>
+  <select id="findByOrderNo" resultType="com.gba.merchantbao.order.entity.OrderRow" flushCache="true" useCache="false">
+    SELECT <include refid="columns"/> FROM trade_order
+    WHERE merchant_id = #{merchantId} AND order_no = #{orderNo}
+  </select>
   <select id="findByCustomer" resultType="com.gba.merchantbao.order.entity.OrderRow" flushCache="true" useCache="false">
     SELECT <include refid="columns"/> FROM trade_order
     WHERE merchant_id = #{merchantId} AND customer_id = #{customerId}

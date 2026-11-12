@@ -11,6 +11,7 @@ import java.util.List;
 @Mapper
 public interface OrderQueryMapper {
     OrderRow findById(@Param("merchantId") long merchantId, @Param("orderId") long orderId);
+    OrderRow findByOrderNo(@Param("merchantId") long merchantId, @Param("orderNo") String orderNo);
     OrderRow findOwnedById(@Param("merchantId") long merchantId, @Param("orderId") long orderId,
                            @Param("customerId") long customerId);
     List<OrderRow> findByCustomer(@Param("merchantId") long merchantId, @Param("customerId") long customerId,

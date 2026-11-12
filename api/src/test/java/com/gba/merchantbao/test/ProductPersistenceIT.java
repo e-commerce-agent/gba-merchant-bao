@@ -87,7 +87,8 @@ class ProductPersistenceIT {
         for (long wrong : new long[]{iso}) {
             assertThat(products.find(wrong, 3000000000000201L)).isNull();
             assertThat(skus.find(wrong, 3000000000000301L)).isNull();
-            assertThat(products.page(wrong, null, null, null, null, 10)).isEmpty();
+            assertThat(products.page(wrong, null, null, null, null, 10)).extracting(ProductRow::id)
+                    .containsExactly(3000000000000203L);
             assertThat(skus.listForProduct(wrong, 3000000000000201L, null)).isEmpty();
         }
         assertThat(products.page(demo, "PUBLISHED", null, null, null, 10)).extracting(ProductRow::id)

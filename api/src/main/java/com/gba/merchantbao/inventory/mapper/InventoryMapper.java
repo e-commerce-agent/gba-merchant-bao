@@ -9,6 +9,14 @@ import java.util.List;
 @Mapper
 public interface InventoryMapper {
 
+    /** Boolean availability only: no exact quantities cross the inventory service boundary. */
+    List<Long> selectInStockSkuIds(@Param("merchantId") long merchantId,
+                                  @Param("skuIds") List<Long> skuIds);
+
+    /** First positive adjustment only; uk_merchant_sku arbitrates concurrent creation. */
+    int insertZeroStock(@Param("id") Long id, @Param("merchantId") Long merchantId,
+                        @Param("skuId") Long skuId);
+
     /**
      * 按租户 + SKU 查库存（所有读写都必须带 merchantId，禁止跨租户访问）
      */

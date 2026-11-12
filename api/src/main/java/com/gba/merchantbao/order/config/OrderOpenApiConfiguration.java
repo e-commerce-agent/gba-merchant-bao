@@ -11,7 +11,7 @@ import java.util.Map;
 public class OrderOpenApiConfiguration {
     @Bean GroupedOpenApi orderV1OpenApi() {
         return GroupedOpenApi.builder().group("order-v1").packagesToScan("com.gba.merchantbao.order.controller")
-            .pathsToMatch("/api/v1/orders/**").addOpenApiCustomizer(api->{
+            .pathsToMatch("/api/v1/orders", "/api/v1/orders/{orderId}").addOpenApiCustomizer(api->{
                 api.getInfo().setDescription("订单只读查询：消费者本人订单、员工本商户订单。身份只来自认证 Actor；越界与不存在同为 404/10004。订单项为成交快照，不含手机号与地址。");
                 api.setServers(java.util.List.of(new io.swagger.v3.oas.models.servers.Server().url("/")));
                 Schema<?> envelope=new ObjectSchema().addProperty("code",new IntegerSchema()).addProperty("message",new StringSchema())

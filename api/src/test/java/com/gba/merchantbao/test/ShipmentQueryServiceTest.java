@@ -6,6 +6,8 @@ import com.gba.merchantbao.auth.exception.AuthError;
 import com.gba.merchantbao.auth.security.Actor;
 import com.gba.merchantbao.auth.security.AuthPrincipal;
 import com.gba.merchantbao.auth.service.TenantResolver;
+import com.gba.merchantbao.order.exception.OrderError;
+import com.gba.merchantbao.order.service.OrderQueryService;
 import com.gba.merchantbao.shipment.dto.ShipmentView;
 import com.gba.merchantbao.shipment.entity.ShipmentRow;
 import com.gba.merchantbao.shipment.entity.ShipmentTrackRow;
@@ -38,6 +40,7 @@ class ShipmentQueryServiceTest {
     private ShipmentMapper mapper;
     private OrderAccessGuard guard;
     private TenantResolver tenants;
+    private OrderQueryService orders;
     private ShipmentQueryService service;
     private Actor actor;
 
@@ -46,8 +49,10 @@ class ShipmentQueryServiceTest {
         mapper = Mockito.mock(ShipmentMapper.class);
         guard = Mockito.mock(OrderAccessGuard.class);
         tenants = Mockito.mock(TenantResolver.class);
-        service = new ShipmentQueryService(mapper, guard, tenants);
+        orders = Mockito.mock(OrderQueryService.class);
+        service = new ShipmentQueryService(mapper, guard, tenants, orders);
         actor = new Actor(new AuthPrincipal(2100000000000101L, MERCHANT, AccountRole.MERCHANT_STAFF), "sid");
+        when(guard.resolve(actor, ORDER)).thenReturn(new OrderAccessGuard.OrderAccess(true, "SO-DEMO-0301"));
     }
 
     private ShipmentRow row() {
@@ -74,7 +79,10 @@ class ShipmentQueryServiceTest {
         assertThat(view.trackingNo()).isEqualTo("SF1000000000301");
         assertThat(view.tracks()).hasSize(2);
         assertThat(view.tracks().get(0).eventTime()).isBefore(view.tracks().get(1).eventTime());
-        Mockito.verify(mapper).findByOrder(MERCHANT, ORDER);
+        var sequence = Mockito.inOrder(guard, mapper);
+        sequence.verify(guard).resolve(actor, ORDER);
+        sequence.verify(mapper).findByOrder(MERCHANT, ORDER);
+        sequence.verify(mapper).findTracks(MERCHANT, 500L);
     }
 
     @Test
@@ -85,6 +93,32 @@ class ShipmentQueryServiceTest {
         assertThatThrownBy(() -> service.getForActor(actor, ORDER))
                 .isInstanceOf(AuthError.class)
                 .satisfies(e -> assertThat(((AuthError) e).status()).isEqualTo(404));
+        Mockito.verifyNoInteractions(mapper);
+    }
+
+    @Test
+    void existingShipmentCannotBypassDeniedOrderAuthorization() {
+        when(mapper.findByOrder(MERCHANT, ORDER)).thenReturn(row());
+        when(guard.resolve(actor, ORDER)).thenThrow(
+                new AuthError(404, com.gba.merchantbao.common.error.CommonErrorCode.RESOURCE_NOT_FOUND));
+
+        assertThatThrownBy(() -> service.getForActor(actor, ORDER))
+                .isInstanceOfSatisfying(AuthError.class, e -> {
+                    assertThat(e.status()).isEqualTo(404);
+                    assertThat(e.code().getCode()).isEqualTo(10004);
+                });
+        Mockito.verifyNoInteractions(mapper);
+    }
+
+    @Test
+    void orderStorageFailureDoesNotReadShipmentAndReturnsInternalError() {
+        when(guard.resolve(actor, ORDER)).thenThrow(new QueryTimeoutException("private order storage details"));
+        assertThatThrownBy(() -> service.getForActor(actor, ORDER))
+                .isInstanceOfSatisfying(AuthError.class, error -> {
+                    assertThat(error.status()).isEqualTo(500);
+                    assertThat(error.getMessage()).doesNotContain("private order storage details");
+                });
+        Mockito.verifyNoInteractions(mapper);
     }
 
     @Test
@@ -116,21 +150,46 @@ class ShipmentQueryServiceTest {
     void soapPathResolvesTenantFromCodeAndRejectsUnknowns() {
         when(tenants.resolveActive("M_3C_DEMO"))
                 .thenReturn(Optional.of(new Tenant(MERCHANT, "M_3C_DEMO")));
-        when(mapper.findByOrderNo(MERCHANT, "SO-DEMO-0301")).thenReturn(row());
+        when(orders.locateForService(MERCHANT, "SO-DEMO-0301"))
+                .thenReturn(new OrderQueryService.OrderLocation(MERCHANT, ORDER, "SO-DEMO-0301"));
+        when(mapper.findByOrder(MERCHANT, ORDER)).thenReturn(row());
         when(mapper.findTracks(MERCHANT, 500L)).thenReturn(List.of());
 
         assertThat(service.getForMerchantCode("M_3C_DEMO", "SO-DEMO-0301").status())
                 .isEqualTo(ShipmentStatus.IN_TRANSIT);
+        var sequence = Mockito.inOrder(tenants, orders, mapper);
+        sequence.verify(tenants).resolveActive("M_3C_DEMO");
+        sequence.verify(orders).locateForService(MERCHANT, "SO-DEMO-0301");
+        sequence.verify(mapper).findByOrder(MERCHANT, ORDER);
+        sequence.verify(mapper).findTracks(MERCHANT, 500L);
 
         when(tenants.resolveActive("M_UNKNOWN")).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.getForMerchantCode("M_UNKNOWN", "SO-DEMO-0301"))
                 .isInstanceOf(AuthError.class)
                 .satisfies(e -> assertThat(((AuthError) e).status()).isEqualTo(404));
 
-        when(mapper.findByOrderNo(MERCHANT, "missing")).thenReturn(null);
+        Mockito.clearInvocations(mapper);
+        when(orders.locateForService(MERCHANT, "missing")).thenThrow(OrderError.notFound());
         assertThatThrownBy(() -> service.getForMerchantCode("M_3C_DEMO", "missing"))
                 .isInstanceOf(AuthError.class)
                 .satisfies(e -> assertThat(((AuthError) e).status()).isEqualTo(404));
+        Mockito.verifyNoInteractions(mapper);
+    }
+
+    @Test
+    void soapKnownOrderWithoutShipmentReturnsNotShippedWithRealOrderNumber() {
+        when(tenants.resolveActive("M_3C_DEMO")).thenReturn(Optional.of(new Tenant(MERCHANT, "M_3C_DEMO")));
+        when(orders.locateForService(MERCHANT, "SO-UNSHIPPED"))
+                .thenReturn(new OrderQueryService.OrderLocation(MERCHANT, ORDER, "SO-UNSHIPPED"));
+
+        var view = service.getForMerchantCode("M_3C_DEMO", "SO-UNSHIPPED");
+        assertThat(view.status()).isEqualTo(ShipmentStatus.NOT_SHIPPED);
+        assertThat(view.orderNo()).isEqualTo("SO-UNSHIPPED");
+        assertThat(view.tracks()).isEmpty();
+        assertThat(view.trackingNo()).isNull();
+        Mockito.verify(mapper).findByOrder(MERCHANT, ORDER);
+        Mockito.verifyNoMoreInteractions(mapper);
+        Mockito.verifyNoInteractions(guard);
     }
 
     @Test
@@ -140,6 +199,6 @@ class ShipmentQueryServiceTest {
         assertThatThrownBy(() -> service.getForMerchantCode("anything", "any-order"))
                 .isInstanceOf(AuthError.class);
 
-        Mockito.verifyNoInteractions(mapper);
+        Mockito.verifyNoInteractions(mapper, orders);
     }
 }

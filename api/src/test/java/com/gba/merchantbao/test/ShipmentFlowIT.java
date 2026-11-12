@@ -35,7 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test") @Testcontainers @DirtiesContext
-@Sql(scripts = {"/db/fixture/auth_accounts.sql", "/db/fixture/orders.sql", "/db/fixture/shipment.sql"},
+@Sql(scripts = {"/db/fixture/auth_accounts.sql", "/db/fixture/product_catalog.sql", "/db/fixture/orders.sql", "/db/fixture/shipment.sql"},
         executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 class ShipmentFlowIT {
     static {DockerRequired.check();}
@@ -55,14 +55,16 @@ class ShipmentFlowIT {
 
     private static final long DEMO_TENANT = 1000000000000001L;
     private static final long ISOLATION_TENANT = 1000000000000002L;
-    private static final long IN_TRANSIT_ORDER = 4000000000000401L;
-    private static final long DELIVERED_ORDER = 4000000000000402L;
-    private static final long ISOLATION_ORDER = 4000000000000403L;
+    private static final long IN_TRANSIT_ORDER = 2000000000000303L;
+    private static final long DELIVERED_ORDER = 2000000000000301L;
+    private static final long ISOLATION_ORDER = 2000000000000304L;
 
     @Autowired SessionService sessions;
     @Autowired TestRestTemplate http;
     @Autowired JdbcTemplate jdbc;
     @Autowired com.fasterxml.jackson.databind.ObjectMapper json;
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
+    com.gba.merchantbao.shipment.mapper.ShipmentMapper shipments;
 
     private AuthPrincipal staff(long merchantId, long accountId) {
         return new AuthPrincipal(accountId, merchantId, AccountRole.MERCHANT_STAFF);
@@ -97,7 +99,7 @@ class ShipmentFlowIT {
         var view = data(response);
         assertThat(view.path("orderId").asText()).isEqualTo(String.valueOf(IN_TRANSIT_ORDER));
         assertThat(view.path("orderId").isTextual()).isTrue();
-        assertThat(view.path("orderNo").asText()).isEqualTo("FIX-0401");
+        assertThat(view.path("orderNo").asText()).isEqualTo("DEV-2026-0903");
         assertThat(view.path("status").asText()).isEqualTo("IN_TRANSIT");
         assertThat(view.path("carrierName").asText()).isEqualTo("顺丰速运");
         assertThat(view.path("trackingNo").asText()).isEqualTo("FIX1000001");
@@ -118,11 +120,24 @@ class ShipmentFlowIT {
     }
 
     @Test
-    void consumerOfSameTenantMayQueryInIntegrationState() throws Exception {
-        String token = sessions.login(consumer(DEMO_TENANT, 2000000000000201L)).accessToken();
+    void consumerMayQueryOwnShipment() throws Exception {
+        String token = sessions.login(consumer(DEMO_TENANT, 2000000000000202L)).accessToken();
         var response = get("/api/v1/orders/" + IN_TRANSIT_ORDER + "/shipment", token);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(data(response).path("status").asText()).isEqualTo("IN_TRANSIT");
+    }
+
+    @Test
+    void otherConsumersExistingShipmentIs404BeforeAnyShipmentRead() throws Exception {
+        String token = sessions.login(consumer(DEMO_TENANT, 2000000000000201L)).accessToken();
+        org.mockito.Mockito.clearInvocations(shipments);
+        for (long orderId : new long[]{IN_TRANSIT_ORDER, ISOLATION_ORDER, 9999999999999999L}) {
+            var response = get("/api/v1/orders/" + orderId + "/shipment", token);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+            assertThat(json.readTree(response.getBody()).path("code").asInt()).isEqualTo(10004);
+            assertThat(response.getBody()).doesNotContain("trackingNo", "FIX1000001", "tracks");
+        }
+        org.mockito.Mockito.verifyNoInteractions(shipments);
     }
 
     @Test
@@ -151,24 +166,29 @@ class ShipmentFlowIT {
 
     @Test
     void ownedOrderWithoutShipmentRowSynthesizesNotShippedAndForeignStays404() throws Exception {
-        // orders.sql: 2000000000000301 belongs to consumer 2000000000000201 in M_3C_DEMO and has no shipment row.
+        // orders.sql: 2000000000000302 belongs to the demo consumer and has no shipment row.
         String staff = sessions.login(staff(DEMO_TENANT, 2000000000000101L)).accessToken();
-        var response = get("/api/v1/orders/2000000000000301/shipment", staff);
+        var response = get("/api/v1/orders/2000000000000302/shipment", staff);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         var view = data(response);
         assertThat(view.path("status").asText()).isEqualTo("NOT_SHIPPED");
-        assertThat(view.path("orderId").asText()).isEqualTo("2000000000000301");
+        assertThat(view.path("orderId").asText()).isEqualTo("2000000000000302");
         assertThat(view.path("orderId").isTextual()).isTrue();
         assertThat(view.path("tracks").size()).isZero();
 
+        String owner = sessions.login(consumer(DEMO_TENANT, 2000000000000201L)).accessToken();
+        var ownResponse = get("/api/v1/orders/2000000000000302/shipment", owner);
+        assertThat(ownResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(data(ownResponse).path("status").asText()).isEqualTo("NOT_SHIPPED");
+
         // A consumer who does not own the order and a foreign-tenant staff both get the unified 404.
         String otherConsumer = sessions.login(consumer(DEMO_TENANT, 2000000000000202L)).accessToken();
-        var foreignConsumer = get("/api/v1/orders/2000000000000301/shipment", otherConsumer);
+        var foreignConsumer = get("/api/v1/orders/2000000000000302/shipment", otherConsumer);
         assertThat(foreignConsumer.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(json.readTree(foreignConsumer.getBody()).path("code").asInt()).isEqualTo(10004);
 
         String isolationStaff = sessions.login(staff(ISOLATION_TENANT, 2000000000000102L)).accessToken();
-        var foreignStaff = get("/api/v1/orders/2000000000000301/shipment", isolationStaff);
+        var foreignStaff = get("/api/v1/orders/2000000000000302/shipment", isolationStaff);
         assertThat(foreignStaff.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(json.readTree(foreignStaff.getBody()).path("code").asInt()).isEqualTo(10004);
     }

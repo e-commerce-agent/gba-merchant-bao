@@ -40,11 +40,13 @@ class DevSeedMigrationIT {
     }
 
     @Test void freshOrderAndUnchangedMigrateHaveExactlyOneExecutionPerSeed() {
-        // V1-V8 (8) + R__010/R__020/R__030/R__040/R__050 (5) = 13.
-        assertThat(tool.flyway().migrate().migrationsExecuted).isEqualTo(13);
+        // V1-V9 (9) + R__010 through R__070 (7) = 16.
+        assertThat(tool.flyway().migrate().migrationsExecuted).isEqualTo(16);
         assertThat(jdbc.queryForList("SELECT script FROM flyway_schema_history ORDER BY installed_rank", String.class))
                 .endsWith("R__010_local_test_tenants.sql", "R__020_auth_demo_accounts.sql", "R__030_chat_demo.sql",
-                        "R__040_shipment_demo_data.sql", "R__050_order_demo_orders.sql");
+                        "R__040_product_demo.sql", "R__050_inventory_demo.sql", "R__060_order_demo_orders.sql",
+                        "R__070_shipment_demo_data.sql");
+        assertCommerceSeedRelations();
         var history = jdbc.queryForList("SELECT * FROM flyway_schema_history ORDER BY installed_rank");
         var tenants = jdbc.queryForList("SELECT * FROM merchant ORDER BY id");
         assertThat(tool.flyway().migrate().migrationsExecuted).isZero();
@@ -52,6 +54,182 @@ class DevSeedMigrationIT {
         assertThat(jdbc.queryForList("SELECT * FROM merchant ORDER BY id")).isEqualTo(tenants);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM merchant_staff_account", Integer.class)).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM consumer_account", Integer.class)).isEqualTo(3);
+    }
+
+    @Test void productSeedCreatesParentCategoriesBeforeChildrenWithRefreshedMerchantStatistics() throws Exception {
+        structure();
+        execute("db/seed/nonprod/R__010_local_test_tenants.sql");
+        // Restoring the V5 dump refreshes statistics. The resulting hash join can emit
+        // the child before its parent even when the UNION lists the parent first.
+        jdbc.execute("ANALYZE TABLE merchant");
+        execute("db/devdata/R__040_product_demo.sql");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM product_category", Integer.class)).isEqualTo(5);
+        assertThat(jdbc.queryForObject("SELECT parent_id FROM product_category WHERE id=2500000000000104", Long.class))
+                .isEqualTo(2500000000000101L);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM product_category c JOIN product_category p "
+                + "ON p.id=c.parent_id AND p.merchant_id=c.merchant_id", Integer.class)).isEqualTo(1);
+        jdbc.update("UPDATE product_category SET sort_no=88,status='INACTIVE' WHERE id=2500000000000101");
+        var before = tool.snapshot();
+        execute("db/devdata/R__040_product_demo.sql");
+        assertThat(tool.snapshot()).isEqualTo(before);
+    }
+
+    @Test void commerceSeedsPreserveManualValuesOnExplicitRerun() throws Exception {
+        tool.flyway().migrate();
+        jdbc.update("UPDATE inventory SET available_qty=77,reserved_qty=4,version=9 WHERE sku_id=2500000000000301");
+        jdbc.update("UPDATE trade_order_item SET product_name_snapshot='人工成交快照' WHERE id=2100000000000311");
+        jdbc.update("UPDATE product SET name='人工商品名称',status='UNPUBLISHED' WHERE id=2500000000000201");
+        jdbc.update("UPDATE product_sku SET price=999,attributes_json='{\"人工规格\":\"保留\"}' WHERE id=2500000000000301");
+        jdbc.update("UPDATE shipment SET carrier_name='人工承运商',estimated_delivery_at='2026-12-01' WHERE id=3000000000000301");
+        jdbc.update("DELETE FROM product_attribute WHERE id=2500000000000408");
+        jdbc.update("DELETE FROM inventory WHERE sku_id=2500000000000309");
+        jdbc.update("DELETE FROM trade_order_item WHERE id=2100000000000318");
+        jdbc.update("DELETE FROM shipment_track WHERE id=3000000000000421");
+        jdbc.update("INSERT INTO trade_order(id,merchant_id,order_no,customer_id,status,pay_status,total_amount) "
+                + "VALUES(999,1000000000000002,'MANUAL-ISO',2100000000000203,'SHIPPED','PAID',0)");
+        jdbc.update("INSERT INTO shipment(id,merchant_id,order_id,order_no,status,carrier_name,tracking_no) "
+                + "VALUES(998,1000000000000002,999,'MANUAL-ISO','IN_TRANSIT','manual','SF1000000000301')");
+        var before = tool.snapshot();
+        for (String seed : List.of("R__040_product_demo.sql", "R__050_inventory_demo.sql",
+                "R__060_order_demo_orders.sql", "R__070_shipment_demo_data.sql")) {
+            execute("db/devdata/" + seed);
+            execute("db/devdata/" + seed);
+        }
+        tool.assertPreserved(before);
+        assertThat(jdbc.queryForMap("SELECT available_qty,reserved_qty,version FROM inventory WHERE sku_id=2500000000000301"))
+                .containsEntry("available_qty", 77).containsEntry("reserved_qty", 4).containsEntry("version", 9);
+        assertThat(jdbc.queryForObject("SELECT product_name_snapshot FROM trade_order_item WHERE id=2100000000000311", String.class))
+                .isEqualTo("人工成交快照");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory_transaction", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory", Integer.class)).isEqualTo(8);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM trade_order_item", Integer.class)).isEqualTo(8);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM shipment_track", Integer.class)).isEqualTo(6);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM product_attribute", Integer.class)).isEqualTo(8);
+    }
+
+    @Test void frozenV5UpgradeMatchesFreshSchemaAndPreservesAccountsChatAndHistory() throws Exception {
+        Path frozen = files.resolve("frozen-v5");
+        Files.createDirectories(frozen);
+        for (String name : List.of("V1__legacy_schema_baseline.sql", "V2__merchant_tenant_root.sql",
+                "V3__merchant_currency_compatibility.sql", "V4__auth_accounts.sql", "V5__agent_conversation.sql")) {
+            Files.copy(Path.of("src/main/resources/db/migration", name), frozen.resolve(name));
+        }
+        for (String name : List.of("R__020_auth_demo_accounts.sql", "R__030_chat_demo.sql")) {
+            Files.copy(Path.of("src/main/resources/db/devdata", name), frozen.resolve(name));
+        }
+        Flyway.configure().dataSource(url, "root", MYSQL.getPassword())
+                .locations("filesystem:" + frozen, "classpath:db/seed/nonprod").load().migrate();
+        jdbc.update("UPDATE merchant_staff_account SET password_hash='manual-digest',version=7 WHERE id=2100000000000101");
+        jdbc.update("UPDATE consumer_account SET display_name='manual consumer',version=9 WHERE id=2100000000000201");
+        jdbc.update("UPDATE chat_session SET title='manual session' WHERE id=2200000000000001");
+        jdbc.update("UPDATE chat_message SET content='manual message' WHERE id=2300000000000001");
+        var history = jdbc.queryForList("SELECT * FROM flyway_schema_history ORDER BY installed_rank");
+        var before = tool.snapshot();
+        assertThat(tool.flyway().migrate().migrationsExecuted).isEqualTo(8);
+        tool.flyway().validate();
+        tool.assertPreserved(before);
+        assertThat(jdbc.queryForList("SELECT * FROM flyway_schema_history ORDER BY installed_rank")).containsAll(history);
+        assertCommerceSeedRelations();
+
+        String fresh = "gba_seed_it_" + UUID.randomUUID().toString().replace("-", "");
+        jdbc.execute("CREATE DATABASE `" + fresh + "`");
+        var freshTool = new DevSeedUpgrade(url.replace("/" + database + "?", "/" + fresh + "?"),
+                "root", MYSQL.getPassword(), fresh);
+        freshTool.flyway().migrate();
+        assertThat(schema(fresh)).isEqualTo(schema(database));
+
+        jdbc.update("UPDATE inventory SET available_qty=37,version=11 WHERE id=2500000000000501");
+        var upgraded = tool.snapshot();
+        var upgradedHistory = tool.history();
+        assertThat(tool.flyway().migrate().migrationsExecuted).isZero();
+        tool.flyway().validate();
+        assertThat(tool.snapshot()).isEqualTo(upgraded);
+        assertThat(tool.history()).isEqualTo(upgradedHistory);
+    }
+
+    private List<String> schema(String name) {
+        return jdbc.queryForList("SELECT CONCAT(table_name,':',column_name,':',column_type,':',is_nullable,':',"
+                + "COALESCE(column_default,'<null>'),':',extra) FROM information_schema.columns "
+                + "WHERE table_schema=? AND table_name<>'flyway_schema_history' ORDER BY table_name,ordinal_position",
+                String.class, name);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+            "R__040_product_demo.sql, UPDATE product SET product_code='MANUAL-CODE' WHERE id=2500000000000201, dev_seed_product_identity_conflict",
+            "R__040_product_demo.sql, UPDATE product_attribute SET id=999 WHERE id=2500000000000401, dev_seed_product_identity_conflict",
+            "R__050_inventory_demo.sql, UPDATE inventory SET id=999 WHERE id=2500000000000501, dev_seed_inventory_identity_conflict",
+            "R__050_inventory_demo.sql, UPDATE inventory SET sku_id=2500000000000308 WHERE id=2500000000000501, dev_seed_inventory_identity_conflict",
+            "R__060_order_demo_orders.sql, UPDATE trade_order SET customer_id=2100000000000202 WHERE id=2100000000000301, dev_seed_order_identity_conflict",
+            "R__060_order_demo_orders.sql, UPDATE trade_order_item SET sku_id=2500000000000302 WHERE id=2100000000000311, dev_seed_order_item_identity_conflict",
+            "R__070_shipment_demo_data.sql, UPDATE shipment SET tracking_no='MANUAL-WAYBILL' WHERE id=3000000000000301, dev_seed_shipment_identity_conflict",
+            "R__070_shipment_demo_data.sql, UPDATE shipment_track SET id=999 WHERE id=3000000000000401, dev_seed_track_identity_conflict"
+    })
+    void commerceSeedIdentityConflictsFailBeforeBusinessWrites(String seed, String mutation, String error) throws Exception {
+        tool.flyway().migrate();
+        jdbc.update(mutation);
+        var before = tool.snapshot();
+        assertThatThrownBy(() -> execute("db/devdata/" + seed)).hasStackTraceContaining(error);
+        assertThat(tool.snapshot()).isEqualTo(before);
+    }
+
+    @Test void inventorySeedRejectsAStableIdOwnedByAnotherMerchantBeforeAddingMissingRows() throws Exception {
+        structure(); execute("db/seed/nonprod/R__010_local_test_tenants.sql");
+        execute("db/devdata/R__040_product_demo.sql");
+        jdbc.update("INSERT INTO inventory(id,merchant_id,sku_id,available_qty,reserved_qty,version) "
+                + "VALUES(2500000000000501,1000000000000002,2500000000000309,9,0,3)");
+        var before = jdbc.queryForList("SELECT * FROM inventory ORDER BY id");
+        assertThatThrownBy(() -> execute("db/devdata/R__050_inventory_demo.sql"))
+                .hasStackTraceContaining("dev_seed_inventory_identity_conflict");
+        assertThat(jdbc.queryForList("SELECT * FROM inventory ORDER BY id")).isEqualTo(before);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory_transaction", Integer.class)).isZero();
+    }
+
+    @Test void shipmentSeedRequiresParentOrdersAndRejectsStolenTrackIdsBeforeWriting() throws Exception {
+        structure(); execute("db/seed/nonprod/R__010_local_test_tenants.sql");
+        execute("db/devdata/R__020_auth_demo_accounts.sql");
+        execute("db/devdata/R__040_product_demo.sql");
+        assertThatThrownBy(() -> execute("db/devdata/R__070_shipment_demo_data.sql"))
+                .hasStackTraceContaining("dev_seed_missing_order");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM shipment", Integer.class)).isZero();
+        execute("db/devdata/R__060_order_demo_orders.sql");
+        // The expected demo shipment does not exist yet. A reserved track ID is already
+        // attached to another valid shipment, so all guards must run before any inserts.
+        jdbc.update("INSERT INTO shipment(id,merchant_id,order_id,order_no,status,carrier_name,tracking_no) "
+                + "VALUES(999,1000000000000001,2100000000000303,'DEV-2026-0003','IN_TRANSIT','manual','MANUAL')");
+        jdbc.update("INSERT INTO shipment_track(id,shipment_id,merchant_id,event_time,status,description) "
+                + "VALUES(3000000000000401,999,1000000000000001,'2026-11-07','IN_TRANSIT','manual track')");
+        var before = tool.snapshot();
+        assertThatThrownBy(() -> execute("db/devdata/R__070_shipment_demo_data.sql"))
+                .hasStackTraceContaining("dev_seed_track_identity_conflict");
+        assertThat(tool.snapshot()).isEqualTo(before);
+    }
+
+    @Test void commerceSeedGuardsRejectMissingOrMismatchedCatalogBeforeWrites() throws Exception {
+        structure();
+        execute("db/seed/nonprod/R__010_local_test_tenants.sql");
+        execute("db/devdata/R__020_auth_demo_accounts.sql");
+        execute("db/devdata/R__040_product_demo.sql");
+        jdbc.update("UPDATE product_sku SET product_id=2500000000000201 WHERE id=2500000000000304");
+        var before = tool.snapshot();
+        assertThatThrownBy(() -> execute("db/devdata/R__060_order_demo_orders.sql"))
+                .hasStackTraceContaining("dev_seed_missing_catalog_sku");
+        assertThat(tool.snapshot()).isEqualTo(before);
+
+        jdbc.update("UPDATE product_sku SET product_id=2500000000000202 WHERE id=2500000000000304");
+        jdbc.update("DELETE FROM product_sku WHERE id=2500000000000304");
+        assertThatThrownBy(() -> execute("db/devdata/R__050_inventory_demo.sql"))
+                .hasStackTraceContaining("dev_seed_missing_catalog_sku");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory", Integer.class)).isZero();
+    }
+
+    @Test void shipmentSeedRejectsChangedOrderNumberBeforeAddingTracks() throws Exception {
+        tool.flyway().migrate();
+        jdbc.update("UPDATE trade_order SET order_no='MANUAL-ORDER-NO' WHERE id=2100000000000302");
+        int tracksBefore = jdbc.queryForObject("SELECT COUNT(*) FROM shipment_track", Integer.class);
+        assertThatThrownBy(() -> execute("db/devdata/R__070_shipment_demo_data.sql"))
+                .hasStackTraceContaining("dev_seed_order_relation_conflict");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM shipment_track", Integer.class)).isEqualTo(tracksBefore);
     }
 
     @Test void chatExplicitReexecutionPreservesManualChangesAndRepairsOnlyMissingStableRows() throws Exception {
@@ -92,9 +270,9 @@ class DevSeedMigrationIT {
         assertThat(tool.snapshot()).isEqualTo(stolenKey);
     }
 
-    @Test void historicalV4WithOnlyOldNamesUpgradesTheExplicitV5V6V7V8AndFiveSeeds() throws Exception {
+    @Test void historicalV4WithOnlyOldNamesUpgradesTheExplicitV5ThroughV9AndSevenSeeds() throws Exception {
         oldHistory(true);
-        assertThat(tool.inspect().pendingVersions()).containsExactly("5", "6", "7", "8");
+        assertThat(tool.inspect().pendingVersions()).containsExactly("5", "6", "7", "8", "9");
         var existing = tool.snapshot();
         tool.execute(tool.inspect());
         tool.assertPreserved(existing);
@@ -107,7 +285,7 @@ class DevSeedMigrationIT {
         jdbc.update("UPDATE merchant SET merchant_name='operator name',status='DISABLED',timezone='UTC',currency_code='USD',version=4 WHERE id=1000000000000001");
         jdbc.update("UPDATE merchant_staff_account SET password_hash='preserved-digest',status='DISABLED',display_name='operator staff',version=3 WHERE id=2100000000000101");
         jdbc.update("UPDATE consumer_account SET status='DISABLED',display_name='operator consumer' WHERE id=2100000000000201");
-        // R__040 demo orders reference the demo consumers; the FK correctly blocks removing a
+        // R__060 demo orders reference the demo consumers; the FK correctly blocks removing a
         // referenced account, so clear its orders before exercising the account seed re-run.
         jdbc.update("DELETE FROM trade_order_item WHERE order_id IN (SELECT id FROM trade_order WHERE customer_id=2100000000000202)");
         jdbc.update("DELETE FROM trade_order WHERE customer_id=2100000000000202");
@@ -228,7 +406,7 @@ class DevSeedMigrationIT {
         oldHistory(false);
         var before = tool.history();
         Path migrations = files.resolve("tampered"); Files.createDirectories(migrations);
-        for (String name : List.of("V1__legacy_schema_baseline.sql", "V2__merchant_tenant_root.sql", "V3__merchant_currency_compatibility.sql", "V4__auth_accounts.sql", "V5__agent_conversation.sql", "V6__shipment_tables.sql", "V7__order_tables.sql", "V8__inventory_tables.sql")) {
+        for (String name : List.of("V1__legacy_schema_baseline.sql", "V2__merchant_tenant_root.sql", "V3__merchant_currency_compatibility.sql", "V4__auth_accounts.sql", "V5__agent_conversation.sql", "V6__product_module.sql", "V7__inventory_tables.sql", "V8__order_tables.sql", "V9__shipment_tables.sql")) {
             Files.copy(Path.of("src/main/resources/db/migration", name), migrations.resolve(name));
         }
         // A real failed migration is refused; no history edits are used to manufacture the condition.
@@ -247,9 +425,9 @@ class DevSeedMigrationIT {
             var start = new CountDownLatch(1);
             Callable<Integer> migrate = () -> { start.await(); return tool.flyway().migrate().migrationsExecuted; };
             var a = executor.submit(migrate); var b = executor.submit(migrate); start.countDown();
-            assertThat(a.get(90, TimeUnit.SECONDS) + b.get(90, TimeUnit.SECONDS)).isEqualTo(13);
+            assertThat(a.get(90, TimeUnit.SECONDS) + b.get(90, TimeUnit.SECONDS)).isEqualTo(16);
         }
-        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1", Integer.class)).isEqualTo(13);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM flyway_schema_history WHERE success=1", Integer.class)).isEqualTo(16);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM merchant_staff_account", Integer.class)).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM consumer_account", Integer.class)).isEqualTo(3);
         tool.flyway().validate();
@@ -287,7 +465,7 @@ class DevSeedMigrationIT {
         jdbc.update("UPDATE merchant SET merchant_name='operator preserved',status='DISABLED' WHERE id=1000000000000002");
         var existing = tool.snapshot();
         var historicalRows = jdbc.queryForList("SELECT * FROM flyway_schema_history ORDER BY installed_rank");
-        assertThat(tool.inspect().pendingVersions()).isEqualTo(startAtV3 ? List.of("4","5","6","7","8") : List.of("5","6","7","8"));
+        assertThat(tool.inspect().pendingVersions()).isEqualTo(startAtV3 ? List.of("4","5","6","7","8","9") : List.of("5","6","7","8","9"));
         Path report = files.resolve("report");
         assertThat(cli("check", report, url, database, false, null)).isZero();
         String before = tool.history();
@@ -310,20 +488,39 @@ class DevSeedMigrationIT {
         tool.assertPreserved(existing);
         assertThat(jdbc.queryForList("SELECT * FROM flyway_schema_history ORDER BY installed_rank")).containsAll(historicalRows);
         if (startAtV3) assertThat(jdbc.queryForList("SELECT script FROM flyway_schema_history WHERE type='SQL' ORDER BY installed_rank", String.class))
-                .endsWith("V4__auth_accounts.sql", "V5__agent_conversation.sql", "V6__shipment_tables.sql", "V7__order_tables.sql",
-                        "V8__inventory_tables.sql", "R__010_local_test_tenants.sql", "R__020_auth_demo_accounts.sql", "R__030_chat_demo.sql",
-                        "R__040_shipment_demo_data.sql", "R__050_order_demo_orders.sql");
+                .endsWith("V4__auth_accounts.sql", "V5__agent_conversation.sql", "V6__product_module.sql", "V7__inventory_tables.sql",
+                        "V8__order_tables.sql", "V9__shipment_tables.sql", "R__010_local_test_tenants.sql", "R__020_auth_demo_accounts.sql",
+                        "R__030_chat_demo.sql", "R__040_product_demo.sql", "R__050_inventory_demo.sql",
+                        "R__060_order_demo_orders.sql", "R__070_shipment_demo_data.sql");
         assertThat(Files.readString(report.resolve("result.json"))).contains("\"preserved\" : true");
         assertThat(cli("check", files.resolve("reentry"), url, database, false, null)).isZero();
         assertThat(Files.readString(files.resolve("reentry/review.json"))).contains("\"complete\" : true");
     }
 
-    @Test void pendingVersionOutsideApprovedV4V5V6V7SuffixIsRejectedWithoutRepair() throws Exception {
+    @Test void pendingVersionOutsideApprovedV4ThroughV9SuffixIsRejectedWithoutRepair() throws Exception {
         Flyway.configure().dataSource(url, "root", MYSQL.getPassword())
                 .locations("classpath:db/migration").target("2").load().migrate();
         String before = tool.history();
         assertThatThrownBy(tool::inspect).hasMessageContaining("Unexpected versioned migration state");
         assertThat(tool.history()).isEqualTo(before);
+    }
+
+    @Test void previouslyNumberedV6ThroughV9LayoutIsRejectedWithoutRepair() throws Exception {
+        Path legacy = files.resolve("legacy-v6-v9"); Files.createDirectories(legacy);
+        for (String name : List.of("V1__legacy_schema_baseline.sql", "V2__merchant_tenant_root.sql",
+                "V3__merchant_currency_compatibility.sql", "V4__auth_accounts.sql", "V5__agent_conversation.sql")) {
+            Files.copy(Path.of("src/main/resources/db/migration", name), legacy.resolve(name));
+        }
+        Files.writeString(legacy.resolve("V6__shipment_tables.sql"), "CREATE TABLE legacy_shipment_probe(id INT PRIMARY KEY);\n");
+        Files.writeString(legacy.resolve("V7__order_tables.sql"), "CREATE TABLE legacy_order_probe(id INT PRIMARY KEY);\n");
+        Files.writeString(legacy.resolve("V8__inventory_tables.sql"), "CREATE TABLE legacy_inventory_probe(id INT PRIMARY KEY);\n");
+        Files.writeString(legacy.resolve("V9__product_module.sql"), "CREATE TABLE legacy_product_probe(id INT PRIMARY KEY);\n");
+        Flyway.configure().dataSource(url, "root", MYSQL.getPassword()).locations("filesystem:" + legacy).load().migrate();
+        String before = tool.history();
+        assertThatThrownBy(tool::inspect).hasMessageContaining("Unexpected versioned migration script for V6");
+        assertThat(tool.history()).isEqualTo(before);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=? AND table_name LIKE 'legacy_%_probe'",
+                Integer.class, database)).isEqualTo(4);
     }
 
     @Test void oldAuthSeedWithUnrecordedV4IsNotAcceptedAsTheV3Branch() throws Exception {
@@ -376,6 +573,35 @@ class DevSeedMigrationIT {
     }
 
     void structure() { Flyway.configure().dataSource(url, "root", MYSQL.getPassword()).locations("classpath:db/migration").load().migrate(); }
+    private void assertCommerceSeedRelations() {
+        assertThat(jdbc.queryForList("SELECT table_name FROM information_schema.columns WHERE table_schema=DATABASE() "
+                + "AND table_name IN ('inventory','inventory_transaction','inventory_idempotent') AND column_name='id' "
+                + "AND column_default IS NULL AND extra NOT LIKE '%auto_increment%'", String.class))
+                .containsExactlyInAnyOrder("inventory", "inventory_transaction", "inventory_idempotent");
+        assertThat(jdbc.queryForList("SELECT sku_id FROM trade_order_item ORDER BY id", Long.class))
+                .containsExactly(2500000000000301L, 2500000000000304L, 2500000000000308L,
+                        2500000000000306L, 2500000000000302L, 2500000000000305L,
+                        2500000000000307L, 2500000000000309L);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM trade_order_item i JOIN trade_order o ON o.id=i.order_id " +
+                "JOIN product_sku s ON s.id=i.sku_id WHERE i.merchant_id<>o.merchant_id OR i.merchant_id<>s.merchant_id OR i.product_id<>s.product_id", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM (SELECT o.id FROM trade_order o JOIN trade_order_item i ON i.merchant_id=o.merchant_id AND i.order_id=o.id " +
+                "GROUP BY o.id,o.total_amount HAVING o.total_amount<>SUM(i.amount)) mismatched", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM trade_order_item WHERE amount<>unit_price*quantity", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM shipment s JOIN trade_order o ON o.merchant_id=s.merchant_id AND o.id=s.order_id " +
+                "WHERE s.order_no<>o.order_no OR (s.status='IN_TRANSIT' AND o.status<>'SHIPPED')", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory i JOIN product_sku s ON s.merchant_id=i.merchant_id AND s.id=i.sku_id", Integer.class))
+                .isEqualTo(8);
+        assertThat(jdbc.queryForList("SELECT id FROM inventory ORDER BY sku_id", Long.class))
+                .containsExactly(2500000000000501L, 2500000000000502L, 2500000000000503L,
+                        2500000000000504L, 2500000000000505L, 2500000000000506L,
+                        2500000000000507L, 2500000000000509L);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory WHERE available_qty>0", Integer.class)).isGreaterThan(0);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory WHERE available_qty=0", Integer.class)).isGreaterThan(0);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory WHERE reserved_qty>0", Integer.class)).isGreaterThan(0);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory i JOIN product_sku s ON s.id=i.sku_id " +
+                "WHERE s.status='DISCONTINUED' AND (i.available_qty>0 OR i.reserved_qty>0)", Integer.class)).isGreaterThan(0);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM inventory_transaction", Integer.class)).isZero();
+    }
     void execute(String resource) throws Exception {
         try (var c = DriverManager.getConnection(url, "root", MYSQL.getPassword())) {
             ScriptUtils.executeSqlScript(c, new ClassPathResource(resource));

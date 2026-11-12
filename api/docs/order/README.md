@@ -25,17 +25,18 @@
 
 ## 数据设计
 
-`V7__order_tables.sql`（冻结字段以迁移脚本为准）：
+`V8__order_tables.sql`（V1–V5 冻结，V6 商品、V7 库存之后创建；冻结字段以迁移脚本为准）：
 
 - `trade_order`：`id`（Snowflake）、`merchant_id`、`order_no`（ASCII）、`customer_id`（= `consumer_account.id`）、`status`（`PENDING_PAYMENT/PENDING_SHIPMENT/SHIPPED/COMPLETED/CANCELLED`）、`pay_status`（`UNPAID/PAID/REFUNDING/REFUNDED`）、`total_amount`、`paid_amount`（可空，未支付为 NULL）、`currency`（默认 CNY）、`placed_at`、`created_at/updated_at/version`。
-- `trade_order_item`：`id`、`merchant_id`、`order_id`、`product_id/sku_id`（仅溯源引用，不设外键到商品表，商品表由商品模块交付）、`product_name_snapshot`、`sku_attrs_snapshot`（JSON 文本）、`unit_price`、`quantity`、`amount`。
+- `trade_order_item`：`id`、`merchant_id`、`order_id`、`product_id/sku_id`、`product_name_snapshot`、`sku_attrs_snapshot`（JSON 文本）、`unit_price`、`quantity`、`amount`。复合外键保证 SKU 与同一商户的 product_id 配对；历史查询继续读取成交快照。
 - 索引：`(merchant_id, order_no)` 唯一（订单号租户内唯一，也支撑隔离租户复用同号）；`(merchant_id, id)` 唯一（资源定位 + 组合外键目标）；`(merchant_id, customer_id, placed_at)` 支撑本人订单列表；`(merchant_id, order_id)` 支撑订单项装载。
 - 组合外键 `(merchant_id, order_id)`、`(merchant_id, customer_id)` 在数据库层兜底跨租户引用，CHECK 约束限定状态与金额非负。
 
 ## 演示数据
 
-- devdata：`R__050_order_demo_orders.sql`（编号 050 已按 devdata README 登记）。样板 3C 租户 6 单（覆盖全部履约状态与退款态，含一名第二名消费者订单），隔离租户 1 单（复用同号 DEV-2026-0001，验证租户隔离）。仅在缺失时插入，稳定 ID 21000000000003xx。
-- 测试：`src/test/resources/db/fixture/orders.sql`（稳定 ID 20000000000003xx），由 `@Sql` 显式加载，依赖 `auth_accounts.sql` 的租户/消费者/员工。
+- devdata：`R__060_order_demo_orders.sql` 依赖 R040 商品；六个 3C 租户订单及一个隔离租户订单的 8 条订单项引用同商户真实 SKU。只补缺失，不覆盖成交快照。
+- 订单项到商品/SKU 的引用限制删除父 SKU，不级联删除历史快照；当前迁移仅支持新库及本地 V5 基线，已执行旧 V6–V9 的其他库不兼容。八项稳定 ID 及受控补种步骤见 [dev 数据登记](../../src/main/resources/db/devdata/README.md)。
+- 测试：`src/test/resources/db/fixture/orders.sql`（稳定 ID 20000000000003xx），由 `@Sql` 显式加载，依赖 auth 和 `product_catalog.sql`（独立 260... SKU 空间）。
 
 ## 测试
 
@@ -48,3 +49,18 @@
 - 本模块只读：新增写操作（下单/取消/退款回补）另开 change，不得在本包内追加写 Mapper。
 - Controller 不直接访问 Mapper；授权与范围收敛在 `OrderQueryService`；SQL 必带 `merchant_id` 与主体范围。
 - Agent Function Calling 直接注入 `OrderQueryService`（Java Service，不走 HTTP 回调），返回同一投影。
+
+## 跨模块订单定位与快照边界
+
+`align-commerce-module-integration` 第 5 节将物流对订单 Mapper 的直接访问替换为订单服务调用：
+
+| 订单服务能力 | 调用与信任前提 | 结果 |
+| --- | --- | --- |
+| `locateForActor(Actor, orderId)` | REST 物流经 `OrderBackedOrderAccessGuard` 调用；可信 Actor 决定租户与本人范围 | `OrderLocation(merchantId, orderId, orderNo)`；无权或未知统一 404/10004，不装载订单项 |
+| `locateForService(merchantId, orderNo)` | SOAP 已校验服务间凭证，merchantId 由 `TenantResolver` 解析 merchantCode 得到 | 按真实订单的商户与订单号定位；无权或未知统一 404/10004，不伪造消费者 Actor |
+
+这两个方法是内部 Java 能力，不新增 HTTP 入口；服务间定位不作为消费者或 Agent 的授权入口。物流必须先定位订单成功，之后才能读取运单与轨迹；真实订单无运单是 `NOT_SHIPPED`，未知订单不能合成为未发货。
+
+订单详情与授权定位复用同一 Actor 范围判断，详情继续仅从 `trade_order_item` 读取名称、规格、成交单价、数量与金额。`productId/skuId` 供追溯和数据库引用约束使用；当前目录即使更名、调价、改规格或停售，也不重新计算历史订单。查询不调用库存预占、扣减、释放或调整服务。
+
+测试：`OrderQueryServiceTest` 验证定位边界；`OrderFlowIT.historicalSnapshotSurvivesCatalogChangesWithoutInventoryOperations` 在真实 MySQL 修改当前目录后，通过消费者和员工 HTTP 查询比较完整订单响应，并验证库存服务无调用、库存及流水不变。第 5 节验证记录与物流调用顺序见 [订单与物流整合记录](../shipment/commerce-integration.md)。

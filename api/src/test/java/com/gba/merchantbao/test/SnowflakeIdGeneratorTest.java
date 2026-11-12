@@ -3,6 +3,7 @@ package com.gba.merchantbao.test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gba.merchantbao.common.api.ApiId;
 import com.gba.merchantbao.common.id.SnowflakeIdGenerator;
+import com.gba.merchantbao.common.id.IdGenerator;
 import com.gba.merchantbao.config.IdConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -14,6 +15,8 @@ import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
 
@@ -34,6 +37,29 @@ class SnowflakeIdGeneratorTest {
         }
         assertThat(ids).hasSize(3200).allMatch(id -> id > 9_007_199_254_740_991L);
         assertThat(ids).doesNotContain(new SnowflakeIdGenerator(8, clock).nextId());
+    }
+
+    @Test
+    void twoApplicationWorkersGenerateConcurrentlyAtTheSameMillisecondWithoutDuplicates() throws Exception {
+        var clock = new MutableClock();
+        var generators = new SnowflakeIdGenerator[]{new SnowflakeIdGenerator(7, clock), new SnowflakeIdGenerator(8, clock)};
+        var ids = ConcurrentHashMap.<Long>newKeySet();
+        var start = new CountDownLatch(1);
+        long fixedMillis = clock.millis();
+        try (var pool = Executors.newFixedThreadPool(8)) {
+            var tasks = IntStream.range(0, 8).mapToObj(thread -> pool.submit(() -> {
+                start.await();
+                for (int i = 0; i < 800; i++) assertThat(ids.add(generators[thread % 2].nextId())).isTrue();
+                return null;
+            })).toList();
+            start.countDown();
+            for (var task : tasks) task.get(30, TimeUnit.SECONDS);
+        }
+        assertThat(clock.millis()).isEqualTo(fixedMillis);
+        assertThat(ids).hasSize(6400);
+        for (int worker : new int[]{7, 8}) {
+            assertThat(ids.stream().filter(id -> ((id >>> 12) & 1023) == worker).count()).isEqualTo(3200);
+        }
     }
 
     @Test
@@ -82,7 +108,11 @@ class SnowflakeIdGeneratorTest {
                     .run(context -> assertThat(context).hasFailed());
         }
         runner.withPropertyValues("merchant.id.worker-id=1023")
-                .run(context -> assertThat(context).hasNotFailed());
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(IdGenerator.class);
+                    assertThat(context.getBean(IdGenerator.class)).isSameAs(context.getBean(IdGenerator.class));
+                });
     }
 
     private static class MutableClock extends Clock {

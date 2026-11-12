@@ -20,6 +20,7 @@
 - [物流需求](docs/shipment/requirements.md) / [REST + SOAP 双契约](docs/shipment/api-design.md)
 - [物流数据设计与 Flyway 编号](docs/shipment/data-design.md) / [联调与 SOAP 演示](docs/shipment/manual-verification.md)
 - [物流实现与验收记录](docs/shipment/verification.md)
+- [订单授权、SOAP 信任域与成交快照整合](docs/shipment/commerce-integration.md)
 - [物流 Springdoc 快照（Apifox 导入）](../docs/api/shipment-v1.openapi.yaml)
 - [自动化测试、容器隔离和日志目录](docs/testing/README.md)
 - [本地持久联调与 IDEA/Apifox](docs/deployment/local-development.md)

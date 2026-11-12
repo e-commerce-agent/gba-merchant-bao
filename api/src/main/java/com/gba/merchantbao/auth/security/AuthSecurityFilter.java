@@ -29,9 +29,12 @@ public class AuthSecurityFilter extends OncePerRequestFilter {
     public AuthSecurityFilter(SessionService sessions,AuthRateLimiter rates,ObjectMapper json,Validator validator,AuthHttpErrors errors){this.sessions=sessions;this.rates=rates;this.json=json;this.validator=validator;this.errors=errors;}
     public static String bearer(HttpServletRequest request){String h=request.getHeader("Authorization");return h!=null&&h.startsWith("Bearer ")?h.substring(7):null;}
     private static String path(HttpServletRequest r){return r.getRequestURI().substring(r.getContextPath().length());}
+    /** Only these catalog resources are anonymous; other store resources remain protected. */
+    private static final java.util.regex.Pattern PUBLIC_CATALOG = java.util.regex.Pattern.compile(
+            "/api/v1/stores/[^/]+/(products(?:/[^/]+)?|skus/[^/]+)");
     public static boolean anonymous(HttpServletRequest r){
         String p=path(r);
-        if(r.getMethod().equals("GET")&&(p.equals("/api/v1/health")||p.startsWith("/api/v1/public/")))return true;
+        if(r.getMethod().equals("GET")&&(p.equals("/api/v1/health")||PUBLIC_CATALOG.matcher(p).matches()))return true;
         return r.getMethod().equals("POST")&&(p.equals("/api/v1/auth/staff/login")||p.matches("/api/v1/stores/[^/]+/auth/(sms-codes|consumer/login)"));
     }
     /** Catalog writes are merchant staff only; role checks precede body deserialization. */

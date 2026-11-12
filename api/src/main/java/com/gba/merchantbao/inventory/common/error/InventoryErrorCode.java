@@ -19,6 +19,8 @@ public final class InventoryErrorCode {
     public static final int INVALID_ARGUMENT = 13006;
     /** 库存不足，无法完成调整（调整后为负） */
     public static final int ADJUST_BELOW_ZERO = 13007;
+    /** 停售 SKU 不允许新增供应或预占 */
+    public static final int SKU_DISCONTINUED = 13008;
     /** 内部异常 */
     public static final int INTERNAL_ERROR = 13999;
 

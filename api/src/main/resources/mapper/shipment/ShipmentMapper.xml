@@ -7,10 +7,6 @@
     SELECT <include refid="columns"/> FROM shipment
     WHERE merchant_id = #{merchantId} AND order_id = #{orderId}
   </select>
-  <select id="findByOrderNo" resultType="com.gba.merchantbao.shipment.entity.ShipmentRow" flushCache="true" useCache="false">
-    SELECT <include refid="columns"/> FROM shipment
-    WHERE merchant_id = #{merchantId} AND order_no = #{orderNo}
-  </select>
   <select id="findTracks" resultType="com.gba.merchantbao.shipment.entity.ShipmentTrackRow" flushCache="true" useCache="false">
     SELECT <include refid="track_columns"/> FROM shipment_track
     WHERE merchant_id = #{merchantId} AND shipment_id = #{shipmentId}

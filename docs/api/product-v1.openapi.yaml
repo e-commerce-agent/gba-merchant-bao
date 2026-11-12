@@ -1,0 +1,793 @@
+openapi: 3.1.0
+info:
+  title: Product module API
+  description: |-
+    公开商城与商户商品目录。公开 GET /api/v1/stores/{storeSlug}/products、/products/{productId}、/skus/{skuId} 匿名访问；
+    storeSlug 按认证编码规则解析 ACTIVE 商户，初期复用 merchantCode，只返回 PUBLISHED 商品与 ACTIVE SKU。
+    公开请求忽略附带 token，不推进会话；原 /public 商品路径不再提供。员工登录与内部商家编码保持不变。
+    公开列表/详情内的 SKU 及 SKU 详情包含 inStock 布尔，当前可售库存大于零为 true，缺少库存行或可售为零为 false。
+    目录缓存不保存库存状态，每次请求组合当前库存；公开响应不暴露精确数量、预占量或流水，精确库存仅员工可读。
+    登录读取按角色过滤可见性，写操作仅限商户员工，身份一律来自服务端 Actor。
+    ID 为十进制字符串，时间为 UTC ISO-8601，所有响应 no-store。错误码：10001 参数无效、10002 未认证、10003 越权、10004 不存在/跨商户统一不可见、10009 冲突、10500 内部错误。
+  version: v1
+servers:
+- url: http://localhost:8080
+  description: Generated server url
+paths:
+  /api/v1/skus/{skuId}:
+    get:
+      tags:
+      - product-staff-controller
+      operationId: sku
+      parameters:
+      - name: skuId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseSkuView"
+    put:
+      tags:
+      - product-staff-controller
+      operationId: updateSku
+      parameters:
+      - name: skuId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SkuUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseSkuView"
+  /api/v1/products/{productId}:
+    get:
+      tags:
+      - product-staff-controller
+      operationId: product
+      parameters:
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseProductView"
+    put:
+      tags:
+      - product-staff-controller
+      operationId: updateProduct
+      parameters:
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseProductView"
+  /api/v1/products/{productId}/attributes:
+    put:
+      tags:
+      - product-staff-controller
+      operationId: replaceAttributes
+      parameters:
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttributesUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseListAttributeView"
+  /api/v1/product-categories/{categoryId}:
+    put:
+      tags:
+      - product-staff-controller
+      operationId: updateCategory
+      parameters:
+      - name: categoryId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseCategoryView"
+  /api/v1/products:
+    get:
+      tags:
+      - product-staff-controller
+      operationId: products
+      parameters:
+      - name: categoryId
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponsePageViewProductView"
+    post:
+      tags:
+      - product-staff-controller
+      operationId: createProduct
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductCreate"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseProductView"
+  /api/v1/products/{productId}/unpublish:
+    post:
+      tags:
+      - product-staff-controller
+      operationId: unpublish
+      parameters:
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseProductView"
+  /api/v1/products/{productId}/skus:
+    post:
+      tags:
+      - product-staff-controller
+      operationId: createSku
+      parameters:
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SkuCreate"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseSkuView"
+  /api/v1/products/{productId}/publish:
+    post:
+      tags:
+      - product-staff-controller
+      operationId: publish
+      parameters:
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseProductView"
+  /api/v1/products/{productId}/discontinue:
+    post:
+      tags:
+      - product-staff-controller
+      operationId: discontinue
+      parameters:
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseProductView"
+  /api/v1/product-categories:
+    get:
+      tags:
+      - product-staff-controller
+      operationId: categories
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseListCategoryView"
+    post:
+      tags:
+      - product-staff-controller
+      operationId: createCategory
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryCreate"
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseCategoryView"
+  /api/v1/stores/{storeSlug}/skus/{skuId}:
+    get:
+      tags:
+      - product-public-controller
+      operationId: sku_1
+      parameters:
+      - name: storeSlug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: skuId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponsePublicSkuView"
+  /api/v1/stores/{storeSlug}/products:
+    get:
+      tags:
+      - product-public-controller
+      operationId: products_1
+      parameters:
+      - name: storeSlug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: categoryId
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponsePageViewPublicProductView"
+  /api/v1/stores/{storeSlug}/products/{productId}:
+    get:
+      tags:
+      - product-public-controller
+      operationId: product_1
+      parameters:
+      - name: storeSlug
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponsePublicProductView"
+components:
+  schemas:
+    SkuUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          writeOnly: true
+        price:
+          type: number
+          writeOnly: true
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+          writeOnly: true
+        status:
+          type: string
+          writeOnly: true
+    ApiResponseSkuView:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/SkuView"
+        requestId:
+          type: string
+    SkuView:
+      type: object
+      properties:
+        skuId:
+          type: string
+        productId:
+          type: string
+        skuCode:
+          type: string
+        title:
+          type: string
+        price:
+          type: string
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ProductUpdate:
+      type: object
+      properties:
+        categoryId:
+          type: integer
+          format: int64
+          writeOnly: true
+        name:
+          type: string
+          writeOnly: true
+        brand:
+          type: string
+          writeOnly: true
+        description:
+          type: string
+          writeOnly: true
+    ApiResponseProductView:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/ProductView"
+        requestId:
+          type: string
+    ProductView:
+      type: object
+      properties:
+        productId:
+          type: string
+        merchantId:
+          type: string
+        categoryId:
+          type: string
+        productCode:
+          type: string
+        name:
+          type: string
+        brand:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AttributeEntry:
+      type: object
+      properties:
+        value:
+          type: string
+          writeOnly: true
+        searchable:
+          type: boolean
+          writeOnly: true
+    AttributesUpdate:
+      type: object
+      properties:
+        attributes:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/AttributeEntry"
+          writeOnly: true
+    ApiResponseListAttributeView:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttributeView"
+        requestId:
+          type: string
+    AttributeView:
+      type: object
+      properties:
+        productId:
+          type: string
+        attrName:
+          type: string
+        attrValue:
+          type: string
+        searchable:
+          type: boolean
+    CategoryUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          writeOnly: true
+        sortNo:
+          type: integer
+          format: int32
+          writeOnly: true
+        status:
+          type: string
+          writeOnly: true
+    ApiResponseCategoryView:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/CategoryView"
+        requestId:
+          type: string
+    CategoryView:
+      type: object
+      properties:
+        categoryId:
+          type: string
+        parentId:
+          type: string
+        name:
+          type: string
+        sortNo:
+          type: integer
+          format: int32
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        children:
+          type: array
+          items: {}
+    ProductCreate:
+      type: object
+      properties:
+        categoryId:
+          type: integer
+          format: int64
+          writeOnly: true
+        productCode:
+          type: string
+          writeOnly: true
+        name:
+          type: string
+          writeOnly: true
+        brand:
+          type: string
+          writeOnly: true
+        description:
+          type: string
+          writeOnly: true
+    SkuCreate:
+      type: object
+      properties:
+        skuCode:
+          type: string
+          writeOnly: true
+        title:
+          type: string
+          writeOnly: true
+        price:
+          type: number
+          writeOnly: true
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+          writeOnly: true
+        status:
+          type: string
+          writeOnly: true
+    CategoryCreate:
+      type: object
+      properties:
+        parentId:
+          type: integer
+          format: int64
+          writeOnly: true
+        name:
+          type: string
+          writeOnly: true
+        sortNo:
+          type: integer
+          format: int32
+          writeOnly: true
+    ApiResponsePublicSkuView:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/PublicSkuView"
+        requestId:
+          type: string
+    PublicSkuView:
+      type: object
+      properties:
+        skuId:
+          type: string
+        skuCode:
+          type: string
+        title:
+          type: string
+        price:
+          type: string
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+        inStock:
+          type: boolean
+          description: 当前店铺可售库存是否大于零；缺少库存行或可售库存为零时为 false。仅公开 PUBLISHED 商品的 ACTIVE
+            SKU，不暴露精确数量、预占量或流水。每次请求读取当前库存，不缓存库存状态。
+      required:
+      - inStock
+    ApiResponsePageViewPublicProductView:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/PageViewPublicProductView"
+        requestId:
+          type: string
+    PageViewPublicProductView:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicProductView"
+        nextCursor:
+          type: string
+        hasMore:
+          type: boolean
+    PublicProductView:
+      type: object
+      properties:
+        productId:
+          type: string
+        productCode:
+          type: string
+        name:
+          type: string
+        brand:
+          type: string
+        description:
+          type: string
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+        skus:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicSkuView"
+    ApiResponsePublicProductView:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/PublicProductView"
+        requestId:
+          type: string
+    ApiResponsePageViewProductView:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/PageViewProductView"
+        requestId:
+          type: string
+    PageViewProductView:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductView"
+        nextCursor:
+          type: string
+        hasMore:
+          type: boolean
+    ApiResponseListCategoryView:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              categoryId:
+                type: string
+              parentId:
+                type: string
+              name:
+                type: string
+              sortNo:
+                type: integer
+                format: int32
+              status:
+                type: string
+              createdAt:
+                type: string
+                format: date-time
+              updatedAt:
+                type: string
+                format: date-time
+              children:
+                type: array
+                items: {}
+        requestId:
+          type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      in: header
+      scheme: bearer
+      bearerFormat: JWT

@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test") @Testcontainers @DirtiesContext
-@Sql(scripts = {"/db/fixture/auth_accounts.sql", "/db/fixture/shipment.sql"},
+@Sql(scripts = {"/db/fixture/auth_accounts.sql", "/db/fixture/product_catalog.sql", "/db/fixture/orders.sql", "/db/fixture/shipment.sql"},
         executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 class ShipmentSoapIT {
     static {DockerRequired.check();}
@@ -53,6 +53,11 @@ class ShipmentSoapIT {
 
     @Autowired TestRestTemplate http;
     @Autowired JdbcTemplate jdbc;
+    @Autowired com.gba.merchantbao.auth.service.SessionService sessions;
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
+    com.gba.merchantbao.order.service.OrderQueryService orders;
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
+    com.gba.merchantbao.shipment.mapper.ShipmentMapper shipments;
 
     private String baseUrl() {
         return "http://localhost:" + port;
@@ -62,9 +67,14 @@ class ShipmentSoapIT {
     int port;
 
     private ResponseEntity<String> soap(String soapAction, String body) {
+        return soap(soapAction, body, null);
+    }
+
+    private ResponseEntity<String> soap(String soapAction, String body, String bearer) {
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("text/xml; charset=utf-8"));
         if (soapAction != null) headers.set("SOAPAction", "\"" + soapAction + "\"");
+        if (bearer != null) headers.setBearerAuth(bearer);
         var response = http.postForEntity(baseUrl() + "/services/shipment",
                 new HttpEntity<>(body, headers), String.class);
         return response;
@@ -106,7 +116,7 @@ class ShipmentSoapIT {
 
     @Test
     void missingCredentialIsRejected() {
-        var response = soap("queryShipmentByOrderNo", envelope(null, "M_3C_DEMO", "FIX-0401"));
+        var response = soap("queryShipmentByOrderNo", envelope(null, "M_3C_DEMO", "DEV-2026-0903"));
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody()).contains("Fault");
         assertThat(response.getBody()).contains("invalid service credential");
@@ -114,23 +124,57 @@ class ShipmentSoapIT {
 
     @Test
     void wrongCredentialIsRejected() {
-        var response = soap("queryShipmentByOrderNo", envelope("bad-token", "M_3C_DEMO", "FIX-0401"));
+        var response = soap("queryShipmentByOrderNo", envelope("bad-token", "M_3C_DEMO", "DEV-2026-0903"));
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody()).contains("invalid service credential");
     }
 
     @Test
     void validCredentialReturnsShipmentSummary() throws Exception {
-        var response = soap("queryShipmentByOrderNo", envelope("soap-it-service-token", "M_3C_DEMO", "FIX-0401"));
+        var response = soap("queryShipmentByOrderNo", envelope("soap-it-service-token", "M_3C_DEMO", "DEV-2026-0903"));
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         Document document = parse(response.getBody());
         // Wrapper children are doc/literal wrapped: namespace-agnostic lookup keeps the
         // assertions focused on payload values rather than element-form qualifiers.
         var status = document.getElementsByTagNameNS("*", "status").item(0).getTextContent();
         assertThat(status).isEqualTo("IN_TRANSIT");
-        assertThat(document.getElementsByTagNameNS("*", "orderNo").item(0).getTextContent()).isEqualTo("FIX-0401");
+        assertThat(document.getElementsByTagNameNS("*", "orderNo").item(0).getTextContent()).isEqualTo("DEV-2026-0903");
         assertThat(document.getElementsByTagNameNS("*", "trackingNo").item(0).getTextContent()).isEqualTo("FIX1000001");
         assertThat(document.getElementsByTagNameNS("*", "track").getLength()).isEqualTo(2);
+    }
+
+    @Test
+    void realOrderWithoutShipmentReturnsNotShipped() throws Exception {
+        var response = soap("queryShipmentByOrderNo", envelope("soap-it-service-token", "M_3C_DEMO", "DEV-2026-0902"));
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        var document = parse(response.getBody());
+        assertThat(document.getElementsByTagNameNS("*", "status").item(0).getTextContent()).isEqualTo("NOT_SHIPPED");
+        assertThat(document.getElementsByTagNameNS("*", "orderNo").item(0).getTextContent()).isEqualTo("DEV-2026-0902");
+        assertThat(document.getElementsByTagNameNS("*", "track").getLength()).isZero();
+        assertThat(document.getElementsByTagNameNS("*", "trackingNo").getLength()).isZero();
+        assertThat(document.getElementsByTagNameNS("*", "carrierName").getLength()).isZero();
+    }
+
+    @Test
+    void consumerBearerCannotReplaceServiceCredential() {
+        var token = sessions.login(new com.gba.merchantbao.auth.security.AuthPrincipal(
+                2000000000000202L, 1000000000000001L,
+                com.gba.merchantbao.auth.enums.AccountRole.CONSUMER)).accessToken();
+        org.mockito.Mockito.clearInvocations(orders, shipments);
+        for (String soapToken : new String[]{null, token}) {
+            var response = soap("queryShipmentByOrderNo", envelope(soapToken, "M_3C_DEMO", "DEV-2026-0903"), token);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+            assertThat(response.getBody()).contains("invalid service credential").doesNotContain("FIX1000001");
+        }
+        org.mockito.Mockito.verifyNoInteractions(orders, shipments);
+    }
+
+    @Test
+    void sameOrderNumberIsResolvedWithinEachMerchant() throws Exception {
+        var response = soap("queryShipmentByOrderNo", envelope("soap-it-service-token", "M_ISOLATION_TEST", "DEV-2026-0901"));
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(parse(response.getBody()).getElementsByTagNameNS("*", "trackingNo").item(0).getTextContent())
+                .isEqualTo("FIX1000003");
     }
 
     @Test
@@ -138,7 +182,7 @@ class ShipmentSoapIT {
         var missing = soap("queryShipmentByOrderNo", envelope("soap-it-service-token", "M_3C_DEMO", "no-such-order"));
         assertThat(missing.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(missing.getBody()).contains("NOT_FOUND");
-        var foreign = soap("queryShipmentByOrderNo", envelope("soap-it-service-token", "M_ISOLATION_TEST", "FIX-0401"));
+        var foreign = soap("queryShipmentByOrderNo", envelope("soap-it-service-token", "M_ISOLATION_TEST", "DEV-2026-0903"));
         assertThat(foreign.getBody()).contains("NOT_FOUND");
     }
 

@@ -14,33 +14,33 @@ import java.util.Set;
 
 /** Anonymous public mall reads; the store slug is the only tenant locator. */
 @RestController
-@RequestMapping("/api/v1/public/stores/{merchantCode}")
+@RequestMapping("/api/v1/stores/{storeSlug}")
 public class ProductPublicController {
     private final ProductQueryService query;
     public ProductPublicController(ProductQueryService query) { this.query = query; }
 
     @GetMapping("/products")
-    public ApiResponse<PageView<PublicProductView>> products(@PathVariable String merchantCode,
+    public ApiResponse<PageView<PublicProductView>> products(@PathVariable String storeSlug,
                                                              @RequestParam(required = false) Long categoryId,
                                                              @RequestParam(required = false) String cursor,
                                                              @RequestParam(defaultValue = "20") int size,
                                                              HttpServletRequest request) {
         queryParameters(request);
-        return ApiResponse.success(query.publicPage(merchantCode, categoryId, cursor, pageSize(size)), requestId(request));
+        return ApiResponse.success(query.publicPage(storeSlug, categoryId, cursor, pageSize(size)), requestId(request));
     }
 
     @GetMapping("/products/{productId}")
-    public ApiResponse<PublicProductView> product(@PathVariable String merchantCode, @PathVariable long productId,
+    public ApiResponse<PublicProductView> product(@PathVariable String storeSlug, @PathVariable long productId,
                                                   HttpServletRequest request) {
         queryParameters(request);
-        return ApiResponse.success(query.publicProduct(merchantCode, productId), requestId(request));
+        return ApiResponse.success(query.publicProduct(storeSlug, productId), requestId(request));
     }
 
     @GetMapping("/skus/{skuId}")
-    public ApiResponse<PublicSkuView> sku(@PathVariable String merchantCode, @PathVariable long skuId,
+    public ApiResponse<PublicSkuView> sku(@PathVariable String storeSlug, @PathVariable long skuId,
                                           HttpServletRequest request) {
         queryParameters(request);
-        return ApiResponse.success(query.publicSku(merchantCode, skuId), requestId(request));
+        return ApiResponse.success(query.publicSku(storeSlug, skuId), requestId(request));
     }
 
     static int pageSize(int size) { return Math.max(1, Math.min(size, 100)); }

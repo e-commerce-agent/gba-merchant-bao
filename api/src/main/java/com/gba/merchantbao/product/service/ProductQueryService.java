@@ -3,6 +3,9 @@ package com.gba.merchantbao.product.service;
 import com.gba.merchantbao.auth.entity.Tenant;
 import com.gba.merchantbao.auth.security.Actor;
 import com.gba.merchantbao.auth.service.TenantResolver;
+import com.gba.merchantbao.auth.util.AuthInput;
+import com.gba.merchantbao.inventory.service.InventoryAvailabilityQueryService;
+import com.gba.merchantbao.product.cache.ProductCatalog;
 import com.gba.merchantbao.product.cache.ProductCacheStore;
 import com.gba.merchantbao.product.entity.ProductAttributeRow;
 import com.gba.merchantbao.product.entity.ProductCategoryRow;
@@ -31,7 +34,7 @@ import java.util.Map;
 
 /**
  * Product reads for the public mall, authenticated roles and the future Agent tool.
- * Public reads resolve the store by URL merchant code; authenticated reads scope every
+ * Public reads resolve the store by URL store slug; authenticated reads scope every
  * query with the trusted Actor merchant. Unpublished content never crosses public edges.
  */
 @Service
@@ -45,16 +48,18 @@ public class ProductQueryService {
     private final ProductCategoryMapper categories;
     private final TenantResolver tenants;
     private final ObjectProvider<ProductCacheStore> cache;
+    private final InventoryAvailabilityQueryService availability;
 
     public ProductQueryService(ProductMapper products, ProductSkuMapper skus, ProductAttributeMapper attributes,
                                ProductCategoryMapper categories, TenantResolver tenants,
-                               ObjectProvider<ProductCacheStore> cache) {
+                               ObjectProvider<ProductCacheStore> cache, InventoryAvailabilityQueryService availability) {
         this.products = products;
         this.skus = skus;
         this.attributes = attributes;
         this.categories = categories;
         this.tenants = tenants;
         this.cache = cache;
+        this.availability = availability;
     }
 
     /** Resolved merchant facts for the future read-only product Tool; identity comes from the caller's trusted context. */
@@ -65,54 +70,54 @@ public class ProductQueryService {
 
     // ---------- public mall (anonymous, store slug resolves the tenant) ----------
 
-    public PageView<PublicProductView> publicPage(String merchantCode, Long categoryId, String cursor, int size) {
+    public PageView<PublicProductView> publicPage(String storeSlug, Long categoryId, String cursor, int size) {
         ProductCacheStore store = cache.getIfAvailable();
+        long merchantId = requireStore(storeSlug);
+        var position = ProductCursor.decodePublic(cursor);
         boolean cacheable = store != null && cursor == null;
         if (cacheable) {
-            var hit = store.readPage(resolveMerchantId(store, merchantCode), categoryId);
-            if (hit != null) return new PageView<>(hit.items(), hit.nextCursor(), hit.hasMore());
+            var hit = store.readPage(merchantId, categoryId, size);
+            if (hit != null) return new PageView<>(withAvailability(merchantId, hit.items()), hit.nextCursor(), hit.hasMore());
         }
-        long merchantId = requireStore(merchantCode);
-        var position = ProductCursor.decodePublic(cursor);
         var before = position == null ? null : LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(Long.parseLong(position[0])), ZoneOffset.UTC);
         var beforeId = position == null ? null : Long.parseLong(position[1]);
         var rows = products.page(merchantId, PUBLISHED, categoryId, before, beforeId, size + 1);
         boolean hasMore = rows.size() > size;
         if (hasMore) rows = rows.subList(0, size);
-        var items = rows.stream().map(this::publicView).toList();
+        var items = rows.stream().map(this::catalogProduct).toList();
         String nextCursor = hasMore ? ProductCursor.encodePublic(rows.getLast().updatedAt(), rows.getLast().id()) : null;
-        if (cacheable) store.putPage(merchantId, categoryId, ProductCacheStore.PageEntry.of(items, nextCursor, hasMore));
-        return new PageView<>(items, nextCursor, hasMore);
+        if (cacheable) store.putPage(merchantId, categoryId, size, ProductCacheStore.PageEntry.of(items, nextCursor, hasMore));
+        return new PageView<>(withAvailability(merchantId, items), nextCursor, hasMore);
     }
 
-    public PublicProductView publicProduct(String merchantCode, long productId) {
+    public PublicProductView publicProduct(String storeSlug, long productId) {
         ProductCacheStore store = cache.getIfAvailable();
+        long merchantId = requireStore(storeSlug);
         if (store != null) {
-            var hit = store.readProduct(resolveMerchantId(store, merchantCode), productId);
-            if (hit != null) return hit;
+            var hit = store.readProduct(merchantId, productId);
+            if (hit != null) return withAvailability(merchantId, List.of(hit)).getFirst();
         }
-        long merchantId = requireStore(merchantCode);
         var row = products.find(merchantId, productId);
         if (row == null || !PUBLISHED.equals(row.status())) throw ProductError.missing();
-        var view = publicView(row);
+        var view = catalogProduct(row);
         if (store != null) store.putProduct(merchantId, productId, view);
-        return view;
+        return withAvailability(merchantId, List.of(view)).getFirst();
     }
 
-    public PublicSkuView publicSku(String merchantCode, long skuId) {
+    public PublicSkuView publicSku(String storeSlug, long skuId) {
         ProductCacheStore store = cache.getIfAvailable();
+        long merchantId = requireStore(storeSlug);
         if (store != null) {
-            var hit = store.readSku(resolveMerchantId(store, merchantCode), skuId);
-            if (hit != null) return hit;
+            var hit = store.readSku(merchantId, skuId);
+            if (hit != null) return hit.withAvailability(availability.inStock(merchantId, List.of(skuId)).get(skuId));
         }
-        long merchantId = requireStore(merchantCode);
         var row = skus.find(merchantId, skuId);
         if (row == null || !SKU_ACTIVE.equals(row.status())) throw ProductError.missing();
         var product = products.find(merchantId, row.productId());
         if (product == null || !PUBLISHED.equals(product.status())) throw ProductError.missing();
-        var view = PublicSkuView.from(row, attributeMap(attributes.listForProduct(merchantId, row.productId())));
+        var view = ProductCatalog.Sku.from(row, attributeMap(attributes.listForProduct(merchantId, row.productId())));
         if (store != null) store.putSku(merchantId, skuId, view);
-        return view;
+        return view.withAvailability(availability.inStock(merchantId, List.of(skuId)).get(skuId));
     }
 
     // ---------- authenticated reads (consumer sees published, staff sees all) ----------
@@ -197,29 +202,35 @@ public class ProductQueryService {
         return new Scope(principal.merchantId(), staff);
     }
 
-    long requireStore(String merchantCode) {
-        if (merchantCode == null || merchantCode.isBlank()) throw ProductError.missing();
+    long requireStore(String storeSlug) {
+        try {
+            storeSlug = AuthInput.storeSlug(storeSlug);
+        } catch (IllegalArgumentException e) {
+            throw ProductError.missing();
+        }
         ProductCacheStore store = cache.getIfAvailable();
         if (store != null) {
-            Long cached = store.readMerchantId(merchantCode);
+            Long cached = store.readMerchantId(storeSlug);
             if (cached != null) return cached;
         }
-        Tenant tenant = tenants.resolveActive(merchantCode).orElseThrow(ProductError::missing);
-        if (store != null) store.putMerchantId(merchantCode, tenant.id());
+        Tenant tenant = tenants.resolveActive(storeSlug).orElseThrow(ProductError::missing);
+        if (store != null) store.putMerchantId(storeSlug, tenant.id());
         return tenant.id();
     }
 
-    /** Best-effort merchantId for a cache read; falls back to the DB lookup when the mapping is not cached yet. */
-    private long resolveMerchantId(ProductCacheStore store, String merchantCode) {
-        Long cached = store.readMerchantId(merchantCode);
-        return cached != null ? cached : requireStore(merchantCode);
+    private ProductCatalog.Product catalogProduct(ProductRow row) {
+        var skuViews = skus.listForProduct(row.merchantId(), row.id(), SKU_ACTIVE).stream()
+                .map(sku -> ProductCatalog.Sku.from(sku, parseSpecAttributes(sku.attributesJson())))
+                .toList();
+        return ProductCatalog.Product.from(row, attributeMap(attributes.listForProduct(row.merchantId(), row.id())), skuViews);
     }
 
-    private PublicProductView publicView(ProductRow row) {
-        List<PublicSkuView> skuViews = skus.listForProduct(row.merchantId(), row.id(), SKU_ACTIVE).stream()
-                .map(sku -> PublicSkuView.from(sku, parseSpecAttributes(sku.attributesJson())))
-                .toList();
-        return PublicProductView.from(row, attributeMap(attributes.listForProduct(row.merchantId(), row.id())), skuViews);
+    /** One inventory read for the whole visible page, including when its catalog came from Redis. */
+    private List<PublicProductView> withAvailability(long merchantId, List<ProductCatalog.Product> catalog) {
+        var ids = catalog.stream().flatMap(product -> product.skus().stream())
+                .map(sku -> sku.skuId().value()).toList();
+        var stock = availability.inStock(merchantId, ids);
+        return catalog.stream().map(product -> product.withAvailability(stock)).toList();
     }
 
     public static Map<String, String> attributeMap(List<ProductAttributeRow> rows) {

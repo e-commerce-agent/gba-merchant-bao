@@ -43,38 +43,8 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/ApiResponseShipmentView"
-        "500":
-          description: 10500 非预期错误
-          headers:
-            X-Request-Id:
-              description: 与 envelope.requestId 相同
-              schema:
-                type: string
-            Cache-Control:
-              schema:
-                type: string
-                const: no-store
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ShipmentErrorEnvelope"
-        "403":
-          description: 10003 角色越权
-          headers:
-            X-Request-Id:
-              description: 与 envelope.requestId 相同
-              schema:
-                type: string
-            Cache-Control:
-              schema:
-                type: string
-                const: no-store
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ShipmentErrorEnvelope"
-        "404":
-          description: 10004 订单不存在/跨租户/非本人（不可区分）
+        "401":
+          description: 10002 会话无效
           headers:
             X-Request-Id:
               description: 与 envelope.requestId 相同
@@ -103,8 +73,38 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ShipmentErrorEnvelope"
-        "401":
-          description: 10002 会话无效
+        "404":
+          description: 10004 订单不存在/跨租户/非本人（不可区分）
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShipmentErrorEnvelope"
+        "403":
+          description: 10003 角色越权
+          headers:
+            X-Request-Id:
+              description: 与 envelope.requestId 相同
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                const: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShipmentErrorEnvelope"
+        "500":
+          description: 10500 非预期错误
           headers:
             X-Request-Id:
               description: 与 envelope.requestId 相同

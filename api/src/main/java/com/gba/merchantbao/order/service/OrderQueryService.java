@@ -51,6 +51,26 @@ public class OrderQueryService {
     }
 
     public Detail detail(Actor actor, long orderId) {
+        OrderRow row = accessibleOrder(actor, orderId);
+        return detail(row, items.findByOrder(row.merchantId(), row.id()));
+    }
+
+    /** Locate an order after applying the same Actor scope as the order detail endpoint. */
+    public OrderLocation locateForActor(Actor actor, long orderId) {
+        return location(accessibleOrder(actor, orderId));
+    }
+
+    /**
+     * Service-client lookup only: merchantId must come from server-side tenant resolution after
+     * service credential validation. This does not grant consumer access or manufacture an Actor.
+     */
+    public OrderLocation locateForService(long merchantId, String orderNo) {
+        OrderRow row = orders.findByOrderNo(merchantId, orderNo);
+        if (row == null) throw OrderError.notFound();
+        return location(row);
+    }
+
+    private OrderRow accessibleOrder(Actor actor, long orderId) {
         var principal = actor.principal();
         OrderRow row;
         if (principal.role() == AccountRole.CONSUMER) {
@@ -61,9 +81,14 @@ public class OrderQueryService {
             row = null;
         }
         if (row == null) throw OrderError.notFound();
-        var itemRows = items.findByOrder(principal.merchantId(), row.id());
-        return detail(row, itemRows);
+        return row;
     }
+
+    private static OrderLocation location(OrderRow row) {
+        return new OrderLocation(row.merchantId(), row.id(), row.orderNo());
+    }
+
+    public record OrderLocation(long merchantId, long orderId, String orderNo) { }
 
     static Summary summary(OrderRow row) {
         return new Summary(new ApiId(row.id()), row.orderNo(), row.status(), row.payStatus(),

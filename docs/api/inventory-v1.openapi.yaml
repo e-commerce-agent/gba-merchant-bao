@@ -1,0 +1,450 @@
+openapi: 3.1.0
+info:
+  title: Merchant Inventory API
+  description: 库存员工维护与精确查询。全部接口需要有效 Bearer 及 MERCHANT_STAFF；商户与操作人只来自可信 Actor。消费者返回
+    400/13006，匿名返回 401。ACTIVE SKU 可在商品发布前备货，首次正向 adjust 从零初始化；停售 SKU 禁止新增供应/预占，允许已有库存收尾。幂等成功重放不重复写入，内部主键由服务端雪花生成，不接受客户端指定。公开库存布尔由商品接口提供；这些维护操作不自动创建或推进订单。
+  version: v1
+servers:
+- url: /
+paths:
+  /api/v1/inventory/reserve:
+    post:
+      tags:
+      - inventory-controller
+      operationId: reserve
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryChangeDTO"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseVoid"
+        "401":
+          description: 10002 会话无效
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "400":
+          description: 13006 参数或员工角色不合法（通用参数校验可为 10001）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "409":
+          description: 13002 可售不足 / 13003 重试耗尽 / 13004 处理中 / 13005 预占不足 / 13007 盘亏低于零
+            / 13008 SKU 停售
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "404":
+          description: 13001 本商户 SKU/库存不存在，跨商户相同
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "500":
+          description: 13999 库存内部/存储异常
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+      security:
+      - bearerAuth: []
+  /api/v1/inventory/release:
+    post:
+      tags:
+      - inventory-controller
+      operationId: release
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryChangeDTO"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseVoid"
+        "401":
+          description: 10002 会话无效
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "400":
+          description: 13006 参数或员工角色不合法（通用参数校验可为 10001）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "409":
+          description: 13002 可售不足 / 13003 重试耗尽 / 13004 处理中 / 13005 预占不足 / 13007 盘亏低于零
+            / 13008 SKU 停售
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "404":
+          description: 13001 本商户 SKU/库存不存在，跨商户相同
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "500":
+          description: 13999 库存内部/存储异常
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+      security:
+      - bearerAuth: []
+  /api/v1/inventory/deduct:
+    post:
+      tags:
+      - inventory-controller
+      operationId: deduct
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryChangeDTO"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseVoid"
+        "401":
+          description: 10002 会话无效
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "400":
+          description: 13006 参数或员工角色不合法（通用参数校验可为 10001）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "409":
+          description: 13002 可售不足 / 13003 重试耗尽 / 13004 处理中 / 13005 预占不足 / 13007 盘亏低于零
+            / 13008 SKU 停售
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "404":
+          description: 13001 本商户 SKU/库存不存在，跨商户相同
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "500":
+          description: 13999 库存内部/存储异常
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+      security:
+      - bearerAuth: []
+  /api/v1/inventory/adjust:
+    post:
+      tags:
+      - inventory-controller
+      operationId: adjust
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryAdjustDTO"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseVoid"
+        "401":
+          description: 10002 会话无效
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "400":
+          description: 13006 参数或员工角色不合法（通用参数校验可为 10001）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "409":
+          description: 13002 可售不足 / 13003 重试耗尽 / 13004 处理中 / 13005 预占不足 / 13007 盘亏低于零
+            / 13008 SKU 停售
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "404":
+          description: 13001 本商户 SKU/库存不存在，跨商户相同
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "500":
+          description: 13999 库存内部/存储异常
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+      security:
+      - bearerAuth: []
+  /api/v1/inventory/{skuId}:
+    get:
+      tags:
+      - inventory-controller
+      operationId: query
+      parameters:
+      - name: skuId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseInventoryVO"
+        "401":
+          description: 10002 会话无效
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "400":
+          description: 13006 参数或员工角色不合法（通用参数校验可为 10001）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "409":
+          description: 13002 可售不足 / 13003 重试耗尽 / 13004 处理中 / 13005 预占不足 / 13007 盘亏低于零
+            / 13008 SKU 停售
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "404":
+          description: 13001 本商户 SKU/库存不存在，跨商户相同
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "500":
+          description: 13999 库存内部/存储异常
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+      security:
+      - bearerAuth: []
+  /api/v1/inventory/page:
+    get:
+      tags:
+      - inventory-controller
+      operationId: page
+      parameters:
+      - name: pageNo
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 1
+      - name: pageSize
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponsePage"
+        "401":
+          description: 10002 会话无效
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "400":
+          description: 13006 参数或员工角色不合法（通用参数校验可为 10001）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "409":
+          description: 13002 可售不足 / 13003 重试耗尽 / 13004 处理中 / 13005 预占不足 / 13007 盘亏低于零
+            / 13008 SKU 停售
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "404":
+          description: 13001 本商户 SKU/库存不存在，跨商户相同
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+        "500":
+          description: 13999 库存内部/存储异常
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryErrorEnvelope"
+      security:
+      - bearerAuth: []
+components:
+  schemas:
+    InventoryChangeDTO:
+      type: object
+      properties:
+        idempotentKey:
+          type: string
+          minLength: 1
+        skuId:
+          type: integer
+          format: int64
+        qty:
+          type: integer
+          format: int32
+          minimum: 1
+        bizId:
+          type: integer
+          format: int64
+        remark:
+          type: string
+      required:
+      - idempotentKey
+      - qty
+      - skuId
+    ApiResponseVoid:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data: {}
+        requestId:
+          type: string
+    InventoryAdjustDTO:
+      type: object
+      properties:
+        idempotentKey:
+          type: string
+          minLength: 1
+        skuId:
+          type: integer
+          format: int64
+        adjustQty:
+          type: integer
+          format: int32
+        remark:
+          type: string
+      required:
+      - adjustQty
+      - idempotentKey
+      - skuId
+    ApiResponseInventoryVO:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/InventoryVO"
+        requestId:
+          type: string
+    InventoryVO:
+      type: object
+      properties:
+        skuId:
+          type: integer
+          format: int64
+        availableQty:
+          type: integer
+          format: int32
+        reservedQty:
+          type: integer
+          format: int32
+        totalQty:
+          type: integer
+          format: int32
+    ApiResponsePage:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/Page"
+        requestId:
+          type: string
+    Page:
+      type: object
+      properties:
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/InventoryVO"
+        total:
+          type: integer
+          format: int64
+        current:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+    InventoryErrorEnvelope:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data: {}
+        requestId:
+          type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      in: header
+      scheme: bearer
+      bearerFormat: JWT

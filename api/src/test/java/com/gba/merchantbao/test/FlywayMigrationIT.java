@@ -46,7 +46,7 @@ class FlywayMigrationIT {
                 .load();
 
         flyway.migrate();
-        assertCurrentVersionEight(flyway);
+        assertCurrentVersionNine(flyway);
         try (Connection connection = DriverManager.getConnection(
                 mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword());
              ResultSet tables = connection.createStatement().executeQuery(
@@ -68,7 +68,7 @@ class FlywayMigrationIT {
     void testSeedsAreIdempotentAndUseStableTenantCodes() throws Exception {
         Flyway flyway = migration("classpath:db/migration", "classpath:db/seed/nonprod");
         flyway.migrate();
-        assertCurrentVersionEight(flyway);
+        assertCurrentVersionNine(flyway);
         try (Connection connection = connection()) {
             ScriptUtils.executeSqlScript(connection,
                     new ClassPathResource("db/seed/nonprod/R__010_local_test_tenants.sql"));
@@ -82,6 +82,23 @@ class FlywayMigrationIT {
             }
         }
         assertThat(flyway.migrate().migrationsExecuted).isZero();
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"test", "prod"})
+    void configuredTestAndProductionLocationsNeverLoadCommerceDemoSeeds(String profile) throws Exception {
+        var loader = new org.springframework.boot.env.YamlPropertySourceLoader();
+        var base = loader.load("base", new ClassPathResource("application.yml")).getFirst();
+        var override = loader.load(profile, new ClassPathResource("application-" + profile + ".yml")).getFirst();
+        Object configured = override.getProperty("spring.flyway.locations");
+        if (configured == null) configured = base.getProperty("spring.flyway.locations");
+        var flyway = migration(configured.toString().split(","));
+        flyway.migrate();
+        assertCurrentVersionNine(flyway);
+        assertThat(Arrays.stream(flyway.info().applied()).map(info -> info.getScript()))
+                .noneMatch(script -> script.matches("R__(020|030|040|050|060|070)_.*"));
+        assertThat(flyway.migrate().migrationsExecuted).isZero();
+        flyway.validate();
     }
 
     @Test
@@ -99,7 +116,7 @@ class FlywayMigrationIT {
                 .hasMessageContaining("non-empty schema");
         flyway.baseline();
         flyway.migrate();
-        assertCurrentVersionEight(flyway);
+        assertCurrentVersionNine(flyway);
         try (Connection connection = connection();
              ResultSet rows = connection.createStatement().executeQuery(
                      "SELECT name FROM category WHERE id = 987654")) {
@@ -123,9 +140,9 @@ class FlywayMigrationIT {
         var legacyBefore = jdbc.queryForList("SELECT * FROM category WHERE id=9902");
 
         var latest = migration("classpath:db/migration");
-        // Upgrading from a V3 target applies V4 (auth), V5 (agent conversation), V6 (shipment), V7 (order) and V8 (inventory).
-        assertThat(latest.migrate().migrationsExecuted).isEqualTo(5);
-        assertCurrentVersionEight(latest);
+        // V4 auth, V5 chat, then V6 product, V7 inventory, V8 order and V9 shipment.
+        assertThat(latest.migrate().migrationsExecuted).isEqualTo(6);
+        assertCurrentVersionNine(latest);
         for (var info : latest.info().applied()) {
             if (oldChecksums.containsKey(info.getVersion().getVersion())) {
                 assertThat(info.getChecksum()).isEqualTo(oldChecksums.get(info.getVersion().getVersion()));
@@ -151,12 +168,21 @@ class FlywayMigrationIT {
         assertThat(jdbc.queryForList("SELECT * FROM flyway_schema_history ORDER BY installed_rank")).isEqualTo(historyBefore);
     }
 
-    private void assertCurrentVersionEight(Flyway flyway) {
+    private void assertCurrentVersionNine(Flyway flyway) {
         flyway.validate();
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("8");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("9");
         assertThat(flyway.info().pending()).isEmpty();
         assertThat(flyway.info().applied()).allSatisfy(info ->
                 assertThat(info.getState()).isIn(MigrationState.SUCCESS, MigrationState.BASELINE));
+        assertThat(jdbc().queryForList("SELECT table_name FROM information_schema.columns "
+                + "WHERE table_schema=DATABASE() AND table_name IN "
+                + "('inventory','inventory_transaction','inventory_idempotent') AND column_name='id' "
+                + "AND column_type='bigint' AND column_default IS NULL AND extra NOT LIKE '%auto_increment%'",
+                String.class)).containsExactlyInAnyOrder("inventory", "inventory_transaction", "inventory_idempotent");
+        for (String table : java.util.List.of("product", "product_sku", "inventory", "inventory_transaction",
+                "inventory_idempotent", "trade_order", "trade_order_item", "shipment", "shipment_track")) {
+            assertThat(jdbc().queryForObject("SELECT COUNT(*) FROM " + table, Integer.class)).as(table).isZero();
+        }
     }
 
     private JdbcTemplate jdbc() {
