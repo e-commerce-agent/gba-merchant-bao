@@ -1,4 +1,8 @@
 import type {
+  ChatMessage,
+  ChatMessageView,
+  ChatSession,
+  ChatSessionView,
   ProductDetail,
   ProductSummary,
   ProductThumbKey,
@@ -107,5 +111,43 @@ export function toDetailModel(product: PublicProductView): ProductDetail {
     specs: specsOf(product.attributes),
     skus: product.skus.map(toPublicSku),
     afterSale: '7 天无理由退换，18 个月内非人为损坏只换不修；具体以商品页说明与订单约定为准。'
+  }
+}
+
+/* ------------------------- Agent 会话（agent-conversation-v1） ------------------------- */
+
+/**
+ * 会话卡片。契约只有 ACTIVE/ARCHIVED 两种状态，也没有 lastMessage / messageCount /
+ * consumerName / 置信度（citation、人工接管均为未来扩展），对应展示位留空由页面降级显示。
+ */
+export function toChatCard(session: ChatSessionView): ChatSession {
+  return {
+    id: session.sessionId,
+    title: session.title || '新的咨询',
+    status: session.status === 'ARCHIVED' ? 'CLOSED' : 'AGENT',
+    lastMessage: '',
+    updatedAt: session.updatedAt,
+    messageCount: 0,
+    confidence: 1,
+    unread: 0
+  }
+}
+
+const CHAT_FAILED_TEXT: Record<string, string> = {
+  CANCELLED: '本次回答已取消',
+  TIMED_OUT: '回答超时，请重试',
+  FAILED: '回答生成失败，请重试'
+}
+
+/** 消息气泡。契约 senderType 只有 USER/ASSISTANT（人工客服身份为未来扩展） */
+export function toChatBubble(message: ChatMessageView): ChatMessage {
+  const failedText = CHAT_FAILED_TEXT[message.status]
+  return {
+    id: message.messageId,
+    sessionId: message.runId,
+    role: message.senderType === 'USER' ? 'user' : 'assistant',
+    content: failedText ? `${message.content}\n\n（${failedText}）` : message.content,
+    createdAt: message.createdAt,
+    streaming: message.status === 'STARTED' || message.status === 'STREAMING'
   }
 }

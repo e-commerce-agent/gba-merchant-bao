@@ -341,6 +341,62 @@ export interface ChatSession {
   unread?: number
 }
 
+/* ------------------------- Agent 会话（契约原始类型） ------------------------- */
+/* agent-conversation-v1：游标分页 + SSE，人工接管 / 置信度 / 引用留待未来扩展 */
+
+export type ChatSessionStatus = 'ACTIVE' | 'ARCHIVED'
+
+export type ChatRunStatus =
+  | 'STARTED'
+  | 'STREAMING'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'TIMED_OUT'
+  | 'FAILED'
+
+/** 契约 GET /chat/sessions、GET /chat/sessions/{id}/messages 的分页载荷 */
+export interface ChatPageView<T> {
+  items: T[]
+  nextCursor?: string | null
+  hasMore: boolean
+}
+
+export interface ChatSessionView {
+  sessionId: string
+  merchantId: string
+  title: string
+  status: ChatSessionStatus
+  createdAt: string
+  updatedAt: string
+  archivedAt: string | null
+  activeRunId: string | null
+  activeRunStatus: ChatRunStatus | null
+}
+
+export interface ChatMessageView {
+  messageId: string
+  messageSeq: number
+  runId: string
+  clientMessageId: string | null
+  senderType: 'USER' | 'ASSISTANT'
+  content: string
+  status: ChatRunStatus
+  errorCode: string | null
+  inputTokens: number | null
+  outputTokens: number | null
+  createdAt: string
+  completedAt: string | null
+}
+
+/** POST /chat/sessions/{id}/messages 幂等重放时返回的 run 标识（JSON 响应） */
+export interface ChatRunView {
+  sessionId: string
+  runId: string
+  userMessageId: string
+  messageId: string
+  status: ChatRunStatus
+}
+
 /* ------------------------------ 知识库 / 任务 ------------------------------ */
 
 export type DocumentTaskStatus =

@@ -26,12 +26,10 @@ export const MOCK_UNIMPLEMENTED = String(import.meta.env.VITE_MOCK_UNIMPLEMENTED
 
 /**
  * 前端尚未按真实契约联调的接口：即使 USE_MOCK=false 也由本地 Mock 兜底。
- * 注意 /v1/chat：后端 ChatController 已交付，但契约是游标分页（cursor/size + SSE），
- * 前端聊天页还是旧的 scope 参数写法，等 Agent 模块负责人按 agent-conversation-v1
- * 重写 api/chat.ts 后，从列表里删掉对应前缀即可，页面代码不用动。
+ * chat 已按 agent-conversation-v1 重写（游标分页 + SSE），走真实接口，
+ * 仅当整站 Mock（VITE_USE_MOCK=true，离线演示）时由本地数据代答。
  */
 const MOCK_ONLY_PREFIXES = [
-  '/v1/chat',
   '/v1/knowledge-bases',
   '/v1/document-tasks',
   '/v1/merchant/overview'
@@ -42,6 +40,9 @@ function shouldMock(url: string): boolean {
   if (!MOCK_UNIMPLEMENTED) return false
   return MOCK_ONLY_PREFIXES.some((prefix) => url.startsWith(prefix))
 }
+
+/** 供 SSE 等绕过 axios 的调用方复用同一套 Mock 判定 */
+export { shouldMock }
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -65,6 +66,9 @@ function newRequestId(): string {
   }
   return `req-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`
 }
+
+/** 供 SSE（fetch 直连）复用同一请求号格式，便于联调对账 */
+export { newRequestId }
 
 /** 统一响应体的成功判定：后端已确认 HTTP 200/201 + 业务码 code=0（员工创建 201，其余 200） */
 function isSuccessCode(code: number): boolean {

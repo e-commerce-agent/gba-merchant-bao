@@ -354,20 +354,6 @@ export async function mockDispatch(config: MockConfig): Promise<unknown> {
     return agentMsg
   }
 
-  if (method === 'POST' && path.includes('/v1/chat/sessions/') && action === 'takeover') {
-    const id = path.split('/')[4]
-    const meta = sessionStoreMeta.get(id)
-    if (meta) sessionStoreMeta.set(id, { ...meta, status: 'HUMAN' })
-    return { sessionId: id, status: 'HUMAN' }
-  }
-
-  if (method === 'POST' && path.includes('/v1/chat/sessions/') && action === 'resume-agent') {
-    const id = path.split('/')[4]
-    const meta = sessionStoreMeta.get(id)
-    if (meta) sessionStoreMeta.set(id, { ...meta, status: 'AGENT' })
-    return { sessionId: id, status: 'AGENT' }
-  }
-
   /* ---- Knowledge / Task ---- */
   if (method === 'GET' && path === '/v1/knowledge-bases') {
     return knowledgeBases
