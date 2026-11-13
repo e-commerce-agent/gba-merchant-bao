@@ -47,4 +47,40 @@ class AgentContextTest {
     private ChatMessageRow row(long seq,long run,String sender,String text,String status) {
         return new ChatMessageRow(seq,1,1,seq,sender,null,null,text,status,run,null,null,null,null,null,null,LocalDateTime.now(),LocalDateTime.now());
     }
+    @Test void evidenceHasPriorityOverWholeHistoryAndTheOriginalQuestionIsUntouched() {
+        var p=new AgentProperties();p.setSystemPrompt("policy");p.setMaxOutputTokens(10);
+        var context=new AgentContext(p);
+        String question="  购买后七日内能退吗？😀\n保留原文  ";
+        var accepted=context.assemble(List.of(row(1,1,"USER","history-question","COMPLETED"),
+                row(2,1,"ASSISTANT","history-answer","COMPLETED")),question,true);
+        var high=source(1,"正文😀");var low=source(2,"次要".repeat(100));
+        var one=context.withEvidence(accepted,List.of(high));
+        int required=one.messages().stream().filter(m->!(m instanceof AiMessage))
+                .filter(m->!(m instanceof UserMessage u&&u.singleText().equals("history-question")))
+                .mapToInt(m->(m instanceof SystemMessage s?s.text():((UserMessage)m).singleText()).getBytes(java.nio.charset.StandardCharsets.UTF_8).length+4).sum()+10;
+        p.setContextTokens(required);
+        var grounded=context.withEvidence(accepted,List.of(high,low));
+        assertThat(grounded.sources()).containsExactly(high);
+        assertThat(grounded.messages()).hasSize(3);
+        assertThat(grounded.messages().getFirst()).isEqualTo(accepted.getFirst());
+        assertThat((UserMessage)grounded.messages().get(1)).extracting(UserMessage::singleText).asString()
+                .contains("正文😀","reference_material","资料标题").doesNotContain(question);
+        assertThat(grounded.messages().getLast()).isEqualTo(UserMessage.from(question));
+        assertThat(grounded.messages().stream().filter(m->m.equals(UserMessage.from(question)))).hasSize(1);
+        p.setContextTokens(required-1);
+        assertThat(context.withEvidence(accepted,List.of(high)).sources()).isEmpty();
+    }
+    @Test void referenceLimitAndHistoryPairsRemainBounded() {
+        var p=new AgentProperties();p.setSystemPrompt("policy");p.setHistoryMessages(2);
+        var context=new AgentContext(p);
+        var accepted=context.assemble(List.of(row(1,1,"USER","u","COMPLETED"),row(2,1,"ASSISTANT","a","COMPLETED")),"q",true);
+        var grounded=context.withEvidence(accepted,java.util.stream.LongStream.rangeClosed(1,6).mapToObj(i->source(i,"text")).toList());
+        assertThat(grounded.sources()).hasSize(5);
+        assertThat(grounded.messages()).hasSize(5);
+        assertThat(grounded.messages().subList(1,3)).containsExactly(UserMessage.from("u"),AiMessage.from("a"));
+    }
+    private com.gba.merchantbao.knowledge.vo.KnowledgeSource source(long id,String text) {
+        return new com.gba.merchantbao.knowledge.vo.KnowledgeSource(new com.gba.merchantbao.common.api.ApiId(id),
+                new com.gba.merchantbao.common.api.ApiId(id+10),"资料标题",1,text);
+    }
 }

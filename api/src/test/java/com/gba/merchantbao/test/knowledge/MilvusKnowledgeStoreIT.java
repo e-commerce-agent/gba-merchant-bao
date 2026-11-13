@@ -16,6 +16,13 @@ class MilvusKnowledgeStoreIT {
             try (var store = new MilvusKnowledgeStore(p)) {
                 store.initialize();
                 store.insertAndConfirm(1, 11, List.of(111L, 112L), List.of(List.of(1f, 0f, 0f), List.of(0f, 1f, 0f)), new ImportDeadline());
+                store.insertAndConfirm(2, 22, List.of(222L), List.of(List.of(1f, 0f, 0f)), new ImportDeadline());
+                assertThat(store.search(1, List.of(1f, 0f, 0f), new ImportDeadline()))
+                        .extracting(MilvusKnowledgeStore.Hit::chunkId).containsExactly(111L);
+                assertThat(store.search(2, List.of(1f, 0f, 0f), new ImportDeadline()))
+                        .extracting(MilvusKnowledgeStore.Hit::chunkId).containsExactly(222L);
+                assertThat(store.search(3, List.of(1f, 0f, 0f), new ImportDeadline())).isEmpty();
+                assertThat(store.search(1, List.of(0f, 0f, 1f), new ImportDeadline())).isEmpty();
             }
             p.setEmbeddingDimension(4);
             try (var incompatible = new MilvusKnowledgeStore(p)) {

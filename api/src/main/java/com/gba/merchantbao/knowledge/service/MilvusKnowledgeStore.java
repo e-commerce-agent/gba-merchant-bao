@@ -9,6 +9,7 @@ import io.milvus.v2.common.*;
 import io.milvus.v2.service.collection.request.*;
 import io.milvus.v2.service.index.request.DescribeIndexReq;
 import io.milvus.v2.service.vector.request.*;
+import io.milvus.v2.service.vector.request.data.FloatVec;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
@@ -81,6 +82,24 @@ public class MilvusKnowledgeStore implements AutoCloseable {
         if (!actual.equals(new HashSet<>(chunkIds))) throw new IllegalStateException("Vectors not queryable");
         deadline.remaining();
     }
+    public record Hit(long chunkId, long documentId, float score) { }
+
+    public List<Hit> search(long merchantId, List<Float> vector, ImportDeadline deadline) {
+        var response = rpc(deadline, () -> client.search(SearchReq.builder()
+                .collectionName(properties.getCollection()).annsField("embedding")
+                .metricType(IndexParam.MetricType.COSINE).topK(properties.getTopK())
+                .filter("merchant_id == " + merchantId).outputFields(List.of("document_id"))
+                .data(List.of(new FloatVec(vector))).consistencyLevel(ConsistencyLevel.STRONG).build()));
+        deadline.remaining();
+        if (response.getSearchResults().size() != 1) throw new IllegalStateException("Invalid search response");
+        return response.getSearchResults().getFirst().stream().map(hit -> {
+            if (hit.getScore() == null || !Float.isFinite(hit.getScore()))
+                throw new IllegalStateException("Invalid search score");
+            return new Hit(((Number) hit.getId()).longValue(),
+                    ((Number) hit.getEntity().get("document_id")).longValue(), hit.getScore());
+        }).filter(hit -> hit.score() >= properties.getMinScore()).toList();
+    }
+
     private <T> T rpc(ImportDeadline deadline, Supplier<T> action) {
         try (var context = Context.current().withDeadlineAfter(deadline.remaining().toNanos(), TimeUnit.NANOSECONDS, timer)) {
             return context.call(action::get);

@@ -58,6 +58,7 @@ class KnowledgeIngestionIT {
             long merchant = call.getArgument(0), document = call.getArgument(1);
             assertThat(jdbc.queryForObject("SELECT status FROM knowledge_document WHERE id=?", String.class, document)).isEqualTo("PROCESSING");
             assertThat(mapper.readyChunks(merchant, call.getArgument(2))).isEmpty();
+            assertThat(mapper.readyReferences(merchant, call.getArgument(2))).isEmpty();
             return null;
         }).when(vectors).insertAndConfirm(anyLong(), anyLong(), anyList(), anyList(), any());
         var response = http.perform(multipart("/api/v1/knowledge/documents")
@@ -71,6 +72,10 @@ class KnowledgeIngestionIT {
         var ids = jdbc.queryForList("SELECT id FROM knowledge_chunk WHERE document_id=?", Long.class, document);
         assertThat(mapper.readyChunks(staff.principal().merchantId(), ids)).extracting(KnowledgeChunk::content).containsExactly("七日内按约定退货。");
         assertThat(mapper.readyChunks(1000000000000002L, ids)).isEmpty();
+        assertThat(mapper.readyReferences(staff.principal().merchantId(), ids)).singleElement().satisfies(c -> {
+            assertThat(c.title()).isEqualTo("售后政策"); assertThat(c.content()).isEqualTo("七日内按约定退货。");
+        });
+        assertThat(mapper.readyReferences(1000000000000002L, ids)).isEmpty();
         var next = service.upload(staff, "另一个文件", KnowledgeTextTest.file("a.txt", "另一段内容"));
         var first = service.list(staff, 1, null);
         assertThat(first.hasMore()).isTrue(); assertThat(first.items().getFirst().documentId()).isEqualTo(next.documentId());
@@ -86,6 +91,7 @@ class KnowledgeIngestionIT {
         assertThat(failed.status()).isEqualTo("FAILED");
         var ids = jdbc.queryForList("SELECT id FROM knowledge_chunk WHERE document_id=?", Long.class, failed.documentId().value());
         assertThat(ids).isNotEmpty(); assertThat(mapper.readyChunks(staff.principal().merchantId(), ids)).isEmpty();
+        assertThat(mapper.readyReferences(staff.principal().merchantId(), ids)).isEmpty();
     }
     @Test void rolesPrecedeMultipartParsingAndInvalidFilesNeverReachEmbedding() throws Exception {
         for (String method : List.of("GET", "POST")) {

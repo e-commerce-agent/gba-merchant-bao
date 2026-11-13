@@ -1,6 +1,6 @@
-# RAG 资料入库（任务 1）
+# RAG 资料入库与聊天接入（任务 1–2）
 
-当前仅实现员工同步导入及列表，聊天检索和 sources 响应留在任务 2，Springdoc 导出和完整问答联调留在任务 3。
+已实现员工同步导入、列表，以及现有登录聊天的检索和 sources 快照。Springdoc 导出和真实模型完整问答联调留在任务 3。
 
 ## 配置
 
@@ -22,7 +22,7 @@ RAG_MILVUS_URI=http://127.0.0.1:19530
 RAG_COLLECTION=knowledge_text_embedding_3_small
 ```
 
-可选 `RAG_MILVUS_TOKEN`；`merchant.rag.top-k=3`（最多5）和 `min-score=0.5` 预留给后续检索。每片最多300码点，批次16片；需选择支持至少1200 UTF-8字节/片、16输入/批的服务。所有外部阶段共享60秒预算、不自动重试。
+可选 `RAG_MILVUS_TOKEN`；检索使用 `merchant.rag.top-k=3`（最多5）和 `min-score=0.5`（COSINE）。每片最多300码点，批次16片；需选择支持至少1200 UTF-8字节/片、16输入/批的服务。导入的所有外部阶段共享60秒预算、不自动重试；聊天检索与生成共享原聊天已保存的总 deadline。
 
 开发基础设施：
 
@@ -57,4 +57,26 @@ curl 'http://localhost:8080/api/v1/knowledge/documents?size=20' \
 
 MySQL短事务先写PROCESSING和切片，事务外Embedding→Milvus→强一致查询确认全部ID，再短事务改READY。失败标FAILED；即使向量部分写入，READY回源门禁也拒绝使用；崩溃遗留PROCESSING同样不可用，无自动恢复。原文件不落盘到业务存储；Servlet临时multipart文件由容器管理。
 
-V10新增两表和可空`sources_json`；旧值NULL在存储兼容测试中按空数组处理。实际聊天历史/done的sources字段与持久化映射在任务2接入，本次不改变聊天契约。
+V10新增两表和可空 `sources_json`；旧值 NULL 在聊天历史中返回 `sources:[]`。
+
+## 现有聊天增量
+
+沿用消费者或员工的本人会话与 Bearer token，不接受客户端覆盖 merchantId。先提交消息占位、运行权及 deadline，发送 start，再对原始问题做 Embedding → 本商户 Milvus topK → MySQL 商户与 READY 回源。只有最终预算内实际送入模型的片段进入 sources；参考资料放在独立 user 消息中，system 声明资料中的命令不作为指令。
+
+```shell
+curl -N -X POST http://localhost:8080/api/v1/chat/sessions/<sessionId>/messages \
+  -H "Authorization: Bearer <accessToken>" -H "Content-Type: application/json" \
+  -d '{"clientMessageId":"b57a8542-01fc-4a35-9baa-aef18da85889","content":"七日内可以退货吗？"}'
+```
+
+仍使用 start/token/done/error。成功 done 保留原公共标识、status、usage，并追加：
+
+```json
+{"sources":[{"documentId":"610000000000000001","chunkId":"620000000000000001","title":"售后政策","chunkNo":1,"excerpt":"购买后七日内，未拆封商品可申请退货。"}]}
+```
+
+sources 最多 topK 条（上限5），excerpt 最多300个 Unicode 码点，与实际入模片段一致。它表示模型参考资料，不表示逐句核验回答。成功正文和 sources 同事务提交后才发 done；GET 同一路径的本人分页历史为每条消息追加 sources，读取已保存快照，不重新查文档或向量。资料后续变化、关闭 RAG 都不影响已保存来源。
+
+无匹配、全部低于门槛或所有片段都放不进预算时，直接返回“当前资料中没有找到相关信息，请补充说明或联系店铺确认”，sources=[]，不调用生成模型。检索依赖失败走 error/DEPENDENCY_ERROR；检索超时走 error/TIMEOUT；断线或取消后不再启动生成。旧消息、USER、失败/取消/超时、关闭 RAG 时的新回答均返回空来源。生成的预正文重试复用已检索上下文；相同 clientMessageId 与正文重复提交仍返回原 ChatRunView JSON，来源从历史读取。
+
+任务2验证使用隔离 MySQL/Milvus 与受控外部模型替身，不代表真实 Embedding 与生成服务的完整链路已联调。

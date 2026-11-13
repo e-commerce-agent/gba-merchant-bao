@@ -31,4 +31,10 @@ public interface KnowledgeMapper {
             + "WHERE c.merchant_id=#{merchantId} AND d.status='READY' AND c.id IN "
             + "<foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach></script>")
     List<KnowledgeChunk> readyChunks(@Param("merchantId") long merchantId, @Param("ids") List<Long> ids);
+
+    @Select("<script>SELECT c.document_id,c.id AS chunk_id,d.title,c.chunk_no,c.content FROM knowledge_chunk c "
+            + "JOIN knowledge_document d ON d.merchant_id=c.merchant_id AND d.id=c.document_id "
+            + "WHERE c.merchant_id=#{merchantId} AND d.status='READY' AND c.id IN "
+            + "<foreach collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach></script>")
+    List<ReadyKnowledgeChunk> readyReferences(@Param("merchantId") long merchantId, @Param("ids") List<Long> ids);
 }
