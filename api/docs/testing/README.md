@@ -10,8 +10,8 @@
 
 - <a id="agent-apifox-verification"></a>[agent / apifox-verification.md](../agent/apifox-verification.md)：隔离服务和 Apifox 导入用例。
 - <a id="agent-manual-verification"></a>[agent / manual-verification.md](../agent/manual-verification.md)：人工联调步骤。
-- <a id="auth-data-design"></a>[auth / data-design.md](../../../docs/archive/20261113-auth/data-design.md)：数据结构和边界。
-- <a id="auth-manual-verification"></a>[auth / manual-verification.md](../../../docs/archive/20261113-auth/manual-verification.md)：人工联调步骤。
+- <a id="auth-data-design"></a>[auth / data-design.md](../archive/20261113-auth/data-design.md)：数据结构和边界。
+- <a id="auth-manual-verification"></a>[auth / manual-verification.md](../archive/20261113-auth/manual-verification.md)：人工联调步骤。
 - <a id="deployment-dev-seed-upgrade"></a>[deployment / dev-seed-upgrade.md](../deployment/dev-seed-upgrade.md)：开发种子升级步骤。
 - <a id="deployment-local-development"></a>[deployment / local-development.md](../deployment/local-development.md)、<a id="deployment-local-development-v9-upgrade"></a>[V5 开发库升级至 V9](../deployment/local-development.md#v5-开发库升级到商品库存订单物流-v9)：本地开发和升级步骤。
 
@@ -33,3 +33,4 @@
 - [商品公开目录定向回归](20261111-product-catalog/README.md)：公开店铺路径和库存布尔整合引起的回归，用于核对两轮隔离验证结果。
 - [订单与物流整合验证](20261111-shipment-order-integration/README.md)：物流改用订单授权服务引起的验证，用于核对成交快照与 REST/SOAP 隔离结果。
 - <a id="commerce-integration-verification"></a><a id="deployment-commerce-dev-recovery"></a>[电商模块关联整合验证](20261112-commerce-integration/README.md)：电商模块关联整合引起的验证，用于追溯跨日验收、失败恢复和实际开发库结果。
+- [后端维护整理验收](20261113-backend-maintenance/README.md)：目录与运行材料整理引起的验收，用于核对导航、保护范围、测试发现及本地交付说明。

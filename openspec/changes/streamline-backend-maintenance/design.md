@@ -115,7 +115,7 @@ Springdoc 通用导出提升到 tools，接收 base URL，读取既有六分组�
 
 对比迁移前后实际“简单类名 + 测试方法/参数化用例”的发现清单，不能只比总数或 BUILD SUCCESS。当前文档与脚本同步实际类路径；冻结前完成对应机械更新，不能在冻结后追着包名反复改档案。
 
-本 change 目录下的 `artifacts/protected-baseline.json`（来源和保护范围）、`artifacts/test-file-mapping.json`（59 文件唯一目标映射）、`artifacts/test-discovery-baseline.json`（实际类/方法/参数化发现与结果）随 change 提交并保留，用于后续校验和对比；不是要求日常续写的模块文档。只提交脱敏元信息与用例结果，不提交凭据、SQL 正文或原始报告；XML/日志仍留忽略的 `api/target/`。后续修复结果单独记录，不覆盖初始来源、保护哈希及已知失败；change 归档时这三份基线随之保留。`db/upgrade-history` 及其测试引用本次不处理。
+来源提交、工作树状态、保护范围、59 个文件映射核对结论，以及实际类/方法/参数化用例发现对照与结果，集中记录在 `api/docs/testing/20261113-backend-maintenance/verification.md`，文件迁移细节可结合 Git 历史追溯。只提交脱敏结论，不提交凭据、SQL 正文或原始报告；XML/日志仍留忽略的 `api/target/`。Markdown 分别记录初始失败与后续修复结果，不将原失败改写为成功。临时 JSON 核对文件在验证完成后删除，无需提交或随 change 归档保留，测试和构建不依赖它们。`db/upgrade-history` 及其测试引用本次不处理。
 
 已确认的断言修正例外：初始基线为 Surefire 109 项通过、Failsafe 183 项中 1 项失败，失败在 ProductAvailabilityIT 对商品分组要求存在认证 StaffLogin。后续任务 5.4 使 product-v1 验证不包含 StaffLogin，并由 AuthDevManualIT 在 auth-v1 验证 StaffLogin.merchantCode；保持商品 inStock、公开路径、敏感字段断言及运行接口不变，不扩大 Springdoc 扫描范围。定向两类及最终完整验证必须通过；此例外不允许删除用例、减少覆盖或把原失败记录改成成功。
 
@@ -133,12 +133,12 @@ tools/organize-runtime.ps1 默认预览；执行前核实绝对边界、无链�
 - [清理导航时改写技术结论] → 原段落迁移及前后对照，保留 RT/CV、断言、数值、日期和限制。
 - [日期或历史状态不一致] → 按证据保留事实和未决状态，不以本次整理更新验收结论。
 - [根 README/prod-profile 旧说明不能更新] → 原样保护，只在有效调用需要时保留最少兼容；不扩展为修复其历史问题。
-- [包迁移少跑测试] → 保存发现基线、检查共享访问/继承、完整验证并对比实际用例。
+- [包迁移少跑测试] → 检查共享访问/继承、完整验证并逐项对比实际用例，在 Markdown 记录发现数量与对照结论。
 - [本地材料含运行数据] → 忽略备份保全，不把 runtime 整目录放 Git 或文档档案。
 
 ## Migration Plan
 
-1. 留来源与工作树基线，记录根 README、prod-profile、V/R/fixture SQL 哈希及测试发现清单。
+1. 核对来源与工作树状态、根 README、prod-profile、V/R/fixture SQL 及测试发现清单，在 Markdown 记录来源、保护范围和核对结论；校验过程的临时文件不作为交付工件保留。
 2. 按目录 README 规则先整理导航与日常说明，原段落集中到日期前置的 testing 事件；五模块各自归档，Agent/architecture/deployment 留当前目录。
 3. 迁脚本至 prod/dev/test/tools 并修复调用；分包测试，先更新相关实际路径，再建立整理后冻结基线。
 4. 预览后保全 runtime 历史，核对哈希与剩余活动文件；验证新检出仓库不依赖旧 runtime 代码。

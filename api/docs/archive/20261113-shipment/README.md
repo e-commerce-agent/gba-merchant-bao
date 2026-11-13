@@ -7,12 +7,12 @@
 - [data-design.md](data-design.md)：数据结构及数据边界。
 - <a id="manual-verification"></a>[manual-verification.md](manual-verification.md)：人工联调操作与前提。
 - [requirements.md](requirements.md)：需求与场景矩阵。
-- <a id="verification"></a>[验收事件](../../../api/docs/testing/20261110-shipment-acceptance/README.md)：已有验证过程、结果与限制。
+- <a id="verification"></a>[验收事件](../../testing/20261110-shipment-acceptance/README.md)：已有验证过程、结果与限制。
 
 ## 相关资料
 
-- <a id="architecture-module-roadmap"></a>[architecture / module-roadmap.md](../../../api/docs/architecture/module-roadmap.md)：物流模块的职责、依赖与技术路线来源。
-- <a id="devdata"></a>[devdata / README.md](../../../api/src/main/resources/db/devdata/README.md)：目录资料入口。
+- <a id="architecture-module-roadmap"></a>[architecture / module-roadmap.md](../../architecture/module-roadmap.md)：物流模块的职责、依赖与技术路线来源。
+- <a id="devdata"></a>[devdata / README.md](../../../src/main/resources/db/devdata/README.md)：目录资料入口。
 - <a id="inventory"></a>[inventory / README.md](../20261113-inventory/README.md)：目录资料入口。
 - <a id="order"></a>[order / README.md](../20261113-order/README.md)：目录资料入口。
-- <a id="commerce-verification"></a>[订单与物流验证事件](../../../api/docs/testing/20261111-shipment-order-integration/README.md)：隔离命令、结果与范围。
+- <a id="commerce-verification"></a>[订单与物流验证事件](../../testing/20261111-shipment-order-integration/README.md)：隔离命令、结果与范围。

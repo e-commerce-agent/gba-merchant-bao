@@ -21,7 +21,7 @@ class FoundationContractTest {
 
     @Test
     void specialProtocolContractIsDocumented() throws IOException {
-        Path contractPath = Path.of("../docs/initialization/2026-10-06-产出文档/API契约交付记录.md");
+        Path contractPath = Path.of("docs/archive/20261006-架构/API契约交付记录.md");
         String contract = Files.readString(contractPath, StandardCharsets.UTF_8);
         assertThat(contract).contains("413", "202", "token", "citation", "tool_call", "done", "error");
     }

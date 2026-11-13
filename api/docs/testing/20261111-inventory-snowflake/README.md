@@ -4,4 +4,4 @@
 
 ## 相关资料
 
-- [module.md](../../../../docs/archive/20261113-inventory/module.md)：模块规则、实现与验证说明。 <a id="module-ids"></a>[相关章节](../../../../docs/archive/20261113-inventory/module.md#主键与多副本运行)。
+- [module.md](../../archive/20261113-inventory/module.md)：模块规则、实现与验证说明。 <a id="module-ids"></a>[相关章节](../../archive/20261113-inventory/module.md#主键与多副本运行)。

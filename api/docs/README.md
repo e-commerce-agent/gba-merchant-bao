@@ -8,11 +8,12 @@
 
 - [Agent 文档](agent/README.md)：查看该目录的文件与用途。
 - [架构文档](architecture/README.md)：查看该目录的文件与用途。
-- [认证文档](../../docs/archive/20261113-auth/README.md)：查看该目录的文件与用途。
+- [历史模块归档](archive/README.md)：五个基础模块的冻结文档入口。
+- [认证文档](archive/20261113-auth/README.md)：查看该目录的文件与用途。
 - [运行与部署文档](deployment/README.md)：查看该目录的文件与用途。
-- [库存文档](../../docs/archive/20261113-inventory/README.md)：查看该目录的文件与用途。
-- [订单文档](../../docs/archive/20261113-order/README.md)：查看该目录的文件与用途。
-- [商品文档](../../docs/archive/20261113-product/README.md)：查看该目录的文件与用途。
-- [物流文档](../../docs/archive/20261113-shipment/README.md)：查看该目录的文件与用途。
+- [库存文档](archive/20261113-inventory/README.md)：查看该目录的文件与用途。
+- [订单文档](archive/20261113-order/README.md)：查看该目录的文件与用途。
+- [商品文档](archive/20261113-product/README.md)：查看该目录的文件与用途。
+- [物流文档](archive/20261113-shipment/README.md)：查看该目录的文件与用途。
 - [测试文档](testing/README.md)：查看该目录的文件与用途。
 - [生产配置](prod-profile)：现有生产配置与运行手稿。

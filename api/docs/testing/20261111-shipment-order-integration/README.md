@@ -4,4 +4,4 @@
 
 ## 相关资料
 
-- <a id="inventory"></a>[inventory / README.md](../../../../docs/archive/20261113-inventory/README.md)：目录资料入口。
+- <a id="inventory"></a>[inventory / README.md](../../archive/20261113-inventory/README.md)：目录资料入口。

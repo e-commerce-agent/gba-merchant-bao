@@ -39,8 +39,8 @@
 
 ## 认证实现交付（2026-11-06）
 
-`add-redis-auth-sessions` 的实际 [九操作快照](../../api/auth-v1.openapi.yaml) 来自 `AuthDevManualIT` 启动的隔离后端 Springdoc，包含短信、消费者首次自动建号登录、员工登录、统一 refresh/logout、me、员工创建/查询与消费者本人查询；没有独立注册接口。快照服务器使用相对地址 `/`，导入环境自行配置 Base URL。
+`add-redis-auth-sessions` 的实际 [九操作快照](../../../../docs/api/auth-v1.openapi.yaml) 来自 `AuthDevManualIT` 启动的隔离后端 Springdoc，包含短信、消费者首次自动建号登录、员工登录、统一 refresh/logout、me、员工创建/查询与消费者本人查询；没有独立注册接口。快照服务器使用相对地址 `/`，导入环境自行配置 Base URL。
 
 登录/刷新返回 accessToken、opaque refreshToken、两类截止时间和脱敏 principal；私有资源声明 Bearer，refresh 只使用 JSON refreshToken/refreshRequestId，logout 可用 Bearer 或 JSON refresh。员工开通返回 201、Location 和账号摘要，不含密码/hash/token；首次/已有消费者登录均 200。快照登记统一 envelope、X-Request-Id、no-store、400/401/403/404/409/429/503/500，429 附 Retry-After；debugCode 只在 dev 显式 mock 回显，生产禁用。
 
-Apifox 接入步骤：导入该 YAML → 配置隔离环境 Base URL → 私有资源选择 bearerAuth → refresh/logout body 传凭证，勿把 token 放 URL → 按 [人工联调说明](../../../docs/archive/20261113-auth/manual-verification.md) 建立场景。当前未操作 Apifox，也未完成浏览器接入或第 8 节全量验收；旧基础快照不作为本次认证实现的证据。
+Apifox 接入步骤：导入该 YAML → 配置隔离环境 Base URL → 私有资源选择 bearerAuth → refresh/logout body 传凭证，勿把 token 放 URL → 按 [人工联调说明](README.md#auth-manual-verification) 建立场景。当前未操作 Apifox，也未完成浏览器接入或第 8 节全量验收；旧基础快照不作为本次认证实现的证据。

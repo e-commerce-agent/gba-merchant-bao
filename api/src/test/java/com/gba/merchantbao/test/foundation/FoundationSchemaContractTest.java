@@ -52,7 +52,7 @@ class FoundationSchemaContractTest {
 
     @Test
     void tenantBoundaryRulesAreDocumentedForWritesAndDeletes() throws IOException {
-        String baseline = file("docs/initialization/2026-10-06-产出文档/基础迁移基线.md");
+        String baseline = file("api/docs/archive/20261006-架构/基础迁移基线.md");
         assertThat(baseline).contains("非空 `merchant_id`", "更新和删除 SQL", "服务端身份解析");
     }
 

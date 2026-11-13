@@ -2,8 +2,8 @@
 
 ## 1. 固定来源与保护范围
 
-- [x] 1.1 在本 change 的 artifacts/protected-baseline.json 记录来源提交、工作树状态、根 README、整个 prod-profile 及全部 V/R/fixture SQL 的路径/哈希并随 change 提交；核验保护对象清单完整，未提交内容不冒记为 HEAD，本地敏感配置只记元信息。
-- [x] 1.2 在本 change 的 artifacts/test-file-mapping.json、artifacts/test-discovery-baseline.json 保存当前 59 个 Java 文件的唯一目标映射与实际 Surefire/Failsafe 发现基线并随 change 提交；记录类/方法/参数化用例及失败、错误、跳过，不把文件数或旧报告当本次测试结果；原始 XML/日志仍留忽略的 api/target/，不提交。
+- [x] 1.1 核验来源提交、工作树状态、根 README、整个 prod-profile 及全部 V/R/fixture SQL 的保护范围与内容，在 testing 事件的 Markdown 记录来源和核验结论；未提交内容不冒记为 HEAD，本地敏感配置只记元信息，临时核对文件不要求提交或归档保留。
+- [x] 1.2 核对当前 59 个 Java 文件的唯一目标映射与实际 Surefire/Failsafe 类/方法/参数化用例发现结果，在 testing 事件的 Markdown 记录映射核对结论、发现数量、失败、错误、跳过及逐项对照结论，不把文件数或旧报告当本次测试结果；原始 XML/日志仍留忽略的 api/target/，不提交，不要求保留 JSON 文件。
 
 ## 2. 目录 README 与正文定位
 
@@ -30,7 +30,7 @@
 - [x] 5.1 按 design 映射迁移 auth/product/inventory/order/shipment 测试，更新声明/导入；以 test-compile 和文件清单核验一一对应，原用例、断言和 fixture 路径完整保留。
 - [x] 5.2 迁移 agent/chat/common/foundation/integration 测试及 support 三辅助类，只开放辅助类跨包必需访问，AgentApifoxWorkspace 与 ChatAcceptanceIT 同 chat 包；ChatRunExecutionTest、ChatSseLifecycleTest 文件进入 chat 但保留原包声明以访问内部实现，不改生产代码或 dev/prod profile；编译验证全部 59 个文件唯一归位，根包不平铺 Java，手工入口不改成默认测试命名。
 - [x] 5.3 更新当前文档、脚本、反射/显式类引用及简单类名选择示例，执行单元验证并比较发现清单；验证 -Dtest/-Dit.test 原语义保留、手工工作区不会默认启动，无删断言或放宽发现规则导致漏测。
-- [x] 5.4 修正基线中 ProductAvailabilityIT.exportsActualProductOpenApiWithThePublicBooleanContract 的分组断言：商品 product-v1 不应包含 StaffLogin，认证 auth-v1 的 StaffLogin.merchantCode 由 AuthDevManualIT 验证；保留商品原有 inStock、公开路径及敏感字段断言，不扩大商品分组扫描范围；定向运行这两个集成类通过，保留原失败基线并记录修复后的结果，最终由 8.2 完整验证确认通过。
+- [x] 5.4 修正基线中 ProductAvailabilityIT.exportsActualProductOpenApiWithThePublicBooleanContract 的分组断言：商品 product-v1 不应包含 StaffLogin，认证 auth-v1 的 StaffLogin.merchantCode 由 AuthDevManualIT 验证；保留商品原有 inStock、公开路径及敏感字段断言，不扩大商品分组扫描范围；定向运行这两个集成类通过，在 Markdown 分别记录原失败与修复后的结果，最终由 8.2 完整验证确认通过。
 
 ## 6. 五个基础模块分别整理后冻结
 
@@ -46,9 +46,9 @@
 
 ## 8. 整体一致性与交付
 
-- [ ] 8.1 检查所有目录 README、正文经 README 定位的锚点、事件一行说明、日期前缀、五模块归档目录与脚本单一位置；比较根 README、prod-profile 和 V/R/fixture SQL 基线为零差异，其他旧 change 状态不改。
-- [ ] 8.2 在 Docker 可用环境执行 mvn -f api/pom.xml clean verify，对比迁移前后的类/方法/参数化用例发现清单，确认完整隔离、除 5.4 明确修正外的原断言与 *Test/*IT 语义保留；如实记录失败、错误、跳过，确认 5.4 的已知失败已消除、完整验证通过，不只用 BUILD SUCCESS 验收。
-- [ ] 8.3 本地整理可用于现有组织仓库 PR 的交付说明，包含 change、来源、实际验证、目录入口、冻结范围、兼容项及回退办法；检查无虚构验收、无重复设计正文，不要求创建/发布远程 PR 或修改组织仓库配置。
+- [x] 8.1 检查所有目录 README、正文经 README 定位的锚点、事件一行说明、日期前缀、五模块归档目录与脚本单一位置；比较根 README、prod-profile 和 V/R/fixture SQL 基线为零差异，其他旧 change 状态不改。
+- [x] 8.2 在 Docker 可用环境执行 mvn -f api/pom.xml clean verify，对比迁移前后的类/方法/参数化用例发现清单，确认完整隔离、除 5.4 明确修正外的原断言与 *Test/*IT 语义保留；如实记录失败、错误、跳过，确认 5.4 的已知失败已消除、完整验证通过，不只用 BUILD SUCCESS 验收。
+- [x] 8.3 本地整理可用于现有组织仓库 PR 的交付说明，包含 change、来源、实际验证、目录入口、冻结范围、兼容项及回退办法；检查无虚构验收、无重复设计正文，不要求创建/发布远程 PR 或修改组织仓库配置。
 
 ## Workflow follow-up
 

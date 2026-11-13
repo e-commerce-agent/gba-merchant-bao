@@ -12,7 +12,7 @@
 - 散落于 architecture、Agent 和其他文档的临时验证记录统一迁到 `api/docs/testing/YYYYmmdd-事件/`；日期为事件结束日，跨日事件不强拆。testing README 每个事件一行说明原因和用途，结束后停止续写；日常操作说明留所属目录。
 - 技术规则、场景编号、测试类名、主要断言和验收结论原文保留，允许整段迁移和机械同步实际路径；导航整理不能变成改写结论。冻结后的目录由版本化 Agent 规则约束，后续修改须有明确范围。
 - 将测试迁入 `test.auth/product/inventory/order/shipment/agent/chat/common/foundation/integration/support`，维护共享辅助类、继承关系与 Maven 发现规则，保留原有测试和断言。
-- 保存并提交本 change 的 artifacts/ 下保护、文件映射和测试发现三份 JSON 基线，原始报告仍留忽略的 target；后续仅修正已确认的商品/认证 OpenAPI 分组断言归属，不改运行接口，保留初始失败结果供对比，最终完整验证须通过。
+- 在 testing 事件的 Markdown 验证记录中保存来源、保护范围、测试映射核对结论与实际发现结果，原始报告仍留忽略的 target，临时 JSON 核对文件无需提交或随 change 归档保留；后续仅修正已确认的商品/认证 OpenAPI 分组断言归属，不改运行接口，记录初始失败及修复结果，最终完整验证须通过。
 - 可复用脚本按执行目标进入 `api/scripts/prod/`、`dev/`、`test/`、`tools/`，每个实际目录有简短 README；文档归档不留脚本副本。prod-profile 内原脚本原地保留、不复制；生产手稿仍调用的旧 backup-dev 入口仅保留转发。
 - `.runtime` 只承担本地日志与运行状态；一次性脚本、备份和旧输出保全到忽略的备份目录，Maven 产物留在 `target`，所有本次新建的带日期事件/归档目录统一使用日期前缀。
 

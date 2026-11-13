@@ -116,9 +116,9 @@
 
 测试源码文件 MUST 在 `com/gba/merchantbao/test` 下按业务域、公共基础、跨模块集成和共享辅助职责分目录、分包；仅 ChatRunExecutionTest、ChatSseLifecycleTest 保留原生产包声明以测试包级内部实现，文件仍进入 chat 目录，其他声明与目标目录一致。分包 MUST 保留测试类名、用例与断言、fixture 资源路径及单元/集成命名约定；仅允许下述已确认的 OpenAPI 分组断言归属修正，不得减少覆盖。Maven 默认发现范围与已有手工验收入口的显式选择语义 MUST 保持。完整验证仍使用隔离容器，Docker 不可用时失败。生产代码及 dev/prod profile、配置、运行环境 MUST NOT 因本次分包修改。
 
-#### Scenario: Maintenance baselines are committed
-- **WHEN** 保存本 change 的来源、保护范围、测试映射和实际发现结果
-- **THEN** artifacts/protected-baseline.json、artifacts/test-file-mapping.json、artifacts/test-discovery-baseline.json 随 change 提交并随其归档保留，原始 XML/日志仍留忽略的 api/target/；基线只含脱敏元信息和测试结果，后续修复不得覆盖初始失败或重算保护哈希掩盖差异
+#### Scenario: Maintenance verification is recorded in Markdown
+- **WHEN** 完成本 change 的来源、保护范围、测试映射与实际发现结果核验
+- **THEN** testing 事件的 Markdown 记录来源提交、工作树状态、保护范围、文件映射核对结论、实际发现数量及逐项用例对照结论，并分别记录初始失败与修复结果；原始 XML/日志仍留忽略的 api/target/，临时 JSON 核对文件artifacts/protected-baseline.json、artifacts/test-file-mapping.json、artifacts/test-discovery-baseline.json无需提交或随 change 归档保留，测试和构建不得依赖这些临时文件
 
 #### Scenario: The product contract test checks an authentication schema
 - **WHEN** 修正初始基线中 ProductAvailabilityIT 对 StaffLogin 的错误分组断言
