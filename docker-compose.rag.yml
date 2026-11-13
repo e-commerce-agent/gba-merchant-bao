@@ -1,0 +1,26 @@
+# Optional single-instance RAG: docker compose -f docker-compose.yml -f docker-compose.rag.yml --profile rag up -d milvus
+services:
+  milvus:
+    image: milvusdb/milvus:v2.5.9
+    profiles: [rag]
+    restart: unless-stopped
+    command: [milvus, run, standalone]
+    environment:
+      ETCD_USE_EMBED: "true"
+      ETCD_DATA_DIR: /var/lib/milvus/etcd
+      COMMON_STORAGETYPE: local
+    ports:
+      - "127.0.0.1:${MILVUS_PORT:-19530}:19530"
+    volumes: [rag_milvus_data:/var/lib/milvus]
+    healthcheck:
+      test: [CMD, curl, -f, http://localhost:9091/healthz]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    logging:
+      driver: json-file
+      options: {max-size: "20m", max-file: "5"}
+
+volumes:
+  rag_milvus_data:

@@ -64,7 +64,7 @@ public final class DevSeedUpgrade {
         }
         var flyway = flyway();
         Set<String> versions = new TreeSet<>();
-        Set<String> pendingVersions = new TreeSet<>();
+        Set<String> pendingVersions = new TreeSet<>(Comparator.comparingInt(Integer::parseInt));
         Set<String> retire = new TreeSet<>();
         Set<String> pending = new TreeSet<>();
         Set<String> successful = new HashSet<>();
@@ -85,6 +85,7 @@ public final class DevSeedUpgrade {
                     case "7" -> "V7__inventory_tables.sql";
                     case "8" -> "V8__order_tables.sql";
                     case "9" -> "V9__shipment_tables.sql";
+                    case "10" -> "V10__knowledge_ingestion.sql";
                     default -> null;
                 };
                 if (expectedScript == null || !expectedScript.equals(script))
@@ -95,7 +96,8 @@ public final class DevSeedUpgrade {
                         || "6".equals(version) && "V6__product_module.sql".equals(script)
                         || "7".equals(version) && "V7__inventory_tables.sql".equals(script)
                         || "8".equals(version) && "V8__order_tables.sql".equals(script)
-                        || "9".equals(version) && "V9__shipment_tables.sql".equals(script)));
+                        || "9".equals(version) && "V9__shipment_tables.sql".equals(script)
+                        || "10".equals(version) && "V10__knowledge_ingestion.sql".equals(script)));
                 if (knownPending) pendingVersions.add(version);
                 else if (state != MigrationState.SUCCESS || !versions.add(version))
                     throw rejected("Unexpected versioned migration state");
@@ -112,14 +114,15 @@ public final class DevSeedUpgrade {
                 else throw rejected("New repeatable is not Pending or Success");
             } else throw rejected("Unknown migration outside the rename allowlist");
         }
-        if (!(versions.equals(Set.of("1", "2", "3", "4", "5", "6", "7", "8", "9")) && pendingVersions.isEmpty())
-                && !(versions.equals(Set.of("1", "2", "3", "4", "5", "6", "7", "8")) && pendingVersions.equals(Set.of("9")))
-                && !(versions.equals(Set.of("1", "2", "3", "4", "5", "6", "7")) && pendingVersions.equals(Set.of("8", "9")))
-                && !(versions.equals(Set.of("1", "2", "3", "4", "5", "6")) && pendingVersions.equals(Set.of("7", "8", "9")))
-                && !(versions.equals(Set.of("1", "2", "3", "4", "5")) && pendingVersions.equals(Set.of("6", "7", "8", "9")))
-                && !(versions.equals(Set.of("1", "2", "3", "4")) && pendingVersions.equals(Set.of("5", "6", "7", "8", "9")))
-                && !(versions.equals(Set.of("1", "2", "3")) && pendingVersions.equals(Set.of("4", "5", "6", "7", "8", "9"))))
-            throw rejected("Expected successful V1 through V9 or a supported V3/V4/V5 baseline with only its approved versioned suffix pending");
+        if (!(versions.equals(Set.of("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")) && pendingVersions.isEmpty())
+                && !(versions.equals(Set.of("1", "2", "3", "4", "5", "6", "7", "8", "9")) && pendingVersions.equals(Set.of("10")))
+                && !(versions.equals(Set.of("1", "2", "3", "4", "5", "6", "7", "8")) && pendingVersions.equals(Set.of("9", "10")))
+                && !(versions.equals(Set.of("1", "2", "3", "4", "5", "6", "7")) && pendingVersions.equals(Set.of("8", "9", "10")))
+                && !(versions.equals(Set.of("1", "2", "3", "4", "5", "6")) && pendingVersions.equals(Set.of("7", "8", "9", "10")))
+                && !(versions.equals(Set.of("1", "2", "3", "4", "5")) && pendingVersions.equals(Set.of("6", "7", "8", "9", "10")))
+                && !(versions.equals(Set.of("1", "2", "3", "4")) && pendingVersions.equals(Set.of("5", "6", "7", "8", "9", "10")))
+                && !(versions.equals(Set.of("1", "2", "3")) && pendingVersions.equals(Set.of("4", "5", "6", "7", "8", "9", "10"))))
+            throw rejected("Expected successful V1 through V10 or a supported baseline with only its approved versioned suffix pending");
         if (pendingVersions.contains("4") && knownOldAccounts)
             throw rejected("Historical auth seed without successful V4 is not a supported V3 database");
         var validation = flyway.validateWithResult();
@@ -138,7 +141,8 @@ public final class DevSeedUpgrade {
                         || ("6".equals(invalid.version) && "product module".equals(invalid.description))
                         || ("7".equals(invalid.version) && "inventory tables".equals(invalid.description))
                         || ("8".equals(invalid.version) && "order tables".equals(invalid.description))
-                        || ("9".equals(invalid.version) && "shipment tables".equals(invalid.description)))
+                        || ("9".equals(invalid.version) && "shipment tables".equals(invalid.description))
+                        || ("10".equals(invalid.version) && "knowledge ingestion".equals(invalid.description)))
                         && pendingVersions.contains(invalid.version);
                 if (!approvedMissing && !approvedPending && !approvedPendingVersion)
                     throw rejected("Validation differs from the approved historical R rename and pending migration allowlist");
@@ -172,7 +176,14 @@ public final class DevSeedUpgrade {
                         List<String> values = new ArrayList<>();
                         List<String> key = new ArrayList<>();
                         for (String column : primary) key.add(data.getString(column));
-                        for (int i = 1; i <= data.getMetaData().getColumnCount(); i++) values.add(data.getString(i));
+                        for (int i = 1; i <= data.getMetaData().getColumnCount(); i++) {
+                            String value = data.getString(i);
+                            // V10 adds a nullable field. Absent and SQL NULL both mean no source snapshot;
+                            // non-NULL snapshots still participate in preservation hashes.
+                            if (table.equals("chat_message") && data.getMetaData().getColumnName(i).equals("sources_json")
+                                    && value == null) continue;
+                            values.add(value);
+                        }
                         rows.put(digest(JSON.writeValueAsBytes(key)), digest(JSON.writeValueAsBytes(values)));
                     }
                 }

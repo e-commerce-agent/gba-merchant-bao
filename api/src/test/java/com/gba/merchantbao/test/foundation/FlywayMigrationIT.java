@@ -48,7 +48,7 @@ class FlywayMigrationIT {
                 .load();
 
         flyway.migrate();
-        assertCurrentVersionNine(flyway);
+        assertCurrentVersionTen(flyway);
         try (Connection connection = DriverManager.getConnection(
                 mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword());
              ResultSet tables = connection.createStatement().executeQuery(
@@ -70,7 +70,7 @@ class FlywayMigrationIT {
     void testSeedsAreIdempotentAndUseStableTenantCodes() throws Exception {
         Flyway flyway = migration("classpath:db/migration", "classpath:db/seed/nonprod");
         flyway.migrate();
-        assertCurrentVersionNine(flyway);
+        assertCurrentVersionTen(flyway);
         try (Connection connection = connection()) {
             ScriptUtils.executeSqlScript(connection,
                     new ClassPathResource("db/seed/nonprod/R__010_local_test_tenants.sql"));
@@ -96,7 +96,7 @@ class FlywayMigrationIT {
         if (configured == null) configured = base.getProperty("spring.flyway.locations");
         var flyway = migration(configured.toString().split(","));
         flyway.migrate();
-        assertCurrentVersionNine(flyway);
+        assertCurrentVersionTen(flyway);
         assertThat(Arrays.stream(flyway.info().applied()).map(info -> info.getScript()))
                 .noneMatch(script -> script.matches("R__(020|030|040|050|060|070)_.*"));
         assertThat(flyway.migrate().migrationsExecuted).isZero();
@@ -118,7 +118,7 @@ class FlywayMigrationIT {
                 .hasMessageContaining("non-empty schema");
         flyway.baseline();
         flyway.migrate();
-        assertCurrentVersionNine(flyway);
+        assertCurrentVersionTen(flyway);
         try (Connection connection = connection();
              ResultSet rows = connection.createStatement().executeQuery(
                      "SELECT name FROM category WHERE id = 987654")) {
@@ -142,9 +142,9 @@ class FlywayMigrationIT {
         var legacyBefore = jdbc.queryForList("SELECT * FROM category WHERE id=9902");
 
         var latest = migration("classpath:db/migration");
-        // V4 auth, V5 chat, then V6 product, V7 inventory, V8 order and V9 shipment.
-        assertThat(latest.migrate().migrationsExecuted).isEqualTo(6);
-        assertCurrentVersionNine(latest);
+        // V4 auth, V5 chat, then V6 product, V7 inventory, V8 order, V9 shipment and V10 knowledge.
+        assertThat(latest.migrate().migrationsExecuted).isEqualTo(7);
+        assertCurrentVersionTen(latest);
         for (var info : latest.info().applied()) {
             if (oldChecksums.containsKey(info.getVersion().getVersion())) {
                 assertThat(info.getChecksum()).isEqualTo(oldChecksums.get(info.getVersion().getVersion()));
@@ -170,9 +170,9 @@ class FlywayMigrationIT {
         assertThat(jdbc.queryForList("SELECT * FROM flyway_schema_history ORDER BY installed_rank")).isEqualTo(historyBefore);
     }
 
-    private void assertCurrentVersionNine(Flyway flyway) {
+    private void assertCurrentVersionTen(Flyway flyway) {
         flyway.validate();
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("9");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("10");
         assertThat(flyway.info().pending()).isEmpty();
         assertThat(flyway.info().applied()).allSatisfy(info ->
                 assertThat(info.getState()).isIn(MigrationState.SUCCESS, MigrationState.BASELINE));

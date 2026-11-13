@@ -3,7 +3,7 @@
 <mapper namespace="com.gba.merchantbao.chat.mapper.ChatMessageMapper">
   <sql id="columns">m.id,m.merchant_id,m.session_id,m.message_seq,m.sender_type,m.sender_account_id,
     m.client_message_id,m.content,m.status,m.run_id,m.error_code,m.prompt_version,m.model_service_label,
-    m.model_name,m.input_tokens,m.output_tokens,m.created_at,m.completed_at</sql>
+    m.model_name,m.input_tokens,m.output_tokens,m.created_at,m.completed_at,m.sources_json</sql>
   <sql id="owner">s.merchant_id=#{owner.merchantId} AND s.owner_account_id=#{owner.accountId} AND s.owner_role=#{owner.role}</sql>
   <sql id="ownedMessages">FROM chat_message m JOIN chat_session s ON s.merchant_id=m.merchant_id AND s.id=m.session_id
     WHERE <include refid="owner"/> AND m.merchant_id=#{owner.merchantId} AND m.session_id=#{sessionId}</sql>
@@ -51,11 +51,18 @@
   <update id="finishOwned">
     UPDATE chat_message m JOIN chat_session s ON s.merchant_id=m.merchant_id AND s.id=m.session_id
     SET m.status=#{status},m.content=#{content},m.error_code=#{errorCode},m.input_tokens=#{inputTokens},
-      m.output_tokens=#{outputTokens},m.completed_at=#{now}
+      m.output_tokens=#{outputTokens},m.completed_at=#{now},m.sources_json=NULL
     WHERE <include refid="owner"/> AND m.merchant_id=#{owner.merchantId} AND m.session_id=#{sessionId}
       AND m.id=#{messageId} AND m.run_id=#{runId} AND s.active_run_id=#{runId}
       AND m.sender_type='ASSISTANT' AND m.status IN ('STARTED','STREAMING')
       AND ((#{status}='TIMED_OUT' AND s.run_deadline_at &lt;= #{now})
         OR (#{status} IN ('COMPLETED','CANCELLED','FAILED') AND s.run_deadline_at > #{now}))
+  </update>
+  <update id="saveSourcesOwned">
+    UPDATE chat_message m JOIN chat_session s ON s.merchant_id=m.merchant_id AND s.id=m.session_id
+    SET m.sources_json=#{sourcesJson}
+    WHERE <include refid="owner"/> AND m.merchant_id=#{owner.merchantId} AND m.session_id=#{sessionId}
+      AND m.id=#{messageId} AND m.run_id=#{runId} AND s.active_run_id=#{runId}
+      AND m.sender_type='ASSISTANT' AND m.status='COMPLETED'
   </update>
 </mapper>

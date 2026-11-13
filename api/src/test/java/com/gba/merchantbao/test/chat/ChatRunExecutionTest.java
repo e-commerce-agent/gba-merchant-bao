@@ -26,7 +26,7 @@ class ChatRunExecutionTest {
         var run=new PreparedRun(new ChatOwner(11,21,"CONSUMER"),31,41,51,61,"STARTED",false,
                 Instant.now().plusSeconds(30),List.of(UserMessage.from("13800138000 secret-user-body")));
         when(service.markStreaming(run)).thenReturn(true);
-        when(service.finish(eq(run),eq("COMPLETED"),anyString(),isNull(),isNull())).thenReturn(true);
+        when(service.finish(eq(run),eq("COMPLETED"),anyString(),isNull(),isNull(),eq(List.of()))).thenReturn(true);
         var registry=new SimpleMeterRegistry();var released=new AtomicInteger();var downstream=mock(AgentModel.Listener.class);
         Logger logger=(Logger)LoggerFactory.getLogger(ChatRunExecution.class);var appender=new ListAppender<ILoggingEvent>();appender.start();logger.addAppender(appender);
         try {
@@ -45,11 +45,11 @@ class ChatRunExecutionTest {
         var service=mock(ChatService.class);var p=new AgentProperties();p.setMaxOutputChars(2);
         var run=new PreparedRun(new ChatOwner(11,21,"CONSUMER"),31,41,51,61,"STARTED",false,Instant.now().plusSeconds(30),List.of());
         when(service.markStreaming(run)).thenReturn(true);
-        when(service.finish(run,"FAILED","好","DEPENDENCY_ERROR",null)).thenReturn(true);
+        when(service.finish(run,"FAILED","好","DEPENDENCY_ERROR",null,List.of())).thenReturn(true);
         var client=mock(AgentModel.Listener.class);var cancelled=new AtomicInteger();var released=new AtomicInteger();
         var execution=new ChatRunExecution(service,run,"limit",p,client,released::incrementAndGet,Clock.systemUTC(),null);
         execution.bind(cancelled::incrementAndGet);execution.delta("好");execution.delta("太长");execution.complete(null);
-        verify(service).finish(run,"FAILED","好","DEPENDENCY_ERROR",null);verify(client,never()).complete(any());
+        verify(service).finish(run,"FAILED","好","DEPENDENCY_ERROR",null,List.of());verify(client,never()).complete(any());
         assertThat(cancelled.get()).isOne();assertThat(released.get()).isOne();
     }
 }

@@ -25,6 +25,10 @@ public class ChatService {
     private final java.util.Set<ChatRunExecution> active=java.util.concurrent.ConcurrentHashMap.newKeySet();
     private io.micrometer.core.instrument.MeterRegistry metrics;
     private final java.util.concurrent.ThreadPoolExecutor runtime;
+    private com.gba.merchantbao.knowledge.service.KnowledgeRetrieval retrieval;
+    private final java.util.concurrent.ScheduledExecutorService deadlines=java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r->{
+        var t=new Thread(r,"chat-run-deadline");t.setDaemon(true);return t;
+    });
     public ChatService(ChatSessionMapper sessions,ChatMessageMapper messages,IdGenerator ids,Clock clock,AgentProperties p,PlatformTransactionManager manager) {
         this(sessions,messages,ids,clock,p,manager,null,null);
     }
@@ -45,6 +49,8 @@ public class ChatService {
     }
     @org.springframework.beans.factory.annotation.Autowired
     void metrics(io.micrometer.core.instrument.MeterRegistry registry){this.metrics=registry;}
+    @org.springframework.beans.factory.annotation.Autowired
+    void retrieval(com.gba.merchantbao.knowledge.service.KnowledgeRetrieval retrieval){this.retrieval=retrieval;}
     public static ChatOwner owner(Actor actor) {
         if(actor==null)throw new ChatError(401,com.gba.merchantbao.common.error.CommonErrorCode.UNAUTHORIZED);
         var a=actor.principal(); return new ChatOwner(a.merchantId(),a.accountId(),a.role().name());
@@ -63,6 +69,10 @@ public class ChatService {
     }
     /** Returns only after the terminal transaction commits. False means this run has lost ownership. */
     public boolean finish(PreparedRun run,String status,String text,String error,com.gba.merchantbao.agent.service.AgentModel.Usage usage) {
+        return finish(run,status,text,error,usage,java.util.List.of());
+    }
+    public boolean finish(PreparedRun run,String status,String text,String error,com.gba.merchantbao.agent.service.AgentModel.Usage usage,
+                          java.util.List<com.gba.merchantbao.knowledge.vo.KnowledgeSource> sources) {
         if(!java.util.Set.of("COMPLETED","CANCELLED","TIMED_OUT","FAILED").contains(status))throw ChatError.invalid();
         return Boolean.TRUE.equals(tx.execute(s->{
             var session=sessions.lockOwned(run.owner(),run.sessionId());if(session==null)throw ChatError.missing();var now=now();
@@ -73,6 +83,8 @@ public class ChatService {
             if(status.equals("TIMED_OUT"))sessions.expireRun(run.owner(),run.sessionId(),run.runId(),now);
             if(messages.finishOwned(run.owner(),run.sessionId(),run.messageId(),run.runId(),status,bounded(text),error,
                     usage==null?null:usage.inputTokens(),usage==null?null:usage.outputTokens(),now)!=1)return false;
+            if(status.equals("COMPLETED")&&messages.saveSourcesOwned(run.owner(),run.sessionId(),run.messageId(),run.runId(),ChatSources.encode(sources))!=1)
+                throw ChatError.storage();
             if(sessions.releaseRun(run.owner(),run.sessionId(),run.runId(),now)!=1)throw ChatError.storage();
             return true;
         }));
@@ -100,20 +112,40 @@ public class ChatService {
         var execution=new ChatRunExecution(this,run,requestId,p,downstream,()->{admission.release();active.remove(holder.get());},clock,metrics);
         holder.set(execution);
         active.add(execution);
+        execution.bindDeadline(deadlines.schedule(()->execution.error(new java.util.concurrent.TimeoutException()),
+                Math.max(0,Duration.between(clock.instant(),run.deadline()).toMillis()),java.util.concurrent.TimeUnit.MILLISECONDS));
         try {
-            runtime.execute(()->{
+            execution.bindPreparation(runtime.submit(()->{
                 if(execution.terminal())return;
-                try {execution.bind(attempts.stream(run.context(),run.deadline(),execution));}
+                try {
+                    var prompt=run.context();
+                    java.util.List<com.gba.merchantbao.knowledge.vo.KnowledgeSource> sources=java.util.List.of();
+                    if(retrieval!=null&&retrieval.enabled()) {
+                        var budget=new com.gba.merchantbao.knowledge.service.ImportDeadline(Duration.between(clock.instant(),run.deadline()),execution::terminal);
+                        var question=((dev.langchain4j.data.message.UserMessage)prompt.getLast()).singleText();
+                        var references=retrieval.retrieve(run.owner().merchantId(),question,budget);
+                        if(execution.terminal())return;
+                        budget.remaining();
+                        var grounded=context.withEvidence(prompt,references);
+                        if(grounded.sources().isEmpty()) {
+                            execution.delta(com.gba.merchantbao.knowledge.service.KnowledgeRetrieval.NO_MATCH);
+                            execution.complete(null);return;
+                        }
+                        prompt=grounded.messages();
+                        sources=grounded.sources();
+                    }
+                    execution.generate(attempts,prompt,sources);
+                }
                 catch(RuntimeException failure){execution.error(failure);}
                 finally {if(execution.terminal())active.remove(execution);}
-            });
+            }));
         } catch(java.util.concurrent.RejectedExecutionException error) {execution.error(error);}
         return new com.gba.merchantbao.agent.service.AgentModel.Call(){
             public void cancel(){execution.cancel();active.remove(execution);}
             public void fail(){execution.error(new IllegalStateException("Stream resource unavailable"));active.remove(execution);}
         };
     }
-    @jakarta.annotation.PreDestroy public void shutdown(){active.forEach(ChatRunExecution::cancel);runtime.shutdownNow();}
+    @jakarta.annotation.PreDestroy public void shutdown(){active.forEach(ChatRunExecution::cancel);runtime.shutdownNow();deadlines.shutdownNow();}
     public PreparedRun accept(Actor actor,long sessionId,String key,String content) {
         var o=owner(actor);
         if(key==null||!key.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
@@ -130,7 +162,7 @@ public class ChatService {
             if(session.activeRunId()!=null)throw ChatError.busy();
             if(!p.isEnabled())throw new ChatError(503,com.gba.merchantbao.common.error.CommonErrorCode.AGENT_DISABLED);
             java.util.List<dev.langchain4j.data.message.ChatMessage> prompt;
-            try {prompt=context.assemble(p.getHistoryMessages()==0?java.util.List.of():messages.recentSuccessfulOwned(o,sessionId,p.getHistoryMessages()),content);}
+            try {prompt=context.assemble(p.getHistoryMessages()==0?java.util.List.of():messages.recentSuccessfulOwned(o,sessionId,p.getHistoryMessages()),content,retrieval!=null&&retrieval.enabled());}
             catch(IllegalArgumentException e){throw new ChatError(400,com.gba.merchantbao.common.error.CommonErrorCode.AGENT_CONTEXT_TOO_LARGE);}
             var now=now();var deadline=now.plus(p.getTotalTimeout());long run=ids.nextId(),user=ids.nextId(),assistant=ids.nextId();long seq=session.nextMessageSeq();
             if(sessions.acquireRun(o,sessionId,seq,run,deadline,now)!=1)throw ChatError.busy();

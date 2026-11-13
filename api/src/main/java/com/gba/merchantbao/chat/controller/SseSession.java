@@ -29,9 +29,11 @@ final class SseSession {
     void start(){writer=writers.submit(this::writeLoop);if(closed.get())releaseWriter();}
     void setCall(AgentModel.Call value){if(!call.compareAndSet(null,value))throw new IllegalStateException("Call already assigned");if(closed.get()){if(resourceFailure)value.fail();else value.cancel();}}
     void startEvent(){offer("start",data("start",null,null,null,null,null,null),false);}
-    AgentModel.Listener listener(){return new AgentModel.Listener(){
+    AgentModel.Listener listener(){return new com.gba.merchantbao.chat.service.ChatRunListener(){
         public void delta(String delta){offer("token",data("token",delta,null,null,null,null,null),false);}
-        public void complete(AgentModel.Usage usage){offer("done",data("done",null,"COMPLETED",usage,null,null,null),true);}
+        public void complete(AgentModel.Usage usage,java.util.List<com.gba.merchantbao.knowledge.vo.KnowledgeSource> sources){
+            var done=data("done",null,"COMPLETED",usage,null,null,null);done.put("sources",sources);offer("done",done,true);
+        }
         public void error(Throwable error){
             String code=error.getMessage();if(code==null||!Set.of("TIMEOUT","DEPENDENCY_ERROR","CHAT_DEPENDENCY_UNAVAILABLE","CANCELLED","INTERNAL_ERROR").contains(code))code="DEPENDENCY_ERROR";
             String terminal=code.equals("TIMEOUT")?"TIMED_OUT":code.equals("CANCELLED")?"CANCELLED":"FAILED";

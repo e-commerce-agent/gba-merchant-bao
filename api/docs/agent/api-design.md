@@ -163,6 +163,8 @@ POST `/api/v1/chat/sessions/{sessionId}/archive` 不携带 body（允许 `{}`，
 
 GET `/api/v1/chat/sessions/{sessionId}/messages?size=20` 返回 data={items:[ChatMessageView],nextCursor,hasMore}，严格按 messageSeq 升序。归档和异常轮次均可读，历史不只返回成功文本。部分 token 在本次运行未结束前可能只在 SSE 中，不承诺每个 token 立刻出现在数据库；进程崩溃可能丢失未提交部分。
 
+RAG 增量：每条历史消息追加 `sources` 数组，仅成功助手回答包含本次实际入模资料的快照；旧消息、USER、失败/取消/超时、无资料均为 `[]`。字段和聊天接入行为见 [RAG 聊天增量](../rag/README.md#现有聊天增量)。合法重复提交仍返回原 ChatRunView，来源从本人历史读取。
+
 ### 3.5 提交新消息和重复请求
 
 ```http
@@ -244,7 +246,7 @@ X-Request-Id: chat-send-001
 | --- | --- | --- |
 | start | userMessageId：用户消息 ID；两条消息已可靠接收 | 否，恰好一次且第一个 |
 | token | delta：非空文本片段，可包含换行；一次 delta 不等于一个 tokenizer token | 否，零至多个，有序拼接 |
-| done | status=COMPLETED；usage：null 或可得用量对象 | 是，最终状态已落库 |
+| done | status=COMPLETED；usage：null 或可得用量对象；sources：实际入模参考片段数组，无资料为 [] | 是，正文及 sources 同事务提交 |
 | error | code：第 1.2 节字符串标识；message：安全摘要；terminalStatus=CANCELLED/TIMED_OUT/FAILED | 是，不再发 done |
 
 `usage` 未获得任何实际用量时整体 null；部分获得时允许 `{inputTokens:null,outputTokens:18}`。不得用估算值冒充供应商计费。历史用量字段与 run 对应，未知仍为 null。
@@ -272,7 +274,7 @@ data: {"version":"v1","runId":"500000000000000001","sessionId":"3000000000000000
 
 event: done
 id: 500000000000000001:4
-data: {"version":"v1","runId":"500000000000000001","sessionId":"300000000000000001","messageId":"400000000000000002","requestId":"chat-send-001","status":"COMPLETED","usage":null}
+data: {"version":"v1","runId":"500000000000000001","sessionId":"300000000000000001","messageId":"400000000000000002","requestId":"chat-send-001","status":"COMPLETED","usage":null,"sources":[]}
 
 ```
 

@@ -103,12 +103,60 @@ class ChatHttpIT {
             assertThat(send.has("application/json")).isTrue();assertThat(send.has("text/event-stream")).isTrue();
             assertThat(send.path("text/event-stream").path("examples").toString()).contains("event: start","event: token","event: done","event: error");
             var schemas=root.path("components").path("schemas");
+            assertThat(schemas.path("Source").path("properties").path("documentId").path("type").asText()).isEqualTo("string");
+            assertThat(schemas.path("Source").path("properties").path("excerpt").path("maxLength").asInt()).isEqualTo(300);
+            for (String schema : List.of("ChatMessage", "ChatDone")) {
+                assertThat(schemas.path(schema).path("required")).contains(json.getNodeFactory().textNode("sources"));
+                assertThat(schemas.path(schema).path("properties").path("sources").path("items").path("$ref").asText()).isEqualTo("#/components/schemas/Source");
+            }
+            assertThat(send.path("text/event-stream").path("x-sse-data-schemas").path("done").path("$ref").asText()).isEqualTo("#/components/schemas/ChatDone");
+            assertThat(send.path("text/event-stream").path("examples").toString()).contains("sources", "售后政策", "当前资料中没有找到相关信息");
             assertThat(schemas.path("ChatSession").path("properties").path("archivedAt").path("anyOf").get(1).path("type").asText()).isEqualTo("null");
             assertThat(schemas.path("ChatError").path("properties").path("data").path("type").asText()).isEqualTo("null");
             assertThat(response.body()).doesNotContain("http-stub-key","http-test-token");
             java.nio.file.Path rootDir=java.nio.file.Path.of("").toAbsolutePath();if(rootDir.getFileName().toString().equals("api"))rootDir=rootDir.getParent();
             var snapshot=rootDir.resolve("docs/api/agent-conversation-v1.openapi.yaml");java.nio.file.Files.createDirectories(snapshot.getParent());
             java.nio.file.Files.writeString(snapshot,response.body());
+            var jsonResponse=client.send(HttpRequest.newBuilder(uri("/v3/api-docs/agent-conversation-v1")).GET().build(),HttpResponse.BodyHandlers.ofString());
+            assertThat(jsonResponse.statusCode()).isEqualTo(200);
+            var jsonRoot=json.readTree(jsonResponse.body());
+            assertThat(jsonRoot.path("paths").size()).isEqualTo(paths.size());
+            assertThat(jsonRoot.path("components").path("schemas").path("Source")).isEqualTo(schemas.path("Source"));
+            assertThat(jsonRoot.path("components").path("schemas").path("ChatDone")).isEqualTo(schemas.path("ChatDone"));
+            java.nio.file.Files.writeString(rootDir.resolve("docs/api/agent-conversation-v1.openapi.json"),jsonResponse.body());
+        }
+    }
+    @Test void actualKnowledgeSpringdocExportsMultipartStaffSecurityAndPage() throws Exception {
+        try(var client=HttpClient.newHttpClient()) {
+            var response=client.send(HttpRequest.newBuilder(uri("/v3/api-docs/knowledge-v1")).GET().build(),HttpResponse.BodyHandlers.ofString());
+            assertThat(response.statusCode()).isEqualTo(200);
+            var root=json.readTree(response.body());var paths=root.path("paths");assertThat(paths.size()).isOne();
+            var path=paths.path("/api/v1/knowledge/documents");
+            for(String method:List.of("get","post")) {
+                var operation=path.path(method);
+                assertThat(operation.path("security").toString()).contains("knowledgeBearer");
+                assertThat(operation.path("responses").has("401")).isTrue();
+                assertThat(operation.path("responses").has("403")).isTrue();
+                assertThat(operation.path("responses").path("400").path("content").has("application/json")).isTrue();
+            }
+            var multipart=path.path("post").path("requestBody").path("content").path("multipart/form-data").path("schema");
+            assertThat(multipart.path("required")).contains(json.getNodeFactory().textNode("file"),json.getNodeFactory().textNode("title"));
+            assertThat(multipart.path("properties").path("file").path("format").asText()).isEqualTo("binary");
+            assertThat(multipart.path("additionalProperties").asBoolean(true)).isFalse();
+            assertThat(root.path("components").path("schemas").path("KnowledgeDocument").path("properties").path("documentId").path("type").asText()).isEqualTo("string");
+            assertThat(path.path("post").path("responses").has("201")).isTrue();
+            assertThat(path.path("post").path("responses").has("413")).isTrue();
+            assertThat(response.body()).doesNotContain("http-stub-key","http-test-token");
+            var yaml=client.send(HttpRequest.newBuilder(uri("/v3/api-docs.yaml/knowledge-v1")).GET().build(),HttpResponse.BodyHandlers.ofString());
+            assertThat(yaml.statusCode()).isEqualTo(200);
+            Map<String,Object> document=new org.yaml.snakeyaml.Yaml().load(yaml.body());
+            var yamlRoot=json.<JsonNode>valueToTree(document);
+            // SnakeYAML resolves ISO examples to Date, so compare wire schemas rather than reserialized timestamp examples.
+            assertThat(yamlRoot.path("paths").size()).isEqualTo(paths.size());
+            assertThat(yamlRoot.path("components").path("schemas")).isEqualTo(root.path("components").path("schemas"));
+            java.nio.file.Path rootDir=java.nio.file.Path.of("").toAbsolutePath();if(rootDir.getFileName().toString().equals("api"))rootDir=rootDir.getParent();
+            java.nio.file.Files.writeString(rootDir.resolve("docs/api/knowledge-v1.openapi.json"),response.body());
+            java.nio.file.Files.writeString(rootDir.resolve("docs/api/knowledge-v1.openapi.yaml"),yaml.body());
         }
     }
     URI uri(String path){return URI.create("http://127.0.0.1:"+port+path);}
