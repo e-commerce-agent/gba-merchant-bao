@@ -10,8 +10,8 @@
 
 - <a id="agent-apifox-verification"></a>[agent / apifox-verification.md](../agent/apifox-verification.md)：隔离服务和 Apifox 导入用例。
 - <a id="agent-manual-verification"></a>[agent / manual-verification.md](../agent/manual-verification.md)：人工联调步骤。
-- <a id="auth-data-design"></a>[auth / data-design.md](../auth/data-design.md)：数据结构和边界。
-- <a id="auth-manual-verification"></a>[auth / manual-verification.md](../auth/manual-verification.md)：人工联调步骤。
+- <a id="auth-data-design"></a>[auth / data-design.md](../../../docs/archive/20261113-auth/data-design.md)：数据结构和边界。
+- <a id="auth-manual-verification"></a>[auth / manual-verification.md](../../../docs/archive/20261113-auth/manual-verification.md)：人工联调步骤。
 - <a id="deployment-dev-seed-upgrade"></a>[deployment / dev-seed-upgrade.md](../deployment/dev-seed-upgrade.md)：开发种子升级步骤。
 - <a id="deployment-local-development"></a>[deployment / local-development.md](../deployment/local-development.md)、<a id="deployment-local-development-v9-upgrade"></a>[V5 开发库升级至 V9](../deployment/local-development.md#v5-开发库升级到商品库存订单物流-v9)：本地开发和升级步骤。
 

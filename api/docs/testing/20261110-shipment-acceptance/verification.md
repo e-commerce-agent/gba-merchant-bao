@@ -42,7 +42,7 @@
 
 ## 变更校验
 
-`npx @fission-ai/openspec@1.17.0 validate add-shipment-web-service --strict` 通过（本机 PATH 无 `openspec`，用 npx 调用）。proposal、design、specs、tasks 与 `api/docs/shipment/` 已逐项核对：编号结论统一为物流 V6/R040、订单 V7/R050、库存 V8；`docs/api/shipment-v1.openapi.yaml` 已由导出结果替换；`api/README.md` 补齐物流文档与快照导航。
+`npx @fission-ai/openspec@1.17.0 validate add-shipment-web-service --strict` 通过（本机 PATH 无 `openspec`，用 npx 调用）。proposal、design、specs、tasks 与 `docs/archive/20261113-shipment/` 已逐项核对：编号结论统一为物流 V6/R040、订单 V7/R050、库存 V8；`docs/api/shipment-v1.openapi.yaml` 已由导出结果替换；`api/README.md` 补齐物流文档与快照导航。
 
 ## 已知限制
 

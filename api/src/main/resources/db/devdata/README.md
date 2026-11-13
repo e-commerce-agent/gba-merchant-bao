@@ -10,7 +10,7 @@
 未实现模块不预建表，不将旧餐饮数据冒充上述样板数据。V1–V5 与 R010/R020/R030 是已执行基线，保持内容不变；V6–V9 按商品、库存、订单、物流顺序创建。
 用例需要的数据单独放 src/test/resources/db/fixture，由 @Sql 显式加载。
 
-R__020_auth_demo_accounts.sql 仅在 dev 提供两个租户首员工和三个消费者，稳定用户名/手机号缺失才插入，不重置 hash/status。开发密码与联调步骤见 [认证文档入口](../../../../../docs/auth/README.md)；生产开通延期。普通 test 不加载，AuthDevManualIT 仅在独立临时基础设施显式模拟 dev 加载。
+R__020_auth_demo_accounts.sql 仅在 dev 提供两个租户首员工和三个消费者，稳定用户名/手机号缺失才插入，不重置 hash/status。开发密码与联调步骤见 [认证文档入口](../../../../../../docs/archive/20261113-auth/README.md)；生产开通延期。普通 test 不加载，AuthDevManualIT 仅在独立临时基础设施显式模拟 dev 加载。
 
 租户与账号仅补缺失记录，保留人工名称/状态/密码等资料；预期租户缺失或稳定身份冲突时通过 `dev_seed_*` 校验明确失败。R 首次或校验和变化才执行，上游变化不自动触发下游；手工删除数据后重启不自动补回。补种须显式受控执行，不改 history。
 ## 初始化顺序
@@ -38,7 +38,7 @@ R050 为 8 个真实目录 SKU 初始化库存，包含两商户有货、零可�
 
 R060 提供 M_3C_DEMO 六单和 M_ISOLATION_TEST 一单，8 条订单项引用 R040 中同商户且属于对应商品的 SKU；订单总额等于订单项金额合计，成交名称/规格/价格保留在历史快照中。稳定订单 ID 为 2100000000000301–0307，订单项 ID 为 2100000000000311–0318。
 
-R070 提供 M_3C_DEMO 两张运单及 M_ISOLATION_TEST 一张运单，order_id/order_no 和商户归属匹配 R060 订单；IN_TRANSIT 运单对应 SHIPPED 订单。物流联调步骤见 [物流文档入口](../../../../../docs/shipment/README.md)。NOT_SHIPPED 由服务在无运单记录时合成。
+R070 提供 M_3C_DEMO 两张运单及 M_ISOLATION_TEST 一张运单，order_id/order_no 和商户归属匹配 R060 订单；IN_TRANSIT 运单对应 SHIPPED 订单。物流联调步骤见 [物流文档入口](../../../../../../docs/archive/20261113-shipment/README.md)。NOT_SHIPPED 由服务在无运单记录时合成。
 
 ## 稳定关联 ID
 

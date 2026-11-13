@@ -34,9 +34,9 @@
 
 ## 6. 五个基础模块分别整理后冻结
 
-- [ ] 6.1 将五模块长期文档分别移至 docs/archive/ 下的 YYYYmmdd-auth、YYYYmmdd-product、YYYYmmdd-inventory、YYYYmmdd-order、YYYYmmdd-shipment 五个同级目录，日期为实际冻结日，保留现有文件名；各建/整理 README，原 README 技术长文按 design 原文迁出，确认不混入脚本或已集中 testing 的事件、不补缺失设计，Agent/architecture/deployment 留原目录。
-- [ ] 6.2 对整理前后技术段落、证据对应、数值、日期、状态和限制逐项核对，仅允许导航调整、段落迁移及实际路径机械同步；以一份 docs/archive/manifest.json 登记原路径/来源/原始哈希、最终去向和冻结哈希，检查冻结基线在整理之后建立，不错误要求新旧文件哈希相同。
-- [ ] 6.3 增加短版根 AGENTS 与 archive 作用域冻结规则，tools/check-maintenance.ps1 校验清单来源、路径、冻结哈希和目录导航；隔离样例验证改写/丢失/无来源重建会失败，确认旧模块目录只在不可改调用方确有需要时留最少兼容入口。
+- [x] 6.1 将五模块长期文档分别移至 docs/archive/ 下的 YYYYmmdd-auth、YYYYmmdd-product、YYYYmmdd-inventory、YYYYmmdd-order、YYYYmmdd-shipment 五个同级目录，日期为实际冻结日，保留现有文件名；各建/整理 README，原 README 技术长文按 design 原文迁出，确认不混入脚本或已集中 testing 的事件、不补缺失设计，Agent/architecture/deployment 留原目录。
+- [x] 6.2 对整理前后技术段落、证据对应、数值、日期、状态和限制逐项核对，仅允许导航调整、段落迁移及实际路径机械同步；以一份 docs/archive/manifest.json 登记原路径/来源/原始哈希、最终去向和冻结哈希，检查冻结基线在整理之后建立，不错误要求新旧文件哈希相同。
+- [x] 6.3 增加短版根 AGENTS 与 archive 作用域冻结规则，tools/check-maintenance.ps1 校验清单来源、路径、冻结哈希和目录导航；隔离样例验证改写/丢失/无来源重建会失败，确认旧模块目录只在不可改调用方确有需要时留最少兼容入口。
 
 ## 7. Runtime 分类保全
 
