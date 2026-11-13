@@ -1,0 +1,36 @@
+# Optional single-instance production overlay; vector and metadata ports stay internal.
+services:
+  milvus:
+    image: milvusdb/milvus:v2.5.9
+    profiles: [rag]
+    restart: unless-stopped
+    command: [milvus, run, standalone]
+    environment:
+      ETCD_USE_EMBED: "true"
+      ETCD_DATA_DIR: /var/lib/milvus/etcd
+      COMMON_STORAGETYPE: local
+    volumes: [rag_milvus_data:/var/lib/milvus]
+    healthcheck:
+      test: [CMD, curl, -f, http://localhost:9091/healthz]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    logging:
+      driver: json-file
+      options: {max-size: "20m", max-file: "5"}
+
+  app:
+    environment:
+      MERCHANT_RAG_ENABLED: "true"
+      RAG_EMBEDDING_BASE_URL: ${RAG_EMBEDDING_BASE_URL:?Required for RAG overlay}
+      RAG_EMBEDDING_API_KEY: ${RAG_EMBEDDING_API_KEY:?Required for RAG overlay}
+      RAG_EMBEDDING_MODEL: ${RAG_EMBEDDING_MODEL:-text-embedding-3-small}
+      RAG_EMBEDDING_DIMENSION: ${RAG_EMBEDDING_DIMENSION:-1536}
+      RAG_MILVUS_URI: http://milvus:19530
+      RAG_COLLECTION: ${RAG_COLLECTION:-knowledge_text_embedding_3_small}
+    depends_on:
+      milvus: {condition: service_healthy}
+
+volumes:
+  rag_milvus_data:

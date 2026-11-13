@@ -4,9 +4,9 @@
 
 ## 1. 资料入库
 
-- [ ] 1.1 接入兼容现有 LangChain4j 的 Embedding/Milvus 依赖、独立配置和 Compose；验证 RAG 关闭时原应用可启动，启用时能连接正确维度的 collection，配置说明写明实际模型与版本。
-- [ ] 1.2 新增文档、切片表及 chat_message.sources_json 的 Flyway 迁移；隔离 MySQL 验证迁移、商户复合归属约束和旧消息 sources=[]。
-- [ ] 1.3 实现员工 TXT/MD 同步上传、简单段落切分、Embedding 和 Milvus 入库，及文档分页列表；用有效/非法文件和角色请求验证限制、READY发布及失败资料不可检索，并记录上传接口用法。
+- [x] 1.1 接入兼容现有 LangChain4j 的 Embedding/Milvus 依赖、独立配置和 Compose；验证 RAG 关闭时原应用可启动，启用时能连接正确维度的 collection，配置说明写明实际模型与版本。
+- [x] 1.2 新增文档、切片表及 chat_message.sources_json 的 Flyway 迁移；隔离 MySQL 验证迁移、商户复合归属约束和旧消息 sources=[]。
+- [x] 1.3 实现员工 TXT/MD 同步上传、简单段落切分、Embedding 和 Milvus 入库，及文档分页列表；用有效/非法文件和角色请求验证限制、READY发布及失败资料不可检索，并记录上传接口用法。
 
 ## 2. 现有聊天接入 RAG
 
