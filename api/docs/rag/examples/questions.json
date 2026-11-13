@@ -1,0 +1,7 @@
+[
+  {"question":"GbaPower充电器SKU-CHG-65W-CN的功率、插头和目录价是什么？","title":"商品资料","expected":"65W，国标插头，99.00元CNY","noMatch":false},
+  {"question":"USB-C数据线SKU-CBL-USBC-1M-BK的长度、颜色、目录价和传输速率是什么？","title":"商品资料","expected":"1米，黑色，19.90元，480Mbps","noMatch":false},
+  {"question":"未拆封的充电器购买后几天内能退货？非质量问题运费由谁承担？","title":"售后政策","expected":"七日内，买家承担运费（合成演示规则）","noMatch":false},
+  {"question":"M_3C_DEMO的3C店铺订单满多少元包邮？不满收多少运费？","title":"店铺规则","expected":"满199元包邮，否则8元（合成演示规则）","noMatch":false},
+  {"question":"路由器R9000的固件更新周期是多久？","title":"","expected":"当前资料中没有找到相关信息，请补充说明或联系店铺确认","noMatch":true}
+]

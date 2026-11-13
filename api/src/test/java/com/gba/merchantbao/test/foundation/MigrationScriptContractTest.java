@@ -46,14 +46,18 @@ class MigrationScriptContractTest {
     @Test
     void commerceMigrationVersionsAreUniqueDdlOnlyAndOrdered() throws IOException {
         var migrationDirectory = Path.of("src/main/resources/db/migration");
-        var migrations = java.nio.file.Files.list(migrationDirectory)
+        java.util.List<String> migrations;
+        try (var files = java.nio.file.Files.list(migrationDirectory)) {
+            migrations = files
                 .filter(path -> path.getFileName().toString().matches("V\\d+__.*\\.sql"))
-                .map(path -> path.getFileName().toString()).sorted().toList();
+                .map(path -> path.getFileName().toString()).toList();
+        }
         assertThat(migrations).contains("V6__product_module.sql", "V7__inventory_tables.sql",
-                "V8__order_tables.sql", "V9__shipment_tables.sql");
-        assertThat(migrations).noneMatch(name -> name.matches("V(10|[1-9][0-9]+)__.*"));
-        assertThat(migrations.stream().map(name -> name.substring(1, name.indexOf("__"))).distinct().count())
-                .isEqualTo(migrations.size());
+                "V8__order_tables.sql", "V9__shipment_tables.sql", "V10__knowledge_ingestion.sql");
+        // Versions grow with new modules; require unique, contiguous numeric versions, not a fixed ceiling.
+        var versions = migrations.stream().map(name -> Integer.parseInt(name.substring(1, name.indexOf("__"))))
+                .sorted().toList();
+        assertThat(versions).containsExactlyElementsOf(java.util.stream.IntStream.rangeClosed(1, migrations.size()).boxed().toList());
         for (int i = 0; i < migrations.size(); i++) {
             String sql = java.nio.file.Files.readString(migrationDirectory.resolve(migrations.get(i)));
             String executable = sql.lines().filter(line -> !line.trim().startsWith("--")).reduce("", (a, b) -> a + b + "\n");

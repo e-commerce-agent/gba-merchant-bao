@@ -1,0 +1,381 @@
+openapi: 3.1.0
+info:
+  title: Knowledge documents API
+  description: 仅 MERCHANT_STAFF 可上传/列出本商户资料；消费者403、未认证401，先鉴权再解析文件。身份来自 Bearer，拒绝客户端覆盖
+    merchantId/accountId/role。同步上传，无任务或重试接口；所有响应 no-store。RAG 关闭时上传503，列表仍可读。
+  version: v1
+servers:
+- url: /
+paths:
+  /api/v1/knowledge/documents:
+    get:
+      tags:
+      - Knowledge documents
+      summary: 按createdAt/id倒序分页列出本商户文档摘要
+      description: 仅返回本商户 PROCESSING/READY/FAILED 摘要，不含正文。未知或重复查询参数、非法游标返回400。nextCursor非空时原样传入下一页。
+      operationId: listKnowledgeDocuments
+      parameters:
+      - name: X-Request-Id
+        in: header
+        description: 缺失/非法时由服务器生成
+        schema:
+          type: string
+          pattern: "^[A-Za-z0-9._:-]{1,128}$"
+      - name: size
+        in: query
+        schema:
+          type: integer
+          format: int32
+          default: 20
+          maximum: 100
+          minimum: 1
+      - name: cursor
+        in: query
+        description: 省略为首页；不透明资源游标
+        schema:
+          type: string
+          maxLength: 128
+          pattern: "^[A-Za-z0-9_-]+$"
+      responses:
+        "200":
+          description: 成功
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgePageEnvelope"
+        "400":
+          description: 10001 非法字段、文件、分页或游标
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeError"
+        "401":
+          description: 10002 Bearer缺失/失效
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeError"
+        "403":
+          description: 10003 仅员工可访问
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeError"
+        "500":
+          description: 10500 内部错误
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeError"
+      security:
+      - knowledgeBearer: []
+    post:
+      tags:
+      - Knowledge documents
+      summary: 同步导入本商户 TXT/Markdown
+      description: 仅两个 multipart 字段 title 和 file，不接受查询参数或重复字段。UTF-8（可带BOM）.txt/.md，最大1
+        MiB、5万Unicode码点、200片，每片最多300码点。事务外向量化与入库，60秒总预算；确认可查询后才发布 READY。失败为 FAILED
+        且不参与聊天；重复上传产生新文档。
+      operationId: uploadKnowledgeDocument
+      parameters:
+      - name: X-Request-Id
+        in: header
+        description: 缺失/非法时由服务器生成
+        schema:
+          type: string
+          pattern: "^[A-Za-z0-9._:-]{1,128}$"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                title:
+                  type: string
+                  description: 去除首尾空白后1–200个Unicode码点
+                  example: 售后政策
+                  maxLength: 200
+                  minLength: 1
+                file:
+                  type: string
+                  format: binary
+                  description: 单个UTF-8 TXT/MD文件，最大1 MiB
+              required:
+              - title
+              - file
+        required: true
+      responses:
+        "201":
+          description: 成功
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeDocumentEnvelope"
+              example:
+                code: 0
+                message: success
+                requestId: knowledge-example
+                data:
+                  title: 售后政策
+                  chunkCount: 1
+                  status: READY
+                  createdAt: 2026-11-13T10:00:00Z
+                  documentId: "610000000000000001"
+        "400":
+          description: 10001 非法字段、文件、分页或游标
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeError"
+        "401":
+          description: 10002 Bearer缺失/失效
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeError"
+        "403":
+          description: 10003 仅员工可访问
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeError"
+        "500":
+          description: 10500 内部错误
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeError"
+        "413":
+          description: 10001 文件、码点或切片超限
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeError"
+        "415":
+          description: 10001 仅支持TXT/MD及multipart/form-data
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeError"
+        "503":
+          description: 13501 RAG禁用；13502 Embedding/Milvus依赖失败或超时
+          headers:
+            X-Request-Id:
+              schema:
+                type: string
+            Cache-Control:
+              schema:
+                type: string
+                example: no-store
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeError"
+      security:
+      - knowledgeBearer: []
+components:
+  schemas:
+    KnowledgeDocument:
+      type: object
+      additionalProperties: false
+      properties:
+        documentId:
+          type: string
+          description: 正十进制BIGINT字符串
+          pattern: "^[1-9][0-9]{0,18}$"
+        title:
+          type: string
+          maxLength: 200
+        status:
+          type: string
+          enum:
+          - PROCESSING
+          - READY
+          - FAILED
+        chunkCount:
+          type: integer
+          format: int32
+          maximum: 200
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+          description: UTC ISO-8601
+      required:
+      - documentId
+      - title
+      - status
+      - chunkCount
+      - createdAt
+    KnowledgeDocumentEnvelope:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/KnowledgeDocument"
+        requestId:
+          type: string
+      required:
+      - code
+      - message
+      - data
+      - requestId
+    KnowledgePageEnvelope:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: false
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/KnowledgeDocument"
+            nextCursor:
+              anyOf:
+              - type: string
+              - type: "null"
+            hasMore:
+              type: boolean
+          required:
+          - items
+          - nextCursor
+          - hasMore
+        requestId:
+          type: string
+      required:
+      - code
+      - message
+      - data
+      - requestId
+    KnowledgeError:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+        data:
+          type: "null"
+        requestId:
+          type: string
+      required:
+      - code
+      - message
+      - data
+      - requestId
+  securitySchemes:
+    knowledgeBearer:
+      type: http
+      description: 现有员工登录返回的 access token
+      scheme: bearer

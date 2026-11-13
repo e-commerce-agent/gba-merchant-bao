@@ -10,7 +10,7 @@ if (-not $baseUri.IsAbsoluteUri -or $baseUri.Scheme -notin @('http', 'https') -o
 }
 $BaseUrl = $BaseUrl.TrimEnd('/')
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
-$groups = @('auth-v1', 'agent-conversation-v1', 'product-v1', 'inventory-v1', 'order-v1', 'shipment-v1')
+$groups = @('auth-v1', 'agent-conversation-v1', 'knowledge-v1', 'product-v1', 'inventory-v1', 'order-v1', 'shipment-v1')
 $snapshotDirectory = Join-Path $repositoryRoot 'docs/api'
 $stageDirectory = Join-Path $repositoryRoot ('api/target/openapi-export/' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $stageDirectory -Force | Out-Null
@@ -42,24 +42,30 @@ foreach ($group in $groups) {
 New-Item -ItemType Directory -Path $snapshotDirectory -Force | Out-Null
 $previous = @{}
 foreach ($group in $groups) {
-    $destination = Join-Path $snapshotDirectory "$group.openapi.yaml"
-    if (Test-Path -LiteralPath $destination) {
-        $backup = Join-Path $stageDirectory "$group.previous.yaml"
-        Copy-Item -LiteralPath $destination -Destination $backup
-        $previous[$group] = $backup
+    foreach ($format in @('json', 'yaml')) {
+        $filename = "$group.openapi.$format"
+        $destination = Join-Path $snapshotDirectory $filename
+        if (Test-Path -LiteralPath $destination) {
+            $backup = Join-Path $stageDirectory "$group.previous.$format"
+            Copy-Item -LiteralPath $destination -Destination $backup
+            $previous[$filename] = $backup
+        }
     }
 }
 $attempted = [Collections.Generic.List[string]]::new()
 try {
     foreach ($group in $groups) {
-        $attempted.Add($group)
-        Copy-Item -LiteralPath (Join-Path $stageDirectory "$group.openapi.yaml") -Destination (Join-Path $snapshotDirectory "$group.openapi.yaml") -Force
+        foreach ($format in @('json', 'yaml')) {
+            $filename = "$group.openapi.$format"
+            $attempted.Add($filename)
+            Copy-Item -LiteralPath (Join-Path $stageDirectory $filename) -Destination (Join-Path $snapshotDirectory $filename) -Force
+        }
     }
 } catch {
-    foreach ($group in $attempted) {
-        $destination = Join-Path $snapshotDirectory "$group.openapi.yaml"
-        if ($previous.ContainsKey($group)) {
-            Copy-Item -LiteralPath $previous[$group] -Destination $destination -Force
+    foreach ($filename in $attempted) {
+        $destination = Join-Path $snapshotDirectory $filename
+        if ($previous.ContainsKey($filename)) {
+            Copy-Item -LiteralPath $previous[$filename] -Destination $destination -Force
         } elseif (Test-Path -LiteralPath $destination) {
             # Only the exact new snapshot attempted by this invocation is removed.
             Remove-Item -LiteralPath $destination
@@ -67,4 +73,4 @@ try {
     }
     throw
 }
-Write-Output "Exported $($groups.Count) Springdoc groups to docs/api; staging retained in $stageDirectory"
+Write-Output "Exported $($groups.Count) Springdoc groups (JSON/YAML) to docs/api; staging retained in $stageDirectory"

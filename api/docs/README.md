@@ -7,6 +7,7 @@
 ## 目录
 
 - [Agent 文档](agent/README.md)：查看该目录的文件与用途。
+- [RAG 资料与聊天联调](rag/README.md)：3C样例、上传/提问/sources、Springdoc交付
 - [架构文档](architecture/README.md)：查看该目录的文件与用途。
 - [历史模块归档](archive/README.md)：五个基础模块的冻结文档入口。
 - [认证文档](archive/20261113-auth/README.md)：查看该目录的文件与用途。

@@ -1248,8 +1248,9 @@ paths:
       - Agent conversation
       summary: 提交消息并生成 SSE，或返回同 key 同正文的原 run JSON
       description: 必须同时处理 text/event-stream 和 application/json。幂等先于 busy/归档判断；key
-        相同正文不同返回 409。客户端不能覆盖身份、system、role 或模型。断开后查历史，不支持 Last-Event-ID 重放。citation/tool_call
-        留待未来扩展，本期不发送。
+        相同正文不同返回 409，不重跑检索或生成。RAG 仅检索本商户 READY 资料；无匹配返回资料不足提示和空 sources，依赖失败为 error。done.data
+        对应 ChatDone，正文与实际入模来源同事务提交；历史保留来源快照。客户端不能覆盖身份、system、role 或模型。断开后查历史，不支持 Last-Event-ID
+        重放。citation/tool_call 留待未来扩展，本期不发送。
       operationId: sendChatMessage
       parameters:
       - name: X-Request-Id
@@ -1317,11 +1318,26 @@ paths:
 
                     id: 41:2
                     event: token
-                    data: {"version":"v1","runId":"41","sessionId":"31","messageId":"61","requestId":"chat-example","delta":"你好"}
+                    data: {"version":"v1","runId":"41","sessionId":"31","messageId":"61","requestId":"chat-example","delta":"购买后七日内，未拆封商品可申请退货。"}
 
                     id: 41:3
                     event: done
-                    data: {"version":"v1","runId":"41","sessionId":"31","messageId":"61","requestId":"chat-example","status":"COMPLETED","usage":null}
+                    data: {"version":"v1","runId":"41","sessionId":"31","messageId":"61","requestId":"chat-example","status":"COMPLETED","usage":null,"sources":[{"documentId":"610000000000000001","chunkId":"620000000000000001","title":"售后政策","chunkNo":1,"excerpt":"购买后七日内，未拆封商品可申请退货。"}]}
+
+                noMatch:
+                  summary: "无匹配直接提示资料不足；sources=[]，不调用生成模型"
+                  value: |+
+                    id: 41:1
+                    event: start
+                    data: {"version":"v1","runId":"41","sessionId":"31","messageId":"61","requestId":"chat-example","userMessageId":"51"}
+
+                    id: 41:2
+                    event: token
+                    data: {"version":"v1","runId":"41","sessionId":"31","messageId":"61","requestId":"chat-example","delta":"当前资料中没有找到相关信息，请补充说明或联系店铺确认"}
+
+                    id: 41:3
+                    event: done
+                    data: {"version":"v1","runId":"41","sessionId":"31","messageId":"61","requestId":"chat-example","status":"COMPLETED","usage":null,"sources":[]}
 
                 timeout:
                   summary: start 后的超时终态；HTTP 已为 200
@@ -1334,6 +1350,9 @@ paths:
                     event: error
                     data: {"version":"v1","runId":"41","sessionId":"31","messageId":"61","requestId":"chat-example","code":"TIMEOUT","message":"模型响应超时","terminalStatus":"TIMED_OUT"}
 
+              x-sse-data-schemas:
+                done:
+                  $ref: "#/components/schemas/ChatDone"
         "400":
           description: 10001 参数无效；13001 上下文预算不足
           headers:
@@ -1666,6 +1685,12 @@ components:
             description: UTC ISO-8601，Z 后缀
             example: 2026-11-08T01:02:03.456Z
           - type: "null"
+        sources:
+          type: array
+          description: 成功助手消息的来源快照；旧消息、USER、失败、取消、超时、无资料均为空数组
+          items:
+            $ref: "#/components/schemas/Source"
+          maxItems: 5
       required:
       - messageId
       - messageSeq
@@ -1679,6 +1704,7 @@ components:
       - outputTokens
       - createdAt
       - completedAt
+      - sources
     ChatRun:
       type: object
       additionalProperties: false
@@ -1718,6 +1744,103 @@ components:
       - userMessageId
       - messageId
       - status
+    Source:
+      type: object
+      additionalProperties: false
+      description: 实际入模的参考片段快照；不代表逐句核验回答
+      properties:
+        documentId:
+          type: string
+          description: 正十进制 BIGINT 字符串，最大 9223372036854775807
+          example: "300000000000000001"
+          pattern: "^[1-9][0-9]{0,18}$"
+        chunkId:
+          type: string
+          description: 正十进制 BIGINT 字符串，最大 9223372036854775807
+          example: "300000000000000001"
+          pattern: "^[1-9][0-9]{0,18}$"
+        title:
+          type: string
+          maxLength: 200
+        chunkNo:
+          type: integer
+          format: int32
+          maximum: 200
+          minimum: 1
+        excerpt:
+          type: string
+          description: 最多300个 Unicode 码点，与实际入模片段一致
+          maxLength: 300
+      required:
+      - documentId
+      - chunkId
+      - title
+      - chunkNo
+      - excerpt
+    ChatDone:
+      type: object
+      additionalProperties: false
+      description: "SSE event: done 的 data JSON；仅在成功正文及 sources 提交后发送"
+      properties:
+        version:
+          type: string
+          enum:
+          - v1
+        runId:
+          type: string
+          description: 正十进制 BIGINT 字符串，最大 9223372036854775807
+          example: "300000000000000001"
+          pattern: "^[1-9][0-9]{0,18}$"
+        sessionId:
+          type: string
+          description: 正十进制 BIGINT 字符串，最大 9223372036854775807
+          example: "300000000000000001"
+          pattern: "^[1-9][0-9]{0,18}$"
+        messageId:
+          type: string
+          description: 正十进制 BIGINT 字符串，最大 9223372036854775807
+          example: "300000000000000001"
+          pattern: "^[1-9][0-9]{0,18}$"
+        requestId:
+          type: string
+        status:
+          type: string
+          enum:
+          - COMPLETED
+        usage:
+          anyOf:
+          - type: object
+            additionalProperties: false
+            properties:
+              inputTokens:
+                anyOf:
+                - type: integer
+                  format: int64
+                - type: "null"
+              outputTokens:
+                anyOf:
+                - type: integer
+                  format: int64
+                - type: "null"
+            required:
+            - inputTokens
+            - outputTokens
+          - type: "null"
+        sources:
+          type: array
+          description: 成功助手消息的来源快照；旧消息、USER、失败、取消、超时、无资料均为空数组
+          items:
+            $ref: "#/components/schemas/Source"
+          maxItems: 5
+      required:
+      - version
+      - runId
+      - sessionId
+      - messageId
+      - requestId
+      - status
+      - usage
+      - sources
     ChatError:
       type: object
       additionalProperties: false
