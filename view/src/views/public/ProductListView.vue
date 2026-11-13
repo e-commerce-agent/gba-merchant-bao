@@ -5,67 +5,67 @@ import { Search } from '@element-plus/icons-vue'
 import ProductCard from '@/components/ProductCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import { listPublicProducts } from '@/api/catalog'
+import { toCardModel } from '@/api/adapters'
 import type { ProductSummary } from '@/api/types'
 
 const route = useRoute()
 const router = useRouter()
 
-const categories = ['全部', '充电器', '数据线', '移动电源', '耳机', '车载充电', '无线充']
-const sorts = [
-  { label: '综合推荐', value: 'recommend' },
-  { label: '价格从低到高', value: 'price-asc' },
-  { label: '价格从高到低', value: 'price-desc' }
-]
+/**
+ * 公开商品列表（product-v1）。
+ * 后端是游标分页（cursor + size，没有 total），也不支持关键词与排序参数，
+ * 所以搜索只在「已加载的商品」里做前端过滤，翻页用「加载更多」而不是页码。
+ */
+const PAGE_SIZE = 12
 
 const keyword = ref(String(route.query.keyword || ''))
-const category = ref(String(route.query.category || '全部'))
-const sort = ref(String(route.query.sort || 'recommend'))
-const page = ref(1)
-const pageSize = 8
-
-const list = ref<ProductSummary[]>([])
-const total = ref(0)
+const items = ref<ProductSummary[]>([])
+const cursor = ref<string | undefined>()
+const hasMore = ref(false)
 const loading = ref(false)
+const loadingMore = ref(false)
+const failed = ref('')
 
-const totalPages = computed(() => Math.ceil(total.value / pageSize))
+const filtered = computed(() => {
+  const q = keyword.value.trim()
+  if (!q) return items.value
+  return items.value.filter(
+    (p) =>
+      p.name.includes(q) ||
+      (p.brand || '').includes(q) ||
+      (p.model || '').includes(q) ||
+      p.tags.some((t) => t.includes(q))
+  )
+})
 
-async function fetchList() {
-  loading.value = true
+async function load(reset = false) {
+  if (reset) {
+    loading.value = true
+    failed.value = ''
+    cursor.value = undefined
+    items.value = []
+  } else {
+    loadingMore.value = true
+  }
   try {
-    const res = await listPublicProducts({
-      keyword: keyword.value.trim() || undefined,
-      category: category.value === '全部' ? undefined : category.value,
-      sort: sort.value as 'recommend' | 'price-asc' | 'price-desc',
-      page: page.value,
-      pageSize
-    })
-    list.value = res.items
-    total.value = res.total
+    const page = await listPublicProducts({ size: PAGE_SIZE, cursor: cursor.value })
+    const mapped = page.items.map(toCardModel)
+    items.value = reset ? mapped : [...items.value, ...mapped]
+    cursor.value = page.nextCursor
+    hasMore.value = Boolean(page.hasMore && page.nextCursor)
+  } catch (e) {
+    failed.value = e instanceof Error ? e.message : '商品加载失败'
   } finally {
     loading.value = false
+    loadingMore.value = false
   }
 }
 
-function syncQuery() {
-  router.replace({
-    path: '/products',
-    query: {
-      ...(keyword.value.trim() ? { keyword: keyword.value.trim() } : {}),
-      ...(category.value !== '全部' ? { category: category.value } : {}),
-      ...(sort.value !== 'recommend' ? { sort: sort.value } : {})
-    }
-  })
-}
-
-watch([keyword, category, sort], () => {
-  page.value = 1
-  syncQuery()
-  fetchList()
+watch(keyword, (value) => {
+  router.replace({ path: '/products', query: value.trim() ? { keyword: value.trim() } : {} })
 })
 
-watch(page, fetchList)
-
-onMounted(fetchList)
+onMounted(() => load(true))
 </script>
 
 <template>
@@ -73,62 +73,52 @@ onMounted(fetchList)
     <header class="list-head">
       <div>
         <h1 class="list-head__title">全部商品</h1>
-        <p class="list-head__desc">共 {{ total }} 款在售商品 · 库存状态来自公开接口，不包含具体数量</p>
+        <p class="list-head__desc">
+          已加载 {{ items.length }} 款在售商品<template v-if="hasMore">，还有更多</template>
+          · 库存只展示「有货 / 缺货」，不含具体数量
+        </p>
       </div>
 
       <el-input
         v-model="keyword"
         class="list-head__search"
-        placeholder="搜索商品名、品牌、标签"
+        placeholder="在已加载商品中搜索名称、品牌、属性"
         :prefix-icon="Search"
         clearable
       />
     </header>
 
-    <div class="filters">
-      <div class="filters__cats">
-        <button
-          v-for="c in categories"
-          :key="c"
-          type="button"
-          class="filters__cat"
-          :class="{ 'is-active': category === c }"
-          @click="category = c"
-        >
-          {{ c }}
-        </button>
-      </div>
-
-      <el-select v-model="sort" class="filters__sort" size="default">
-        <el-option v-for="s in sorts" :key="s.value" :label="s.label" :value="s.value" />
-      </el-select>
-    </div>
-
     <div v-if="loading" class="grid">
-      <div v-for="i in pageSize" :key="i" class="skeleton" style="height: 320px" />
+      <div v-for="i in 8" :key="i" class="skeleton" style="height: 320px" />
     </div>
 
     <EmptyState
-      v-else-if="!list.length"
-      title="没有找到匹配的商品"
-      description="换个关键词或清空筛选条件再试一次"
+      v-else-if="failed"
+      title="商品加载失败"
+      :description="failed"
     >
-      <el-button @click="keyword = ''; category = '全部'">清空筛选</el-button>
+      <el-button @click="load(true)">重新加载</el-button>
     </EmptyState>
 
-    <div v-else class="grid">
-      <ProductCard v-for="p in list" :key="p.id" :product="p" />
-    </div>
+    <EmptyState
+      v-else-if="!filtered.length"
+      title="没有找到匹配的商品"
+      :description="keyword ? '试试别的关键词，或清空搜索后翻页加载更多' : '店铺还没有上架商品'"
+    >
+      <el-button v-if="keyword" @click="keyword = ''">清空搜索</el-button>
+    </EmptyState>
 
-    <div v-if="totalPages > 1" class="pager">
-      <el-pagination
-        v-model:current-page="page"
-        :page-size="pageSize"
-        :total="total"
-        layout="prev, pager, next"
-        background
-      />
-    </div>
+    <template v-else>
+      <div class="grid">
+        <ProductCard v-for="p in filtered" :key="p.id" :product="p" />
+      </div>
+
+      <div v-if="hasMore" class="more">
+        <el-button :loading="loadingMore" @click="load(false)">
+          {{ loadingMore ? '加载中…' : '加载更多' }}
+        </el-button>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -144,6 +134,8 @@ onMounted(fetchList)
   justify-content: space-between;
   gap: var(--space-6);
   padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-6);
 }
 
 .list-head__title {
@@ -158,49 +150,7 @@ onMounted(fetchList)
 }
 
 .list-head__search {
-  width: 300px;
-}
-
-.filters {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-3) 0 var(--space-5);
-  border-top: 1px solid var(--border-subtle);
-}
-
-.filters__cats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.filters__cat {
-  padding: 6px 12px;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  font-size: var(--fs-sm);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: all var(--dur-fast) var(--ease);
-
-  &:hover {
-    background: var(--ink-100);
-    color: var(--text-strong);
-  }
-
-  &.is-active {
-    background: var(--ink-900);
-    color: #fff;
-    font-weight: 500;
-  }
-}
-
-.filters__sort {
-  width: 150px;
-  flex: none;
+  width: 320px;
 }
 
 .grid {
@@ -209,10 +159,10 @@ onMounted(fetchList)
   gap: var(--space-5);
 }
 
-.pager {
+.more {
   display: flex;
   justify-content: center;
-  margin-top: var(--space-10);
+  margin-top: var(--space-8);
 }
 
 @media (max-width: 1080px) {
@@ -237,10 +187,6 @@ onMounted(fetchList)
 @media (max-width: 560px) {
   .grid {
     grid-template-columns: 1fr;
-  }
-  .filters {
-    flex-direction: column;
-    align-items: flex-start;
   }
 }
 </style>

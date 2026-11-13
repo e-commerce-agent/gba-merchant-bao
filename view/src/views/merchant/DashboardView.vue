@@ -130,7 +130,7 @@ function resize() {
 onMounted(async () => {
   const [o, s, t] = await Promise.all([
     getMerchantOverview(),
-    listSessions('merchant'),
+    listSessions({ size: 50, audience: 'merchant' }),
     listDocumentTasks()
   ])
   overview.value = o

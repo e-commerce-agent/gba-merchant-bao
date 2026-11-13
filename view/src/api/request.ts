@@ -15,8 +15,34 @@ import {
 } from '@/utils/token'
 import { mockDispatch } from '@/mock'
 
-/** 是否走本地 Mock。联调时把 .env.development 的 VITE_USE_MOCK 改成 false 即切真实接口 */
+/** 是否整站走本地 Mock（离线演示用）。日常联调保持 false，走真实后端 */
 export const USE_MOCK = String(import.meta.env.VITE_USE_MOCK) === 'true'
+
+/**
+ * 后端尚未交付的接口：即使 USE_MOCK=false 也由本地 Mock 兜底，避免页面报错。
+ * 交付后把地址从下面列表删掉即可，不需要改页面代码。
+ */
+export const MOCK_UNIMPLEMENTED = String(import.meta.env.VITE_MOCK_UNIMPLEMENTED ?? 'true') !== 'false'
+
+/**
+ * 前端尚未按真实契约联调的接口：即使 USE_MOCK=false 也由本地 Mock 兜底。
+ * chat 已按 agent-conversation-v1 重写（游标分页 + SSE），走真实接口，
+ * 仅当整站 Mock（VITE_USE_MOCK=true，离线演示）时由本地数据代答。
+ */
+const MOCK_ONLY_PREFIXES = [
+  '/v1/knowledge-bases',
+  '/v1/document-tasks',
+  '/v1/merchant/overview'
+]
+
+function shouldMock(url: string): boolean {
+  if (USE_MOCK) return true
+  if (!MOCK_UNIMPLEMENTED) return false
+  return MOCK_ONLY_PREFIXES.some((prefix) => url.startsWith(prefix))
+}
+
+/** 供 SSE 等绕过 axios 的调用方复用同一套 Mock 判定 */
+export { shouldMock }
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -41,6 +67,9 @@ function newRequestId(): string {
   return `req-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`
 }
 
+/** 供 SSE（fetch 直连）复用同一请求号格式，便于联调对账 */
+export { newRequestId }
+
 /** 统一响应体的成功判定：后端已确认 HTTP 200/201 + 业务码 code=0（员工创建 201，其余 200） */
 function isSuccessCode(code: number): boolean {
   return code === 0
@@ -58,7 +87,16 @@ const CODE_MESSAGES: Record<number, string> = {
   11002: '验证码错误或已过期',
   11003: '请求过于频繁，请稍后再试',
   11501: '依赖服务暂不可用，请稍后重试',
-  11502: '短信服务未开启，请联系管理员'
+  11502: '短信服务未开启，请联系管理员',
+  13001: '商品或库存不存在，或不属于当前商户',
+  13002: '可售库存不足',
+  13003: '并发冲突，请稍后重试',
+  13004: '该 SKU 正在处理中，请稍后重试',
+  13005: '预占数量不足',
+  13006: '参数不合法，或当前账号无权维护库存',
+  13007: '盘亏后库存不能为负',
+  13008: 'SKU 已停售，不能新增供应',
+  13999: '库存服务异常，请稍后重试'
 }
 
 const http = axios.create({
@@ -153,7 +191,7 @@ http.interceptors.response.use(
       const url = original?.url || ''
       const isAuthCall = url.includes('/auth/refresh') || url.includes('/auth/login') || url.includes('/auth/logout')
 
-      if (original && !original.__retried && !isAuthCall && !USE_MOCK) {
+      if (original && !original.__retried && !isAuthCall && !shouldMock(url)) {
         original.__retried = true
         // 并发 401 共享同一次续期，避免多个请求同时打 /auth/refresh
         if (!refreshing) {
@@ -200,9 +238,10 @@ interface MockableConfig {
 
 /** 统一入口：Mock 与真实接口走同一签名，页面代码无需感知切换 */
 export async function request<T>(config: AxiosRequestConfig): Promise<T> {
-  if (USE_MOCK) {
+  const url = config.url || ''
+  if (shouldMock(url)) {
     const payload: MockableConfig = {
-      url: config.url || '',
+      url,
       method: (config.method || 'get').toUpperCase(),
       data: config.data,
       params: config.params as Record<string, unknown> | undefined
