@@ -4,15 +4,20 @@ import { ElMessage } from 'element-plus'
 import { Promotion, Search } from '@element-plus/icons-vue'
 import ChatBubble from '@/components/ChatBubble.vue'
 import EmptyState from '@/components/EmptyState.vue'
-import { listMessages, listSessions, resumeAgent, sendMessage, takeoverSession } from '@/api/chat'
+import { archiveSession, listMessages, listSessions, sendMessage } from '@/api/chat'
 import type { ChatMessage, ChatSession } from '@/api/types'
 import { relativeTime } from '@/utils/format'
 
+/**
+ * 契约（agent-conversation-v1）本期没有人工接管与置信度：
+ * 会话状态只有 ACTIVE/ARCHIVED，消息发送统一触发 Agent run（SSE 流式）。
+ * 商户端定位为「查看对话 + 与 Agent 交互 + 归档」，接管能力待后端扩展后接入。
+ */
 const sessions = ref<ChatSession[]>([])
 const messages = ref<ChatMessage[]>([])
 const activeId = ref('')
 const keyword = ref('')
-const filter = ref<'ALL' | 'HUMAN' | 'LOW' | 'AGENT'>('ALL')
+const filter = ref<'ALL' | 'ACTIVE' | 'ARCHIVED'>('ALL')
 const loading = ref(true)
 const input = ref('')
 const sending = ref(false)
@@ -23,12 +28,10 @@ const activeSession = computed(() => sessions.value.find((s) => s.id === activeI
 const filtered = computed(() =>
   sessions.value.filter((s) => {
     const kw = keyword.value.trim()
-    const kwOk = !kw || s.title.includes(kw) || (s.consumerName || '').includes(kw)
-    if (!kwOk) return false
+    if (kw && !s.title.includes(kw)) return false
     if (filter.value === 'ALL') return true
-    if (filter.value === 'HUMAN') return s.status === 'HUMAN'
-    if (filter.value === 'AGENT') return s.status === 'AGENT'
-    return (s.confidence ?? 1) < 0.7
+    // 展示模型状态（AGENT/CLOSED）与筛选键（ACTIVE/ARCHIVED）一一对应
+    return filter.value === 'ARCHIVED' ? s.status === 'CLOSED' : s.status === 'AGENT'
   })
 )
 
@@ -39,36 +42,65 @@ async function select(id: string) {
   if (scroller.value) scroller.value.scrollTop = scroller.value.scrollHeight
 }
 
-async function toggleTakeover() {
+async function archive() {
   if (!activeSession.value) return
-  if (activeSession.value.status === 'HUMAN') {
-    await resumeAgent(activeId.value)
-    updateStatus('AGENT')
-    ElMessage.success('已交还 Agent')
-  } else {
-    await takeoverSession(activeId.value)
-    updateStatus('HUMAN')
-    ElMessage.success('已接管会话，可以人工回复')
+  try {
+    await archiveSession(activeId.value)
+    const idx = sessions.value.findIndex((s) => s.id === activeId.value)
+    if (idx >= 0) sessions.value[idx] = { ...sessions.value[idx], status: 'CLOSED' }
+    ElMessage.success('会话已归档')
+  } catch (e) {
+    // 运行中的会话归档会被 409/13002 busy 拒绝
+    ElMessage.error((e as Error).message || '归档失败，请稍后重试')
   }
-}
-
-function updateStatus(status: ChatSession['status']) {
-  const idx = sessions.value.findIndex((s) => s.id === activeId.value)
-  if (idx >= 0) sessions.value[idx] = { ...sessions.value[idx], status }
 }
 
 async function send() {
   const text = input.value.trim()
-  if (!text || sending.value) return
+  if (!text || sending.value || !activeId.value) return
   sending.value = true
+  input.value = ''
+
+  const localMsg: ChatMessage = {
+    id: `local-${Date.now()}`,
+    sessionId: activeId.value,
+    role: 'user',
+    content: text,
+    createdAt: new Date().toISOString()
+  }
+  messages.value.push(localMsg)
+
+  const scroll = () => {
+    void nextTick().then(() => {
+      if (scroller.value) scroller.value.scrollTop = scroller.value.scrollHeight
+    })
+  }
+  scroll()
+
   try {
-    const reply = await sendMessage(activeId.value, text)
-    messages.value.push({ ...reply, role: 'human' })
-    input.value = ''
-    await nextTick()
-    if (scroller.value) scroller.value.scrollTop = scroller.value.scrollHeight
-  } catch (e) {
-    ElMessage.error((e as Error).message || '发送失败')
+    await sendMessage(activeId.value, text, {
+      onStart(bubble) {
+        messages.value.push(bubble)
+        scroll()
+      },
+      onDelta(bubble) {
+        const idx = messages.value.findIndex((m) => m.id === bubble.id)
+        if (idx >= 0) messages.value[idx] = bubble
+        scroll()
+      },
+      onDone(bubble) {
+        const idx = messages.value.findIndex((m) => m.id === bubble.id)
+        if (idx >= 0) messages.value[idx] = bubble
+        const si = sessions.value.findIndex((s) => s.id === activeId.value)
+        if (si >= 0) sessions.value[si] = { ...sessions.value[si], updatedAt: new Date().toISOString() }
+        scroll()
+      },
+      onError(error) {
+        ElMessage.error(error.message || '发送失败')
+      }
+    })
+  } catch {
+    /* 错误已在 onError 提示 */
   } finally {
     sending.value = false
   }
@@ -76,7 +108,7 @@ async function send() {
 
 onMounted(async () => {
   try {
-    sessions.value = await listSessions('merchant')
+    sessions.value = await listSessions({ size: 50, audience: 'merchant' })
     if (sessions.value.length) await select(sessions.value[0].id)
   } finally {
     loading.value = false
@@ -96,9 +128,8 @@ onMounted(async () => {
         <button
           v-for="f in [
             { key: 'ALL', label: '全部' },
-            { key: 'LOW', label: '低置信' },
-            { key: 'HUMAN', label: '人工中' },
-            { key: 'AGENT', label: 'Agent' }
+            { key: 'ACTIVE', label: '进行中' },
+            { key: 'ARCHIVED', label: '已归档' }
           ]"
           :key="f.key"
           type="button"
@@ -131,10 +162,7 @@ onMounted(async () => {
           <div class="sitem__meta">
             <span class="sitem__dot" :class="`is-${s.status.toLowerCase()}`" />
             <span class="sitem__status">
-              {{ s.status === 'HUMAN' ? '人工中' : s.status === 'CLOSED' ? '已结束' : 'Agent' }}
-            </span>
-            <span v-if="(s.confidence ?? 1) < 0.7" class="sitem__low num">
-              {{ Math.round((s.confidence ?? 0) * 100) }}%
+              {{ s.status === 'CLOSED' ? '已归档' : '进行中' }}
             </span>
             <span v-if="s.unread" class="sitem__unread num">{{ s.unread }}</span>
           </div>
@@ -150,19 +178,18 @@ onMounted(async () => {
         <header class="conv__head">
           <div class="conv__head-left">
             <h2 class="conv__title">{{ activeSession.title }}</h2>
-            <span class="conv__badge" :class="{ 'is-human': activeSession.status === 'HUMAN' }">
-              {{ activeSession.status === 'HUMAN' ? '人工接管中' : 'Agent 处理中' }}
+            <span class="conv__badge" :class="{ 'is-human': activeSession.status === 'CLOSED' }">
+              {{ activeSession.status === 'CLOSED' ? '已归档' : '进行中' }}
             </span>
-            <span class="conv__conf num">
-              置信度 {{ Math.round((activeSession.confidence ?? 0) * 100) }}%
-            </span>
+            <span class="conv__conf num">{{ relativeTime(activeSession.updatedAt) }}</span>
           </div>
 
           <el-button
-            :type="activeSession.status === 'HUMAN' ? 'default' : 'primary'"
-            @click="toggleTakeover"
+            v-if="activeSession.status !== 'CLOSED'"
+            type="default"
+            @click="archive"
           >
-            {{ activeSession.status === 'HUMAN' ? '交还 Agent' : '接管会话' }}
+            归档会话
           </el-button>
         </header>
 
@@ -183,19 +210,19 @@ onMounted(async () => {
             :rows="2"
             resize="none"
             maxlength="500"
-            placeholder="以人工客服身份回复（Enter 发送）"
+            placeholder="发送消息，Agent 会流式回复（Enter 发送）"
             @keydown.enter.exact.prevent="send"
           />
           <div class="conv__composer-bar">
-            <span class="conv__hint">人工回复会以「人工客服」身份展示给消费者</span>
+            <span class="conv__hint">发送后会触发 Agent 处理，回复以流式返回；人工接管能力待后端扩展</span>
             <el-button
               type="primary"
               :icon="Promotion"
               :loading="sending"
-              :disabled="!input.trim()"
+              :disabled="!input.trim() || activeSession.status === 'CLOSED'"
               @click="send"
             >
-              回复
+              发送
             </el-button>
           </div>
         </footer>

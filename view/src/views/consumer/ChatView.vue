@@ -6,7 +6,7 @@ import { Plus, Promotion } from '@element-plus/icons-vue'
 import ChatBubble from '@/components/ChatBubble.vue'
 import { createSession, listMessages, listSessions, sendMessage } from '@/api/chat'
 import { getPublicProduct } from '@/api/catalog'
-import type { ChatMessage, ChatSession, ProductDetail } from '@/api/types'
+import type { ChatMessage, ChatSession, PublicProductView } from '@/api/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,7 +19,8 @@ const input = ref('')
 const sending = ref(false)
 const loading = ref(true)
 const scroller = ref<HTMLElement>()
-const contextProduct = ref<ProductDetail | null>(null)
+/** 从商品详情页跳转过来时带上 productId，头部展示当前咨询的商品 */
+const contextProduct = ref<PublicProductView | null>(null)
 
 const quickPrompts = [
   '我的订单到哪了',
@@ -30,8 +31,7 @@ const quickPrompts = [
 
 const statusText = computed(() => {
   const s = session.value?.status
-  if (s === 'HUMAN') return '人工客服接入中'
-  if (s === 'CLOSED') return '会话已结束'
+  if (s === 'CLOSED') return '会话已归档'
   return 'Agent 在线'
 })
 
@@ -48,7 +48,7 @@ async function loadMessages(id: string) {
 async function init() {
   loading.value = true
   try {
-    sessions.value = await listSessions('consumer')
+    sessions.value = await listSessions({ size: 20, audience: 'consumer' })
     const routeId = String(route.params.id || '')
     const target = sessions.value.find((s) => s.id === routeId) || sessions.value[0]
     if (target) {
@@ -73,6 +73,11 @@ async function init() {
   }
 }
 
+/**
+ * 发送消息：契约要求 clientMessageId 幂等键 + SSE 流式回复。
+ * 流程：本地先压入用户气泡 → 建 Agent 占位气泡（streaming）→ token 增量追加 → done 终态。
+ * 失败/超时由 onError 给出终态文案，占位气泡保留错误说明。
+ */
 async function send() {
   const text = input.value.trim()
   if (!text || sending.value) return
@@ -96,22 +101,35 @@ async function send() {
   sending.value = true
   await scrollToBottom()
 
-  try {
-    const reply = await sendMessage(sessionId.value, text)
-    messages.value.push(reply)
-    await scrollToBottom()
-    // 同步会话列表里的最后一条消息
+  const touchSession = () => {
     const idx = sessions.value.findIndex((s) => s.id === sessionId.value)
-    if (idx >= 0) {
-      sessions.value[idx] = {
-        ...sessions.value[idx],
-        lastMessage: reply.content.slice(0, 40),
-        updatedAt: reply.createdAt,
-        status: reply.confidence !== undefined && reply.confidence < 0.6 ? 'HUMAN' : sessions.value[idx].status
+    if (idx >= 0) sessions.value[idx] = { ...sessions.value[idx], updatedAt: new Date().toISOString() }
+  }
+
+  try {
+    await sendMessage(sessionId.value, text, {
+      onStart(bubble) {
+        messages.value.push(bubble)
+        void scrollToBottom()
+      },
+      onDelta(bubble) {
+        const idx = messages.value.findIndex((m) => m.id === bubble.id)
+        if (idx >= 0) messages.value[idx] = bubble
+        void scrollToBottom()
+      },
+      onDone(bubble) {
+        const idx = messages.value.findIndex((m) => m.id === bubble.id)
+        if (idx >= 0) messages.value[idx] = bubble
+        touchSession()
+        void scrollToBottom()
+      },
+      onError(error) {
+        ElMessage.error(error.message || '发送失败，请稍后重试')
+        touchSession()
       }
-    }
-  } catch (e) {
-    ElMessage.error((e as Error).message || '发送失败，请稍后重试')
+    })
+  } catch {
+    /* 错误已在 onError 提示，这里仅确保 sending 复位 */
   } finally {
     sending.value = false
   }
@@ -148,7 +166,7 @@ onMounted(init)
     <header class="chat__head">
       <div class="chat__head-left">
         <h2 class="chat__title">{{ session?.title || '新的咨询' }}</h2>
-        <span class="chat__status" :class="{ 'is-human': session?.status === 'HUMAN' }">
+        <span class="chat__status" :class="{ 'is-human': session?.status === 'CLOSED' }">
           <i />
           {{ statusText }}
         </span>

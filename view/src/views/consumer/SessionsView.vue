@@ -19,7 +19,7 @@ const statusMeta: Record<string, { label: string; tone: string }> = {
 
 onMounted(async () => {
   try {
-    sessions.value = await listSessions('consumer')
+    sessions.value = await listSessions({ size: 50, audience: 'consumer' })
   } finally {
     loading.value = false
   }
@@ -65,7 +65,6 @@ onMounted(async () => {
         <p class="scard__last clamp-2">{{ s.lastMessage || '暂无消息' }}</p>
 
         <footer class="scard__foot">
-          <span class="scard__count num">{{ s.messageCount }} 条消息</span>
           <span class="scard__go">
             继续对话
             <el-icon :size="12"><ChatDotRound /></el-icon>

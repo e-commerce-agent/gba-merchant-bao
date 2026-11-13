@@ -11,17 +11,123 @@ export interface ApiResponse<T> {
   requestId: string
 }
 
-/** 分页结构（后端未最终冻结，先按最常见形态约定） */
-export interface PageResult<T> {
+/** 游标分页（product-v1 的 PageView：items + nextCursor + hasMore，没有 total） */
+export interface PageView<T> {
   items: T[]
-  total: number
-  page: number
-  pageSize: number
+  nextCursor?: string
+  hasMore: boolean
 }
 
-export interface PageQuery {
-  page?: number
-  pageSize?: number
+/* ------------------------------ 商品（product-v1 契约原始类型） ------------------------------ */
+
+/** 商品状态闭集，与 V6/V7 迁移的 ck_product_status 一致 */
+export type ProductStatus = 'DRAFT' | 'PUBLISHED' | 'UNPUBLISHED' | 'DISCONTINUED'
+
+/** SKU 状态闭集，与 ck_product_sku_status 一致 */
+export type SkuStatus = 'ACTIVE' | 'DISCONTINUED'
+
+/** 员工端商品视图（GET /v1/products 的 items 元素）：带内部状态与审计列 */
+export interface ProductView {
+  productId: string
+  merchantId: string
+  categoryId?: string
+  productCode: string
+  name: string
+  brand?: string
+  description?: string
+  status: ProductStatus
+  createdAt: string
+  updatedAt: string
+}
+
+/** 员工端 SKU 视图：price 是字符串（后端用 BigDecimal.toPlainString） */
+export interface SkuView {
+  skuId: string
+  productId: string
+  skuCode: string
+  title: string
+  price: string
+  attributes: Record<string, string>
+  status: SkuStatus
+  createdAt: string
+  updatedAt: string
+}
+
+/** 公开 SKU 视图：只暴露是否可售，不含数量、预占与内部状态 */
+export interface PublicSkuView {
+  skuId: string
+  skuCode: string
+  title: string
+  price: string
+  attributes: Record<string, string>
+  inStock: boolean
+}
+
+/** 公开商品视图：无 merchantId、无内部状态，含 SKU 与属性 */
+export interface PublicProductView {
+  productId: string
+  productCode: string
+  name: string
+  brand?: string
+  description?: string
+  attributes: Record<string, string>
+  skus: PublicSkuView[]
+}
+
+/** 商品分类视图（children 由后端组装，可能为空数组） */
+export interface CategoryView {
+  categoryId: string
+  parentId?: string
+  name: string
+  sortNo: number
+  status: string
+  createdAt: string
+  updatedAt: string
+  children: CategoryView[]
+}
+
+/* ------------------------------ 库存（inventory-v1 契约原始类型） ------------------------------ */
+
+export interface InventoryVO {
+  skuId: string
+  availableQty: number
+  reservedQty: number
+  totalQty: number
+}
+
+/** 库存分页用后端字段名 records/current/size */
+export interface InventoryPage {
+  records: InventoryVO[]
+  total: number
+  current: number
+  size: number
+}
+
+/* ------------------------------ 展示层视图模型（由契约类型映射而来） ------------------------------ */
+
+/**
+ * 展示层商品卡片模型。
+ * 契约里商品没有价格与库存字段（价格在 SKU 上、库存要查 inventory），
+ * 所以这些字段由 adapters 聚合 SKU 后填充，页面不直接依赖契约结构。
+ */
+export type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
+
+export interface ProductSummary {
+  id: string
+  name: string
+  subtitle?: string
+  categoryName?: string
+  brand?: string
+  model?: string
+  status: 'ON_SALE' | 'OFF_SHELF'
+  /** 展示用主图标识，契约无图片字段，按商品名映射本地插画 */
+  thumb: ProductThumbKey
+  minPrice: number
+  maxPrice: number
+  currency: string
+  skuCount: number
+  tags: string[]
+  stockStatus: StockStatus
 }
 
 /* ------------------------------ 认证 ------------------------------ */
@@ -76,28 +182,7 @@ export interface Tokens {
   principal: PrincipalView
 }
 
-/* ------------------------------ 商品 ------------------------------ */
-
-export type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
-
-export interface ProductSummary {
-  id: string
-  merchantId: string
-  name: string
-  subtitle?: string
-  categoryName: string
-  brand?: string
-  model?: string
-  status: 'ON_SALE' | 'OFF_SHELF'
-  /** 展示用主图标识，Mock 阶段由前端绘制插画 */
-  thumb: ProductThumbKey
-  minPrice: number
-  maxPrice: number
-  currency: string
-  skuCount: number
-  tags: string[]
-  stockStatus: StockStatus
-}
+/* ------------------------------ 商品展示模型 ------------------------------ */
 
 export type ProductThumbKey =
   | 'charger'
@@ -254,6 +339,62 @@ export interface ChatSession {
   consumerName?: string
   confidence?: number
   unread?: number
+}
+
+/* ------------------------- Agent 会话（契约原始类型） ------------------------- */
+/* agent-conversation-v1：游标分页 + SSE，人工接管 / 置信度 / 引用留待未来扩展 */
+
+export type ChatSessionStatus = 'ACTIVE' | 'ARCHIVED'
+
+export type ChatRunStatus =
+  | 'STARTED'
+  | 'STREAMING'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'TIMED_OUT'
+  | 'FAILED'
+
+/** 契约 GET /chat/sessions、GET /chat/sessions/{id}/messages 的分页载荷 */
+export interface ChatPageView<T> {
+  items: T[]
+  nextCursor?: string | null
+  hasMore: boolean
+}
+
+export interface ChatSessionView {
+  sessionId: string
+  merchantId: string
+  title: string
+  status: ChatSessionStatus
+  createdAt: string
+  updatedAt: string
+  archivedAt: string | null
+  activeRunId: string | null
+  activeRunStatus: ChatRunStatus | null
+}
+
+export interface ChatMessageView {
+  messageId: string
+  messageSeq: number
+  runId: string
+  clientMessageId: string | null
+  senderType: 'USER' | 'ASSISTANT'
+  content: string
+  status: ChatRunStatus
+  errorCode: string | null
+  inputTokens: number | null
+  outputTokens: number | null
+  createdAt: string
+  completedAt: string | null
+}
+
+/** POST /chat/sessions/{id}/messages 幂等重放时返回的 run 标识（JSON 响应） */
+export interface ChatRunView {
+  sessionId: string
+  runId: string
+  userMessageId: string
+  messageId: string
+  status: ChatRunStatus
 }
 
 /* ------------------------------ 知识库 / 任务 ------------------------------ */
