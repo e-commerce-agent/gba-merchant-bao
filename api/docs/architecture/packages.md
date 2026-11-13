@@ -48,7 +48,7 @@ api/src/main/java/com/gba/merchantbao/
 
 原来的 `com.countmaske.merchant` 存放旧餐饮项目实现，`com.countmaske.merchantassistant` 存放新建的商户助手基础组件。两者由同一个应用扫描和运行，并不是两个独立部署的应用。现在用更明确的结构区分迁移边界：新代码放在根包及对应业务域的子包中，保留的旧代码统一放在 `legacy` 下。
 
-原来的 `merchant-common`、`merchant-pojo` 和 `merchant-server` 三模块已经合并到 `api/src/main`。重复源码、旧 POM 和退役模块的实际目录均已删除，迁移后为空的旧 `com/countmaske` 源码目录也已清理。三个旧本地配置和测试草稿文件保留在 `api/.runtime/legacy-backup` 中，该目录被 Git 忽略。
+原来的 `merchant-common`、`merchant-pojo` 和 `merchant-server` 三模块已经合并到 `api/src/main`。重复源码、旧 POM 和退役模块的实际目录均已删除，迁移后为空的旧 `com/countmaske` 源码目录也已清理。三个旧本地配置和测试草稿文件保存在被 Git 忽略的 `backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/legacy-backup/`。
 
 根目录现有 `api` 包负责基础 HTTP 样例，不是另一个后端工程或 Maven 模块。auth 与后续商品、库存、订单、物流及 Agent 相关业务域统一采用 `controller / service / mapper` 三层包结构；MyBatis 统一命名 `mapper`，不再同时建立同义的 dao 包。数据库模型放 entity，请求放 dto，独立响应模型放 vo；辅助包按实际职责建立，不预建空目录，也不强制为每个 Service 增加一层没有实际差异的接口/impl。后续的 `merchant` 业务域表示商户和租户业务，不再表示整个旧项目。根包下的 `common` 存放新项目的公共基础组件；`legacy` 则保留旧项目的常量、实体、Mapper 和 Service 等包，以维持兼容。
 

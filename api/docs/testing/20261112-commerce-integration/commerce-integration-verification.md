@@ -11,13 +11,13 @@
 - `CommerceIntegrationIT`：真实 Spring/MySQL/Redis，关闭循环依赖许可；同一上下文执行商品到库存只读、库存到商品引用、物流到订单授权，预热缓存后的库存变化即时反映，当前目录变化不改历史成交快照，两商户及同商户他人订单隔离成立。
 
 迁移定向验证：6 项契约测试、40 项迁移/种子集成测试通过，0 failures/errors/skipped；日志
-`api/.runtime/commerce-migration-verify.log`。跨模块与库存导出定向测试 2 项通过，日志
-`api/.runtime/commerce-cross-module.log`。
+`backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/commerce-migration-verify.log`。跨模块与库存导出定向测试 2 项通过，日志
+`backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/commerce-cross-module.log`。
 
 2026-11-11 23:41（Asia/Shanghai）最终命令
 `mvn -f api/pom.xml clean verify '-DforkCount=4'` BUILD SUCCESS，耗时 9:38。
 Surefire 109 项、Failsafe 182 项，共 291 项，0 failures/errors/skipped。
-日志 `api/.runtime/commerce-complete-verify.log`，明细为 `api/target/{surefire,failsafe}-reports/`。
+日志 `backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/commerce-complete-verify.log`，明细为 `api/target/{surefire,failsafe}-reports/`。
 迁移测试和综合用例分别包含 6 项 Flyway、36 项种子维护、2 项跨模块/库存契约测试；
 库存 Flow 23 项、物流 SOAP 10 项均通过。
 
@@ -58,7 +58,7 @@ Flyway history 保留该 repeatable 的 `success=0` 记录，后端启动失败�
 只读核对确认原 V5 全部业务行摘要保持不变，`product_category` 为 0 行。
 完整启动日志保存为备份目录内 `idea-startup-failed.log`；失败状态证据为
 `failed-startup-rows.json`、`failed-startup-history.json`、`failed-startup-schema.json`，
-摘要为 `api/.runtime/commerce-dev-failure-state.log`。原 V5 备份及隔离恢复核验结果保留。
+摘要为 `backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/commerce-dev-failure-state.log`。原 V5 备份及隔离恢复核验结果保留。
 尚未执行 repair、改写 history/checksum、恢复开发库、删除开发卷或再次启动后端。
 
 待验证的原因：分类 INSERT 在同一条 `INSERT ... SELECT ... UNION ALL ... JOIN merchant`
@@ -75,7 +75,7 @@ Flyway history 保留该 repeatable 的 `success=0` 记录，后端启动失败�
 本轮用户授权为隔离副本定位修复及提交开发库恢复方案。未启动真实 dev 后端或操作开发库。
 使用独立 MySQL 8.0.34 容器和随机宿主端口，从原 `before.sql` 恢复；原备份 SHA-256 再次核对一致。
 
-复现命令为 `api/.runtime/commerce-category-isolated.ps1 upgrade`，完整迁移在 R040 第 130 行
+复现命令为 `backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/commerce-category-isolated.ps1 upgrade`，完整迁移在 R040 第 130 行
 重现 MySQL 1452 / `fk_product_category_parent`；单独 `category` 重放同样失败。
 最小回归条件为冻结结构、R010 两租户、`ANALYZE TABLE merchant` 后执行 R040。
 只读 EXPLAIN 显示 `Using join buffer (hash join)`，实际 SELECT 首行是子分类，父分类在后。
@@ -84,7 +84,7 @@ Flyway history 保留该 repeatable 的 `success=0` 记录，后端启动失败�
 新增回归测试
 `DevSeedMigrationIT.productSeedCreatesParentCategoriesBeforeChildrenWithRefreshedMerchantStatistics`：
 原 SQL 产生同一外键错误，修复后通过；验证五个分类、同租户父子关系及显式重跑保留人工排序/状态。
-红、绿阶段日志为 `api/.runtime/commerce-category-{red,green}.log`。
+红、绿阶段日志为 `backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/commerce-category-{red,green}.log`。
 修复仅将 R040 分类 INSERT 拆为先根后子两条语句，保留所有 guard、ID 和补缺语义；
 未改 V1–V9 或 R010–R030，未关闭外键或增加启动 repair。
 
@@ -108,7 +108,7 @@ mvn -f api/pom.xml clean verify '-Dtest=MigrationScriptContractTest' '-Dit.test=
 ```
 
 迁移契约 6、种子 37、Flyway 6、跨模块 2，共 51 项，0 failures/errors/skipped。
-日志 `api/.runtime/commerce-category-regression.log`。本轮为上述定向回归；
+日志 `backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/commerce-category-regression.log`。本轮为上述定向回归；
 昨日 291 项全量验收结果另见前文，不将其表述为修复后的全量运行。
 `openspec validate align-commerce-module-integration --strict` 通过。
 隔离演练专用容器及其匿名卷已清理，开发卷保留；汇总证据为同目录 `summary.json`。
@@ -140,13 +140,13 @@ dev profile、workerId=0 启动；本次联调显式使用 mock SMS 并开启调
 独立 Flyway validate 通过，原 V5 全部业务行和完整原 history 保留，库存三表 id 无默认值、无自增。
 任务 8.2 完成。日志和结果为同目录 `idea-startup.log`、`health-first.json`、
 `after-{rows,history}.json`、`upgrade-result.json`、`packaged-migrations.json`；
-构建日志为 `api/.runtime/commerce-recovery-build.log`。
+构建日志为 `backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/commerce-recovery-build.log`。
 
 实际导出时发现全局 Springdoc 扫描与模块路径筛选组合后，商品分组混入其他模块，
 订单分组包含物流；收紧商品分组到目录资源路径、订单分组到订单列表/详情两个路径。
 `CommerceIntegrationIT` 新增四组精确路径隔离断言并保留库存六操作、Bearer 和模型校验。
 `clean verify -Dtest=NoTests -Dsurefire.failIfNoSpecifiedTests=false -Dit.test=CommerceIntegrationIT`
-成功，2 项集成测试，0 failures/errors/skipped；日志 `api/.runtime/commerce-export-verify.log`。
+成功，2 项集成测试，0 failures/errors/skipped；日志 `backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/commerce-export-verify.log`。
 重新通过 IDEA 启动后从实际 dev 分组导出：
 
 | 文件（仓库根 `docs/api/`） | 来源 | 路径数 |

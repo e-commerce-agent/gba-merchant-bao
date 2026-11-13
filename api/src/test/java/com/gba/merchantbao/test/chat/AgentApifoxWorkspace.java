@@ -49,7 +49,7 @@ class AgentApifoxWorkspace extends ChatAcceptanceIT {
         var credentials = Map.of("baseUrl", "http://127.0.0.1:" + port, "accessToken", owner,
             "staffToken", staff, "otherTenantToken", other, "sessionId", session,
             "busySessionId", busy, "abortSessionId", abort);
-        Path runtime = Path.of(".runtime"); Files.createDirectories(runtime);
+        Path runtime = Path.of(".runtime", "manual", "agent"); Files.createDirectories(runtime);
         Path stop = runtime.resolve("agent-apifox.stop");
         if (Files.exists(stop)) throw new IllegalStateException("Previous workspace stop marker exists");
         var executor = Executors.newCachedThreadPool();

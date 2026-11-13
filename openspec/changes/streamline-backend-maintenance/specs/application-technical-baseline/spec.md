@@ -92,13 +92,13 @@
 - **WHEN** 已完成记录之后发生新的验证事件
 - **THEN** 新事件另建日期前置目录并在 testing README 新增一行，旧事件不续写；同一事件的材料仍集中，不重抄到业务目录档案
 
-### Requirement: Historical module documents shall remain frozen and traceable
+### Requirement: Historical module documents shall be archived
 
-认证、商品、库存、订单、物流 MUST 先整理导航、分离脚本与事件，再分别冻结于 `docs/archive/YYYYmmdd-模块/`，日期为实际冻结日，保留现有文件名且不补缺失文档。技术规则、场景编号、测试证据和验收结论 MUST 原文保留，可整段迁移及机械更新实际路径。冻结 MUST 记录来源与整理后哈希，后续默认不读不写，校验能报告改写或丢失。
+认证、商品、库存、订单、物流 MUST 先整理导航、分离脚本与事件，再分别冻结于 `api/docs/archive/YYYYmmdd-模块/`，日期为实际冻结日，保留现有文件名且不补缺失文档。技术规则、场景编号、测试证据和验收结论 MUST 原文保留，可整段迁移及机械更新实际路径。
 
 #### Scenario: Completed backend designs are archived
 - **WHEN** 冻结认证、商品、库存、订单、物流文档
-- **THEN** 五个模块分别位于同级日期前置目录，各有 README 导航，不混入单个日期容器；原技术内容可由来源和迁移去向追溯，临时验收集中 testing，原来缺失的设计不补，模块档案不保留脚本副本
+- **THEN** 五个模块分别位于 `api/docs/archive/` 下的同级日期前置目录，各有 README 导航，不混入单个日期容器；临时验收集中 testing，原来缺失的设计不补，模块档案不保留脚本副本
 
 #### Scenario: Existing Agent foundation documents are retained
 - **WHEN** 整理当前 Agent 文档
@@ -108,13 +108,9 @@
 - **WHEN** Agent 工作需要接入已完成业务模块
 - **THEN** 默认读取本次 change、相关规范、当前领域服务与对应测试；仅在追溯历史原因时定向读取档案，任何经授权的当前能力变更通过新 change、代码和生成产物表达
 
-#### Scenario: A freeze baseline is created after organization
+#### Scenario: Module documents are archived after organization
 - **WHEN** 已完成导航整理、原段落迁移和实际路径更新
-- **THEN** 以最终文件创建冻结哈希，另记原路径、原始哈希与来源；不要求最终哈希等于整理前哈希，也不把技术结论改写伪装成导航整理，原 README 中的技术长文迁出后仍可找到
-
-#### Scenario: Frozen contents are changed accidentally
-- **WHEN** 运行维护校验时发现历史正文被改写、丢失或清单被无来源地重建
-- **THEN** 校验失败并列出文件；普通 Agent 变更不得重算清单掩盖差异，确需订正历史时以单独明确范围的变更保留原件并关联勘误
+- **THEN** 五个模块位于 `api/docs/archive/` 下的同级日期目录，各有 README 导航；不把技术结论改写伪装成导航整理，原 README 中的技术长文迁出后仍可找到
 
 ### Requirement: Backend tests shall be discoverable by domain without reducing coverage
 

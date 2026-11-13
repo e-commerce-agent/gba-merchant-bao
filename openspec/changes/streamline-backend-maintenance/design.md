@@ -45,11 +45,11 @@ README 只承担导航、用途、必要命令与前提，不复制技术长文�
 
 | 资料 | 去向 |
 | --- | --- |
-| auth 的长期需求/设计/日常说明 | `docs/archive/YYYYmmdd-auth/` |
-| product 的长期需求/设计 | `docs/archive/YYYYmmdd-product/` |
-| inventory 的长期需求/设计 | `docs/archive/YYYYmmdd-inventory/` |
-| order 的长期需求/设计 | `docs/archive/YYYYmmdd-order/` |
-| shipment 的长期需求/设计/日常说明 | `docs/archive/YYYYmmdd-shipment/` |
+| auth 的长期需求/设计/日常说明 | `api/docs/archive/YYYYmmdd-auth/` |
+| product 的长期需求/设计 | `api/docs/archive/YYYYmmdd-product/` |
+| inventory 的长期需求/设计 | `api/docs/archive/YYYYmmdd-inventory/` |
+| order 的长期需求/设计 | `api/docs/archive/YYYYmmdd-order/` |
+| shipment 的长期需求/设计/日常说明 | `api/docs/archive/YYYYmmdd-shipment/` |
 | agent 的需求、设计、模型接入、日常操作 | 留 `api/docs/agent/`；不冻结整个 Agent 目录 |
 | architecture 长期规则与依赖说明 | 留 `api/docs/architecture/`；清理导航并迁出临时验证段落 |
 | deployment 日常环境/发布/恢复说明 | 留 `api/docs/deployment/`，建立 README；迁出脚本与临时事件 |
@@ -57,11 +57,9 @@ README 只承担导航、用途、必要命令与前提，不复制技术长文�
 
 例如实施于 2026-11-12，则分别建立 `20261112-auth`、`20261112-product`、`20261112-inventory`、`20261112-order`、`20261112-shipment`，不共用一个日期容器目录。保留原文件名；若 inventory/order 的 README 原有技术长文，先原文迁入同目录 `module.md`，再让 README 导航该文件，不丢正文、不补不存在的设计类型。
 
-执行顺序：保全来源提交和原始版本 → 分离脚本/事件 → 整理 README 和正文导航 → 更新实际路径 → 核对技术段落原文 → 冻结。五个档案里没有脚本原件或脚本副本；脚本仍可从来源提交追溯。
+执行顺序：分离脚本/事件 → 整理 README 和正文导航 → 更新实际路径 → 核对技术段落原文 → 冻结。五个档案里没有脚本原件或脚本副本。
 
-用一份 `docs/archive/manifest.json` 记录原路径、最终路径、来源提交、原始哈希、整理后冻结哈希/日期，以及技术段落迁移去向。原始哈希和冻结哈希可以不同，不能要求整理后文件与旧 Git blob 字节相同。原始版本由 Git/必要本地保全追溯，不另复制一套未整理档案；未提交修改不得冒记为 HEAD 内容。
-
-冻结对象是整理后的档案（含 README）；以后 Agent 默认不读不写，追溯原因时定向读取。根 `AGENTS.md` 和 archive 作用域规则明确这一点。维护校验以冻结哈希检出改写/丢失，并检查来源和清单变化，不能通过重算清单掩盖变动；不声称文件系统绝对只读或新建 CI。
+冻结对象是整理后的档案（含 README）；以后 Agent 默认不读不写，追溯原因时定向读取。根 `AGENTS.md` 明确这一点。
 
 旧五模块目录在有效引用修复后移除，不逐文件留跳转空壳。不可改的根 README 或 prod-profile 如确有有效文档引用，则仅保留必需的最短兼容入口；不可修改方既有坏链接记录为既有问题。
 
@@ -87,7 +85,7 @@ README 只承担导航、用途、必要命令与前提，不复制技术长文�
 | `api/scripts/prod/` | deployment/deploy-prod.ps1：生产发布；生产配置仍读原 prod-profile |
 | `api/scripts/dev/` | docker-dev.ps1、backup-dev.ps1、dev-seed-upgrade.ps1：本地 dev 环境维护 |
 | `api/scripts/test/` | auth/manual-verification.ps1：现有 AuthDevManualIT 驱动的隔离联调入口 |
-| `api/scripts/tools/` | export-openapi.ps1、check-maintenance.ps1、organize-runtime.ps1 等环境通用工具 |
+| `api/scripts/tools/` | export-openapi.ps1、organize-runtime.ps1 等环境通用工具 |
 
 只创建实际有脚本的目录，各有 README；不在 scripts 根平铺工具，不用 ops/manual 混合环境。prod-profile 内现有初始化/备份等脚本原地保留、不复制、不新增 README。
 
@@ -132,7 +130,7 @@ tools/organize-runtime.ps1 默认预览；执行前核实绝对边界、无链�
 ## Risks / Trade-offs
 
 - [README 成为第二套长文] → 每文件一行用途，正文只保留必要 README 定位入口，不复制规则与验收表。
-- [清理导航时改写技术结论] → 原段落迁移及前后对照，保留 RT/CV、断言、数值、日期、限制；来源哈希与冻结哈希区分。
+- [清理导航时改写技术结论] → 原段落迁移及前后对照，保留 RT/CV、断言、数值、日期和限制。
 - [日期或历史状态不一致] → 按证据保留事实和未决状态，不以本次整理更新验收结论。
 - [根 README/prod-profile 旧说明不能更新] → 原样保护，只在有效调用需要时保留最少兼容；不扩展为修复其历史问题。
 - [包迁移少跑测试] → 保存发现基线、检查共享访问/继承、完整验证并对比实际用例。
@@ -144,7 +142,7 @@ tools/organize-runtime.ps1 默认预览；执行前核实绝对边界、无链�
 2. 按目录 README 规则先整理导航与日常说明，原段落集中到日期前置的 testing 事件；五模块各自归档，Agent/architecture/deployment 留当前目录。
 3. 迁脚本至 prod/dev/test/tools 并修复调用；分包测试，先更新相关实际路径，再建立整理后冻结基线。
 4. 预览后保全 runtime 历史，核对哈希与剩余活动文件；验证新检出仓库不依赖旧 runtime 代码。
-5. 校验 README/正文链接边界、锚点与技术段落去向、冻结哈希、保护区域/SQL 零差异；运行 mvn test 与 Docker 环境 clean verify 并比较发现清单。工具用隔离样例验证，不执行真实生产部署或写开发业务库。
+5. 检查 README/正文链接边界、锚点与技术段落去向、保护区域/SQL 零差异；运行 mvn test 与 Docker 环境 clean verify 并比较发现清单。工具用隔离样例验证，不执行真实生产部署或写开发业务库。
 6. 本地整理组织仓库 PR 所需的 change/命令/真实结果与回退说明，不创建远程 PR、不改其他 change 完成状态。
 
 回退按本 change 的定向反向变更恢复目录、包和调用；本地文件按保全清单恢复且不覆盖新文件。禁止仓库级 reset/clean、覆盖真实配置或业务数据。本 change 无数据库回滚。

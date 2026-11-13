@@ -6,13 +6,13 @@
 
 | 验证 | 实际结果 | 原始证据（本机忽略文件） |
 | --- | --- | --- |
-| `mvn -f api/pom.xml test` | 68 项，失败/错误/跳过均 0，21:29:03 BUILD SUCCESS | `.runtime/agent-final-test.log`；Surefire XML |
-| `mvn -f api/pom.xml '-Dtest=ChatAcceptanceIT' test` | 4 项，失败/错误/跳过均 0，21:37:59 BUILD SUCCESS | `.runtime/agent-acceptance-test.log` |
-| 首轮 `mvn -f api/pom.xml clean verify` | 68 单元通过；86 集成中 2 项失败、错误/跳过 0。FoundationApplicationIT 与 ProductionInfrastructureIT 仍预期 V4，实际为 V5；三处版本预期已更新 | `.runtime/agent-clean-verify-before-v5-expectation-fix.log` |
-| 修正后 `mvn -f api/pom.xml clean verify` | 68 项单元/契约 + 86 项集成，失败/错误/跳过均 0，23:01:05 BUILD SUCCESS（耗时 09:57） | `.runtime/agent-final-clean-verify.log`；最终 Surefire/Failsafe XML |
-| 可选 Apifox 隔离服务启动/停止 | 本机 fixture 可读取、真实登录临时凭证就绪；主动停止后 1 项成功，23:00:22。只证明服务可用，不算 Apifox 协议通过 | `.runtime/agent-apifox-workspace.log` |
+| `mvn -f api/pom.xml test` | 68 项，失败/错误/跳过均 0，21:29:03 BUILD SUCCESS | `backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/agent-final-test.log`；Surefire XML |
+| `mvn -f api/pom.xml '-Dtest=ChatAcceptanceIT' test` | 4 项，失败/错误/跳过均 0，21:37:59 BUILD SUCCESS | `backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/agent-acceptance-test.log` |
+| 首轮 `mvn -f api/pom.xml clean verify` | 68 单元通过；86 集成中 2 项失败、错误/跳过 0。FoundationApplicationIT 与 ProductionInfrastructureIT 仍预期 V4，实际为 V5；三处版本预期已更新 | `backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/agent-clean-verify-before-v5-expectation-fix.log` |
+| 修正后 `mvn -f api/pom.xml clean verify` | 68 项单元/契约 + 86 项集成，失败/错误/跳过均 0，23:01:05 BUILD SUCCESS（耗时 09:57） | `backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/agent-final-clean-verify.log`；最终 Surefire/Failsafe XML |
+| 可选 Apifox 隔离服务启动/停止 | 本机 fixture 可读取、真实登录临时凭证就绪；主动停止后 1 项成功，23:00:22。只证明服务可用，不算 Apifox 协议通过 | 本机忽略备份 `backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/agent-apifox-workspace.log` |
 
-测试报告位置为 `api/target/surefire-reports` 和 `api/target/failsafe-reports`；XML 汇总为 68/86，均无失败/错误/跳过。可选 AgentApifoxWorkspace 不计入默认 68 项，定向测试与全量测试有重叠，不能将重复执行次数累加为不同用例数。前次重跑被用户中断，没有最终报告，已另存 `.runtime/agent-clean-verify-interrupted.log`；本次使用完整重跑的最终结果。target 与 .runtime 不作为永久仓库附件，本文保留脱敏结果，复现命令见 [测试说明（本目录入口）](README.md#testing)。
+测试报告位置为 `api/target/surefire-reports` 和 `api/target/failsafe-reports`；XML 汇总为 68/86，均无失败/错误/跳过。可选 AgentApifoxWorkspace 不计入默认 68 项，定向测试与全量测试有重叠，不能将重复执行次数累加为不同用例数。前次重跑被用户中断，没有最终报告，日志保存在 `backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/agent-clean-verify-interrupted.log`；本次使用完整重跑的最终结果。target 与 .runtime 不作为永久仓库附件，本文保留脱敏结果，复现命令见 [测试说明（本目录入口）](README.md#testing)。
 
 ## 需求、接口和持久化证据
 

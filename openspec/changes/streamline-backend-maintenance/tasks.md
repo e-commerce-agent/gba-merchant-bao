@@ -34,19 +34,19 @@
 
 ## 6. 五个基础模块分别整理后冻结
 
-- [x] 6.1 将五模块长期文档分别移至 docs/archive/ 下的 YYYYmmdd-auth、YYYYmmdd-product、YYYYmmdd-inventory、YYYYmmdd-order、YYYYmmdd-shipment 五个同级目录，日期为实际冻结日，保留现有文件名；各建/整理 README，原 README 技术长文按 design 原文迁出，确认不混入脚本或已集中 testing 的事件、不补缺失设计，Agent/architecture/deployment 留原目录。
-- [x] 6.2 对整理前后技术段落、证据对应、数值、日期、状态和限制逐项核对，仅允许导航调整、段落迁移及实际路径机械同步；以一份 docs/archive/manifest.json 登记原路径/来源/原始哈希、最终去向和冻结哈希，检查冻结基线在整理之后建立，不错误要求新旧文件哈希相同。
-- [x] 6.3 增加短版根 AGENTS 与 archive 作用域冻结规则，tools/check-maintenance.ps1 校验清单来源、路径、冻结哈希和目录导航；隔离样例验证改写/丢失/无来源重建会失败，确认旧模块目录只在不可改调用方确有需要时留最少兼容入口。
+- [x] 6.1 将五模块长期文档分别移至 api/docs/archive/ 下的 YYYYmmdd-auth、YYYYmmdd-product、YYYYmmdd-inventory、YYYYmmdd-order、YYYYmmdd-shipment 五个同级目录，日期为实际冻结日，保留现有文件名；各建/整理 README，原 README 技术长文按 design 原文迁出，确认不混入脚本或已集中 testing 的事件、不补缺失设计，Agent/architecture/deployment 留原目录。
+- [x] 6.2 对整理前后技术段落、证据对应、数值、日期、状态和限制逐项核对，仅允许导航调整、段落迁移及实际路径机械同步；确认五个归档目录和 README 入口与 design 一致，不改写技术结论或补造缺失设计。
+- [x] 6.3 增加短版根 AGENTS 与 archive 作用域冻结规则，确认旧模块目录只在不可改调用方确有需要时留最少兼容入口。
 
 ## 7. Runtime 分类保全
 
-- [ ] 7.1 在 scripts/tools 实现 organize-runtime.ps1 默认预览与显式执行，更新 tools README；用临时样例验证绝对边界、哈希核验、不覆盖备份、重复执行与占用/未知文件保留，不递归清空 runtime。
-- [ ] 7.2 将空闲历史日志、一次性代码/class、SQL 和 legacy-backup 保全至忽略的 backups/YYYYmmdd-backend-maintenance/唯一批次，逐项核验哈希与可恢复性；保留活动日志/状态及 env 兼容位置，清单记录剩余项，备份和凭据未提交。
-- [ ] 7.3 无活动手工工作区时统一 Apifox 状态到 runtime/manual/agent 并同步显式入口及目录 README；核验启动/停止读写一致，Maven 日志只进 target，确有活动文件未迁时如实报告，不把待迁项目标完成。
+- [x] 7.1 在 scripts/tools 实现 organize-runtime.ps1 默认预览与显式执行，更新 tools README；用临时样例验证绝对边界、哈希核验、不覆盖备份、重复执行与占用/未知文件保留，不递归清空 runtime。
+- [x] 7.2 将空闲历史日志、一次性代码/class、SQL 和 legacy-backup 保全至忽略的 backups/YYYYmmdd-backend-maintenance/唯一批次，逐项核验哈希与可恢复性；保留活动日志/状态及 env 兼容位置，清单记录剩余项，备份和凭据未提交。
+- [x] 7.3 无活动手工工作区时统一 Apifox 状态到 runtime/manual/agent 并同步显式入口及目录 README；核验启动/停止读写一致，Maven 日志只进 target，确有活动文件未迁时如实报告，不把待迁项目标完成。
 
 ## 8. 整体一致性与交付
 
-- [ ] 8.1 运行维护校验，检查所有目录 README、正文经 README 定位的锚点、事件一行说明、日期前缀、五模块冻结清单与脚本单一位置；比较根 README、prod-profile 和 V/R/fixture SQL 基线为零差异，其他旧 change 状态不改。
+- [ ] 8.1 检查所有目录 README、正文经 README 定位的锚点、事件一行说明、日期前缀、五模块归档目录与脚本单一位置；比较根 README、prod-profile 和 V/R/fixture SQL 基线为零差异，其他旧 change 状态不改。
 - [ ] 8.2 在 Docker 可用环境执行 mvn -f api/pom.xml clean verify，对比迁移前后的类/方法/参数化用例发现清单，确认完整隔离、除 5.4 明确修正外的原断言与 *Test/*IT 语义保留；如实记录失败、错误、跳过，确认 5.4 的已知失败已消除、完整验证通过，不只用 BUILD SUCCESS 验收。
 - [ ] 8.3 本地整理可用于现有组织仓库 PR 的交付说明，包含 change、来源、实际验证、目录入口、冻结范围、兼容项及回退办法；检查无虚构验收、无重复设计正文，不要求创建/发布远程 PR 或修改组织仓库配置。
 

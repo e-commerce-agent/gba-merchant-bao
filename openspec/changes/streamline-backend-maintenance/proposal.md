@@ -8,9 +8,9 @@
 
 - 建立单一维护链路：OpenSpec 保存当前需求与变更，`docs/interview` 保存讲解材料，GitHub 组织仓库的 commit/PR 保存交付证据；API 以 Springdoc 导出为准，DDL/DML 以现有 V/R/fixture SQL 为准。
 - 根 `README.md` 和整个 `api/docs/prod-profile/**` 保持原样。其余文档目录（含 architecture、agent、testing、deployment）以各自 README 集中链接文件并说明用途；正文保留必要语境与事实，需要查找其他说明文档时只链接所属目录 README 的对应条目。
-- 五个基础模块先整理导航、迁出脚本和临时验收记录，再分别冻结到 `docs/archive/YYYYmmdd-auth/`、`YYYYmmdd-product/`、`YYYYmmdd-inventory/`、`YYYYmmdd-order/`、`YYYYmmdd-shipment/`。日期为实际冻结日，保留现有文件名，不补原来没有的文档；Agent 文档继续留在当前目录。
+- 五个基础模块先整理导航、迁出脚本和临时验收记录，再分别冻结到 `api/docs/archive/YYYYmmdd-auth/`、`api/docs/archive/YYYYmmdd-product/`、`api/docs/archive/YYYYmmdd-inventory/`、`api/docs/archive/YYYYmmdd-order/`、`api/docs/archive/YYYYmmdd-shipment/`。日期为实际冻结日，保留现有文件名，不补原来没有的文档；Agent 文档继续留在当前目录。
 - 散落于 architecture、Agent 和其他文档的临时验证记录统一迁到 `api/docs/testing/YYYYmmdd-事件/`；日期为事件结束日，跨日事件不强拆。testing README 每个事件一行说明原因和用途，结束后停止续写；日常操作说明留所属目录。
-- 技术规则、场景编号、测试类名、主要断言和验收结论原文保留，允许整段迁移和机械同步实际路径；导航整理不能变成改写结论。冻结基线在一次整理之后建立，通过来源记录、哈希和版本化 Agent 规则防止后续误改。
+- 技术规则、场景编号、测试类名、主要断言和验收结论原文保留，允许整段迁移和机械同步实际路径；导航整理不能变成改写结论。冻结后的目录由版本化 Agent 规则约束，后续修改须有明确范围。
 - 将测试迁入 `test.auth/product/inventory/order/shipment/agent/chat/common/foundation/integration/support`，维护共享辅助类、继承关系与 Maven 发现规则，保留原有测试和断言。
 - 保存并提交本 change 的 artifacts/ 下保护、文件映射和测试发现三份 JSON 基线，原始报告仍留忽略的 target；后续仅修正已确认的商品/认证 OpenAPI 分组断言归属，不改运行接口，保留初始失败结果供对比，最终完整验证须通过。
 - 可复用脚本按执行目标进入 `api/scripts/prod/`、`dev/`、`test/`、`tools/`，每个实际目录有简短 README；文档归档不留脚本副本。prod-profile 内原脚本原地保留、不复制；生产手稿仍调用的旧 backup-dev 入口仅保留转发。

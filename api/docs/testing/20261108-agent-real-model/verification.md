@@ -19,4 +19,4 @@ dev 本机忽略配置：service=dots，base-url=`https://note3-prev-api.askdian
 
 | 验证 | 实际结果 | 原始证据（本机忽略文件） |
 | --- | --- | --- |
-| 真实兼容模型 HTTP/SSE → 历史 → MySQL | 通过，详见下文；不属于 Apifox 操作证据 | `.runtime/agent-real-model-result.json`、`.runtime/agent-dev-startup.log` |
+| 真实兼容模型 HTTP/SSE → 历史 → MySQL | 通过，详见下文；不属于 Apifox 操作证据 | `.runtime/agent-real-model-result.json`、`backups/20261113-backend-maintenance/runtime-preservation-20261113-0955/agent-dev-startup.log` |

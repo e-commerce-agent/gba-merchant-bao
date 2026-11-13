@@ -16,10 +16,11 @@
 mvn -f api/pom.xml '-Dtest=AgentApifoxWorkspace#serveApifoxOnDisposableInfrastructure' test
 ```
 
-服务仅绑定 127.0.0.1，使用 test profile 与动态端口，45 分钟后超时失败。准备成功后 `api/.runtime/agent-apifox-local.json` 记录 baseUrl、fixtureUrl 与手工用例 sessionId；不记录真实模型 key。fixtureUrl 是本机临时入口，不要公开。每次请求可从该入口获取临时应用登录 token，token 只存脚本运行变量，不放共享环境。停止时从仓库根目录另开终端执行：
+服务仅绑定 127.0.0.1，使用 test profile 与动态端口，45 分钟后超时失败。准备成功后 `api/.runtime/manual/agent/agent-apifox-local.json` 记录 baseUrl、fixtureUrl 与手工用例 sessionId；不记录真实模型 key。fixtureUrl 是本机临时入口，不要公开。每次请求可从该入口获取临时应用登录 token，token 只存脚本运行变量，不放共享环境。停止时从仓库根目录另开终端执行：
 
 ```powershell
-New-Item -ItemType File -Path api/.runtime/agent-apifox.stop
+New-Item -ItemType Directory -Force -Path api/.runtime/manual/agent
+New-Item -ItemType File -Path api/.runtime/manual/agent/agent-apifox.stop
 ```
 
 服务会退出临时账号会话、关闭 helper、清理容器。下次启动前只删除该 stop 标记。不要把临时地址当作长期服务或指向共享 dev 中间件。
