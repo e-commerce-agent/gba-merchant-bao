@@ -1,6 +1,6 @@
 # Agent 基础与对话接口契约
 
-状态：`add-agent-foundation-conversation-api` 的接口设计基线，需求和场景矩阵见 [需求文档](requirements.md)。Service 已按可信 Actor 实现本人会话与幂等归档：员工、同租户他人和跨租户资源同为 404，运行中归档为 busy。实际 HTTP/SSE 与快照以对应实现任务及测试为准；本文不表示通过 Apifox 验收。
+状态：`add-agent-foundation-conversation-api` 的接口设计基线，需求和场景矩阵见 [需求文档（本目录入口）](README.md#requirements)。Service 已按可信 Actor 实现本人会话与幂等归档：员工、同租户他人和跨租户资源同为 404，运行中归档为 busy。实际 HTTP/SSE 与快照以对应实现任务及测试为准；本文不表示通过 Apifox 验收。
 
 ## 1. 公共协议
 
@@ -220,7 +220,7 @@ X-Request-Id: chat-send-001
 | 输出 token 后模型故障 | 一次 error、保存 FAILED，不从头重生成 | 无新 run |
 | 断线后请求命中另一实例 | GET 历史或原 key JSON 返回共享已提交状态，无重放 | 无 |
 
-以上契约由 Service/MySQL、MockMvc、真实 Servlet HTTP 与本地模型协议 stub 定向测试覆盖。实际 Springdoc 分组及导出方式见 [运行说明](manual-verification.md)；Apifox 导入仍属后续任务。
+以上契约由 Service/MySQL、MockMvc、真实 Servlet HTTP 与本地模型协议 stub 定向测试覆盖。实际 Springdoc 分组及导出方式见 [运行说明（本目录入口）](README.md#manual-verification)；Apifox 导入仍属后续任务。
 
 ## 5. SSE 事件协议（v1）
 

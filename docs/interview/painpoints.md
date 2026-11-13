@@ -2,7 +2,7 @@
 
 认证更新：2026-11-06；Agent 追加：2026-11-10。本页记录认证与 Agent 实现中已有代码、测试或维护记录可追溯的问题；“设计约束”“隔离测试构造故障”“实际开发库维护”分别标明，不把它们包装成线上事故。认证面试只选 AUTH-01、AUTH-02；Agent 面试只选 AGENT-01、AGENT-02，其余保留为备查。
 
-共同来源：认证 [实现 PR #12](https://github.com/e-commerce-agent/gba-merchant-bao/pull/12)、[验收](../../api/docs/auth/verification.md)；Agent [实现 PR #15](https://github.com/e-commerce-agent/gba-merchant-bao/pull/15)、[验收](../../api/docs/agent/verification.md)。全部数字对应代码规则、具名测试或本机维护记录；没有线上性能指标。
+共同来源：认证 [实现 PR #12](https://github.com/e-commerce-agent/gba-merchant-bao/pull/12)、[验收](../../api/docs/testing/20261106-auth-acceptance/README.md)；Agent [实现 PR #15](https://github.com/e-commerce-agent/gba-merchant-bao/pull/15)、[验收](../../api/docs/testing/20261108-agent-foundation/README.md)。全部数字对应代码规则、具名测试或本机维护记录；没有线上性能指标。
 
 | 编号 / 类型 | 问题或现象 | 原因与处理 | 证据 / commit | 面试主讲 |
 | --- | --- | --- | --- | --- |

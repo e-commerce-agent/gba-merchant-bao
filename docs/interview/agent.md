@@ -1,6 +1,6 @@
 # Agent 基础与对话接口面试卡片
 
-更新：2026-11-10。实现已由 [PR #15](https://github.com/e-commerce-agent/gba-merchant-bao/pull/15) 合入, 本次docs/agent-interview分支已归档. 验收记录见 [Agent 验收记录](../../api/docs/agent/verification.md)。
+更新：2026-11-10。实现已由 [PR #15](https://github.com/e-commerce-agent/gba-merchant-bao/pull/15) 合入, 本次docs/agent-interview分支已归档. 验收记录见 [Agent 验收记录](../../api/docs/testing/20261108-agent-foundation/README.md)。
 
 openspec的change add-agent-foundation-conversation-api, Apifox的6.1、6.2尚未完成实际配置与协议执行
 
@@ -108,7 +108,7 @@ openspec的change add-agent-foundation-conversation-api, Apifox的6.1、6.2尚�
 
 ## 测试条件与真实数字
 
-实现阶段记录的环境为JDK 21、Maven 3.9.11、Docker Testcontainers；MySQL 8.0.34、Redis 7.4-alpine。Redis仅用于既有认证会话。详细证据和限制见 [验收记录](../../api/docs/agent/verification.md) 与 [测试说明](../../api/docs/testing/README.md)。
+实现阶段记录的环境为JDK 21、Maven 3.9.11、Docker Testcontainers；MySQL 8.0.34、Redis 7.4-alpine。Redis仅用于既有认证会话。详细证据和限制见 [验收记录](../../api/docs/testing/20261108-agent-foundation/README.md) 与 [测试说明](../../api/docs/testing/README.md)。
 
 | 验证 | 实际结果 |
 | --- | --- |

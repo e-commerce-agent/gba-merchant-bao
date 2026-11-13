@@ -1,8 +1,8 @@
 # 多人开发分工：业务技术模块与 Agent 接入条件
 
-依据 [原始 PRD / 设计手稿](../../../docs/initialization/设计手稿.md) 和本次确认的分工整理。本文用于认领后续技术模块；下面的接口、表和 Service 是目标交付，不代表已经实现。当前已完成认证主体能力，auth 已调整为三层包结构；认证 change 的完整验收以其任务和测试报告为准。
+依据 [原始 PRD / 设计手稿（本目录入口）](README.md#initial-design) 和本次确认的分工整理。本文用于认领后续技术模块；下面的接口、表和 Service 是目标交付，不代表已经实现。当前已完成认证主体能力，auth 已调整为三层包结构；认证 change 的完整验收以其任务和测试报告为准。
 
-Agent 基础已实现 LangChain4j 模型边界、本人会话六操作、start/token/done/error SSE、取消/超时和 MySQL 完整历史（V5）。2026-11-08 已完成真实兼容模型连通及真实认证 HTTP/SSE 自动化；Apifox 实际导入/协议验收仍待完成，不能据此宣称模块全部验收通过。证据见 [Agent 验收记录](../agent/verification.md)。以下 RAG、Function Calling、RabbitMQ、Redis ChatMemory、完整前端和真实 Nginx 集群仍是后续目标；citation/tool_call 只预留扩展语义，当前不发送这些事件。
+Agent 基础已实现 LangChain4j 模型边界、本人会话六操作、start/token/done/error SSE、取消/超时和 MySQL 完整历史（V5）。2026-11-08 已完成真实兼容模型连通及真实认证 HTTP/SSE 自动化；Apifox 实际导入/协议验收仍待完成，不能据此宣称模块全部验收通过。证据见 [Agent 验收记录（本目录入口）](README.md#agent-verification)。以下 RAG、Function Calling、RabbitMQ、Redis ChatMemory、完整前端和真实 Nginx 集群仍是后续目标；citation/tool_call 只预留扩展语义，当前不发送这些事件。
 
 ## 1. 谁负责什么
 

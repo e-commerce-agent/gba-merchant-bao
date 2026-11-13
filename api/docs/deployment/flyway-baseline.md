@@ -5,16 +5,16 @@
 所有执行方保持 validate-on-migrate=true、clean-disabled=true、out-of-order=false，已应用 V1–V5 不可改写。
 
 V1 是11张旧餐饮表的结构快照，无数据；V2 增加 merchant 租户根；V3 增加其 currency_code。
-V4 仅新增 consumer_account / merchant_staff_account 结构与约束，已登记 V3 的库只追加 V4；旧账号不迁入，账号数据分层见 [认证数据设计](../auth/data-design.md)。V5 会话结构和 R030 会话种子已在 dev 基线中执行并冻结。
+V4 仅新增 consumer_account / merchant_staff_account 结构与约束，已登记 V3 的库只追加 V4；旧账号不迁入，账号数据分层见 [认证数据设计（本目录入口）](README.md#auth-data-design)。V5 会话结构和 R030 会话种子已在 dev 基线中执行并冻结。
 V2/V3 不会替旧业务表补 merchant_id，不会把旧餐饮数据转换成新商贸数据。租户根种子与后续业务数据有单独层次。
 
-V5 之后当前 dev V5 基线的新增结构按依赖排序：V6 商品目录、V7 库存、V8 只读订单、V9 物流。V6–V9 仅结构 DDL，跨域复合外键约束库存/SKU、订单项/商品 SKU、运单/订单及轨迹/运单的同商户关系。R040–R070 依次提供商品、库存、订单、物流演示数据；编号、稳定 ID 和重跑边界见 [dev 演示数据登记](../../src/main/resources/db/devdata/README.md)。当前 change 只支持本地尚在 V5 的 dev 库与新库，不兼容已执行旧 V6–V9 顺序的其他库；维护工具会拒绝旧布局。
+V5 之后当前 dev V5 基线的新增结构按依赖排序：V6 商品目录、V7 库存、V8 只读订单、V9 物流。V6–V9 仅结构 DDL，跨域复合外键约束库存/SKU、订单项/商品 SKU、运单/订单及轨迹/运单的同商户关系。R040–R070 依次提供商品、库存、订单、物流演示数据；编号、稳定 ID 和重跑边界见 [dev 演示数据登记（本目录入口）](README.md#devdata)。当前 change 只支持本地尚在 V5 的 dev 库与新库，不兼容已执行旧 V6–V9 顺序的其他库；维护工具会拒绝旧布局。
 
-库存 V7 的三张表 `inventory`、`inventory_transaction`、`inventory_idempotent` 使用无默认值、无 AUTO_INCREMENT 的 BIGINT 主键。运行时服务注入现有单例 IdGenerator，INSERT 前分配雪花 ID；dev R050 和测试 fixture 显式写固定 ID。本次修订只适用于尚未执行该 V7 的新库/已约定 V5 基线；已应用 V7（包括旧自增版）的库必须停止并另行评审向前迁移，不能靠修 checksum、repair、改 history 或重编号现有记录适配。本 change 不新增 V10，也不自动改造已有库。部署副本的 worker 与重启约定见 [库存模块](../inventory/README.md#主键与多副本运行)。
+库存 V7 的三张表 `inventory`、`inventory_transaction`、`inventory_idempotent` 使用无默认值、无 AUTO_INCREMENT 的 BIGINT 主键。运行时服务注入现有单例 IdGenerator，INSERT 前分配雪花 ID；dev R050 和测试 fixture 显式写固定 ID。本次修订只适用于尚未执行该 V7 的新库/已约定 V5 基线；已应用 V7（包括旧自增版）的库必须停止并另行评审向前迁移，不能靠修 checksum、repair、改 history 或重编号现有记录适配。本 change 不新增 V10，也不自动改造已有库。部署副本的 worker 与重启约定见 [库存模块（本目录入口）](README.md#inventory-module-ids)。
 
 ## 仅接管已核验旧库
 
-1. 确认实例、库名、负责人和停写窗口，先 [备份结构＋数据](backup-recovery.md)，在隔离库恢复验证。
+1. 确认实例、库名、负责人和停写窗口，先 [备份结构＋数据（本目录入口）](README.md#backup-recovery)，在隔离库恢复验证。
 2. 另建参考空库，仅执行仓库批准的 V1。用 SHOW CREATE TABLE 与 information_schema 逐项核对目标和参考：表名、列顺序/类型/长度、默认值、NULL、主键、索引/唯一约束、外键、字符集/排序规则、引擎及 MySQL 版本兼容性。AUTO_INCREMENT 当前值等运行状态单独记录，不误判为模型差异。
 3. 目标不得存在 flyway_schema_history 或 merchant；有缺表、多表、字段/索引/约束差异时立即停止并记录差异，不能因为“差不多”就 baseline。
 4. 保留核验记录及旧表行数/代表性主键，在恢复出的隔离演练库先执行一次显式 baseline-1，然后 migrate，核对旧行及新结构。

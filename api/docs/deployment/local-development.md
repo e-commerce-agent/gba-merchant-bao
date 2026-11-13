@@ -115,11 +115,11 @@ git check-ignore api/docs/prod-profile/opt/gba/docker-compose.yml api/docs/prod-
 ```
 
 历史配置中曾出现的真实数据库、OSS、微信等凭据，应到各服务提供方轮换；删除当前文件中的旧值不会让历史凭据失效。
-开发日志 api/.runtime/logs，Maven 测试只写 api/target/test-logs，详见 [日志](logging.md)、[测试](../testing/README.md)。
+开发日志 api/.runtime/logs，Maven 测试只写 api/target/test-logs，详见 [日志（本目录入口）](README.md#logging)、[测试（本目录入口）](README.md#testing)。
 
 ## 种子改名后的启动
 
-已执行旧名 R 的现有 Docker Compose 开发库，先完成一次 [开发种子受控升级](dev-seed-upgrade.md)，保留命名卷与真实历史；新空库无需该维护。日常先在仓库根 `docker compose up -d --wait`，再在 IDEA 激活 dev 启动，或在 api 下 `mvn spring-boot:run '-Dspring-boot.run.profiles=dev'`。Flyway 自动执行待迁移，不自动 repair、不通过回调重跑种子。当前没有 Maven Wrapper，使用已安装 Maven。
+已执行旧名 R 的现有 Docker Compose 开发库，先完成一次 [开发种子受控升级（本目录入口）](README.md#dev-seed-upgrade)，保留命名卷与真实历史；新空库无需该维护。日常先在仓库根 `docker compose up -d --wait`，再在 IDEA 激活 dev 启动，或在 api 下 `mvn spring-boot:run '-Dspring-boot.run.profiles=dev'`。Flyway 自动执行待迁移，不自动 repair、不通过回调重跑种子。当前没有 Maven Wrapper，使用已安装 Maven。
 
 R 仅首次或校验和变化时执行，显式补种见升级说明；不要靠重启恢复人工删除的演示数据。prod 保持独立迁移成功后启动关闭 Flyway 的应用，与本次开发库维护分离。
 
@@ -127,7 +127,7 @@ R 仅首次或校验和变化时执行，显式补种见升级说明；不要靠
 
 本流程只适用于 `align-commerce-module-integration` 的原 V5 基线。先完成隔离迁移测试与
 `mvn -f api/pom.xml clean verify`，再操作本地库。执行记录见
-[电商整合验收](../testing/commerce-integration-verification.md)。
+[电商整合验收（本目录入口）](README.md#testing-commerce-integration-verification)。
 
 1. 停止所有连接该库的后端及维护程序。在仓库根运行 `docker compose up -d --wait`，核对
    Compose project 为 `gba-dev`、MySQL 为 `gba_dev`、应用账号为 `dev_admin`，容器端口映射
@@ -158,7 +158,7 @@ R 仅首次或校验和变化时执行，显式补种见升级说明；不要靠
 完整备份恢复或向前修复，执行前核对目标和影响；代码回退前先验证数据库兼容性。
 
 2026-11-11 R040 分类外键失败的隔离复现、修复及 2026-11-12 授权恢复结果见
-[本地电商开发库恢复方案](commerce-dev-recovery.md)。该方案不是常规启动操作，不自动执行。
+[本地电商开发库恢复方案（本目录入口）](README.md#commerce-dev-recovery)。该方案不是常规启动操作，不自动执行。
 
 建议断点入口：`ProductQueryService.publicSku/withAvailability`、
 `InventoryAvailabilityQueryService.inStock`、`InventoryService.execute`、
