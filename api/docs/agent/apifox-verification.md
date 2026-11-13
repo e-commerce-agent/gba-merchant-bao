@@ -10,7 +10,7 @@
 4. 本地值中保存 accessToken、staffToken、otherTenantToken、sessionId、clientMessageId；共享/初始值留空。Bearer 引用 `{{accessToken}}`，路径引用 `{{sessionId}}`。登录返回的 data.accessToken 与后端 merchant.agent.api-key 不同；Apifox 不需要模型 key。
 5. 新发送意图使用新 UUID，网络重试和幂等用例复用原 UUID/原文；保存业务标识供历史与 DB 查询。环境和用例导出前去掉 token、开发密码和真实 key。
 
-自动化 [ChatAcceptanceIT](../../src/test/java/com/gba/merchantbao/test/ChatAcceptanceIT.java) 提供独立 MySQL/Redis 与真实认证的可控模型基线。另提供仅显式选择才运行的 [AgentApifoxWorkspace](../../src/test/java/com/gba/merchantbao/test/AgentApifoxWorkspace.java)，默认 test/verify 不选择它，也不打入应用 JAR。需要 Docker，在仓库根目录启动：
+自动化 [ChatAcceptanceIT](../../src/test/java/com/gba/merchantbao/test/chat/ChatAcceptanceIT.java) 提供独立 MySQL/Redis 与真实认证的可控模型基线。另提供仅显式选择才运行的 [AgentApifoxWorkspace](../../src/test/java/com/gba/merchantbao/test/chat/AgentApifoxWorkspace.java)，默认 test/verify 不选择它，也不打入应用 JAR。需要 Docker，在仓库根目录启动：
 
 ```powershell
 mvn -f api/pom.xml '-Dtest=AgentApifoxWorkspace#serveApifoxOnDisposableInfrastructure' test

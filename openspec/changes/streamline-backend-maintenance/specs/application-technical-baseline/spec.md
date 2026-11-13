@@ -118,7 +118,7 @@
 
 ### Requirement: Backend tests shall be discoverable by domain without reducing coverage
 
-测试源码 MUST 在 `com.gba.merchantbao.test` 下按业务域、公共基础、跨模块集成和共享辅助职责分包。分包 MUST 保留测试类名、用例与断言、fixture 资源路径及单元/集成命名约定；仅允许下述已确认的 OpenAPI 分组断言归属修正，不得减少覆盖。Maven 默认发现范围与已有手工验收入口的显式选择语义 MUST 保持。完整验证仍使用隔离容器，Docker 不可用时失败。
+测试源码文件 MUST 在 `com/gba/merchantbao/test` 下按业务域、公共基础、跨模块集成和共享辅助职责分目录、分包；仅 ChatRunExecutionTest、ChatSseLifecycleTest 保留原生产包声明以测试包级内部实现，文件仍进入 chat 目录，其他声明与目标目录一致。分包 MUST 保留测试类名、用例与断言、fixture 资源路径及单元/集成命名约定；仅允许下述已确认的 OpenAPI 分组断言归属修正，不得减少覆盖。Maven 默认发现范围与已有手工验收入口的显式选择语义 MUST 保持。完整验证仍使用隔离容器，Docker 不可用时失败。生产代码及 dev/prod profile、配置、运行环境 MUST NOT 因本次分包修改。
 
 #### Scenario: Maintenance baselines are committed
 - **WHEN** 保存本 change 的来源、保护范围、测试映射和实际发现结果
@@ -135,6 +135,10 @@
 #### Scenario: Maven discovers tests after relocation
 - **WHEN** 执行单元验证与完整验证并与迁移前的测试清单比较
 - **THEN** 除完整包名变化外发现同一批测试和用例，`*Test` 与 `*IT` 的发现语义不变，无测试因访问权限、继承或选择器变化而消失，失败/错误/跳过数量如实记录
+
+#### Scenario: A test exercises package-private chat internals
+- **WHEN** 整理 ChatRunExecutionTest 与 ChatSseLifecycleTest
+- **THEN** 文件移入 test/chat，分别保留 com.gba.merchantbao.chat.service、com.gba.merchantbao.chat.controller 包声明和原断言，不扩大生产代码可见性，不改变 dev/prod profile 或运行环境
 
 #### Scenario: A developer explicitly starts the manual acceptance workspace
 - **WHEN** 使用文档中的新入口启动原有 Apifox 临时工作区

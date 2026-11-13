@@ -57,7 +57,7 @@ RT/CV 编号对应以下证据；矩阵入口见 [本目录 README](README.md#re
 
 ## 真实认证与隔离边界
 
-本次新增 [ChatAcceptanceIT](../../../src/test/java/com/gba/merchantbao/test/ChatAcceptanceIT.java)，使用独立 MySQL 8.0.34、Redis 7.4-alpine、随机宿主机端口，关闭复用、不挂业务卷、不访问 gba-dev。@Sql 显式加载 auth_accounts.sql；外部短信发送器与模型使用可控替身，真实账号 Service、JWT、Redis 登录会话、安全过滤器、Servlet 异步 SSE、事务/Mapper 均参与运行。DockerRequired 使 Docker 不可用时明确失败。
+本次新增 [ChatAcceptanceIT](../../../src/test/java/com/gba/merchantbao/test/chat/ChatAcceptanceIT.java)，使用独立 MySQL 8.0.34、Redis 7.4-alpine、随机宿主机端口，关闭复用、不挂业务卷、不访问 gba-dev。@Sql 显式加载 auth_accounts.sql；外部短信发送器与模型使用可控替身，真实账号 Service、JWT、Redis 登录会话、安全过滤器、Servlet 异步 SSE、事务/Mapper 均参与运行。DockerRequired 使 Docker 不可用时明确失败。
 
 普通回答精确拼接 hello world，检查事件顺序和幂等 JSON；超时为 TIMED_OUT，部分输出后依赖故障为 FAILED；关闭 HTTP 流触发上游取消与 CANCELLED，迟到 token/complete 无效。按 sessionId/runId 定位助手行并核对正文/终态，按会话 ID 验证 active_run_id 已释放。退出后再查历史为 401，证明断流恢复仍需要有效身份。没有整表总数或空库业务数据假设。
 

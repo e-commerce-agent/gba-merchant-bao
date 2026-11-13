@@ -113,6 +113,8 @@ Springdoc 通用导出提升到 tools，接收 base URL，读取既有六分组�
 
 辅助类仅开放跨包必需访问；AgentApifoxWorkspace 与 ChatAcceptanceIT 同 chat 包，保持包级继承协作且手工入口不改成 *Test/*IT。Surefire/Failsafe 默认发现语义、简单类名选择、所有用例和断言保留；不靠 include/exclude 缩范围，不移动 fixture，不改变容器数据隔离。
 
+包级访问例外：`ChatRunExecutionTest`、`ChatSseLifecycleTest` 的文件按映射进入 `test/chat/`，但分别保留原 `com.gba.merchantbao.chat.service`、`com.gba.merchantbao.chat.controller` 包声明。它们直接测试包级内部实现；保留声明避免仅为目录整理开放生产类、构造器或方法。其余文件声明与目标目录一致，生产代码及 dev/prod profile、配置、运行环境不因分包修改。
+
 对比迁移前后实际“简单类名 + 测试方法/参数化用例”的发现清单，不能只比总数或 BUILD SUCCESS。当前文档与脚本同步实际类路径；冻结前完成对应机械更新，不能在冻结后追着包名反复改档案。
 
 本 change 目录下的 `artifacts/protected-baseline.json`（来源和保护范围）、`artifacts/test-file-mapping.json`（59 文件唯一目标映射）、`artifacts/test-discovery-baseline.json`（实际类/方法/参数化发现与结果）随 change 提交并保留，用于后续校验和对比；不是要求日常续写的模块文档。只提交脱敏元信息与用例结果，不提交凭据、SQL 正文或原始报告；XML/日志仍留忽略的 `api/target/`。后续修复结果单独记录，不覆盖初始来源、保护哈希及已知失败；change 归档时这三份基线随之保留。`db/upgrade-history` 及其测试引用本次不处理。

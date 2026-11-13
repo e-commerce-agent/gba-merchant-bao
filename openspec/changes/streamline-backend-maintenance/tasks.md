@@ -27,10 +27,10 @@
 
 ## 5. 测试按业务职责分包
 
-- [ ] 5.1 按 design 映射迁移 auth/product/inventory/order/shipment 测试，更新声明/导入；以 test-compile 和文件清单核验一一对应，原用例、断言和 fixture 路径完整保留。
-- [ ] 5.2 迁移 agent/chat/common/foundation/integration 测试及 support 三辅助类，只开放跨包必需访问，AgentApifoxWorkspace 与 ChatAcceptanceIT 同 chat 包；编译验证全部 59 个文件唯一归位，根包不平铺 Java，手工入口不改成默认测试命名。
-- [ ] 5.3 更新当前文档、脚本、反射/显式类引用及简单类名选择示例，执行单元验证并比较发现清单；验证 -Dtest/-Dit.test 原语义保留、手工工作区不会默认启动，无删断言或放宽发现规则导致漏测。
-- [ ] 5.4 修正基线中 ProductAvailabilityIT.exportsActualProductOpenApiWithThePublicBooleanContract 的分组断言：商品 product-v1 不应包含 StaffLogin，认证 auth-v1 的 StaffLogin.merchantCode 由 AuthDevManualIT 验证；保留商品原有 inStock、公开路径及敏感字段断言，不扩大商品分组扫描范围；定向运行这两个集成类通过，保留原失败基线并记录修复后的结果，最终由 8.2 完整验证确认通过。
+- [x] 5.1 按 design 映射迁移 auth/product/inventory/order/shipment 测试，更新声明/导入；以 test-compile 和文件清单核验一一对应，原用例、断言和 fixture 路径完整保留。
+- [x] 5.2 迁移 agent/chat/common/foundation/integration 测试及 support 三辅助类，只开放辅助类跨包必需访问，AgentApifoxWorkspace 与 ChatAcceptanceIT 同 chat 包；ChatRunExecutionTest、ChatSseLifecycleTest 文件进入 chat 但保留原包声明以访问内部实现，不改生产代码或 dev/prod profile；编译验证全部 59 个文件唯一归位，根包不平铺 Java，手工入口不改成默认测试命名。
+- [x] 5.3 更新当前文档、脚本、反射/显式类引用及简单类名选择示例，执行单元验证并比较发现清单；验证 -Dtest/-Dit.test 原语义保留、手工工作区不会默认启动，无删断言或放宽发现规则导致漏测。
+- [x] 5.4 修正基线中 ProductAvailabilityIT.exportsActualProductOpenApiWithThePublicBooleanContract 的分组断言：商品 product-v1 不应包含 StaffLogin，认证 auth-v1 的 StaffLogin.merchantCode 由 AuthDevManualIT 验证；保留商品原有 inStock、公开路径及敏感字段断言，不扩大商品分组扫描范围；定向运行这两个集成类通过，保留原失败基线并记录修复后的结果，最终由 8.2 完整验证确认通过。
 
 ## 6. 五个基础模块分别整理后冻结
 

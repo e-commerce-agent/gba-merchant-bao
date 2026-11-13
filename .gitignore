@@ -17,8 +17,6 @@ openspec/changes/*/artifacts/
 !/openspec/changes/streamline-backend-maintenance/artifacts/protected-baseline.json
 !/openspec/changes/streamline-backend-maintenance/artifacts/test-file-mapping.json
 !/openspec/changes/streamline-backend-maintenance/artifacts/test-discovery-baseline.json
-!/openspec/changes/streamline-backend-maintenance/artifacts/verification-event-mapping.json
-!/openspec/changes/streamline-backend-maintenance/artifacts/sections-3-4-verification.md
 
 # 前端本地依赖与构建产物：本地安装/打包，不进仓库
 /view/node_modules/

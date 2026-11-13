@@ -2,6 +2,14 @@
 
 环境要求：JDK 21、Maven 3.9.11，以及已启动 Linux 容器引擎的 Docker Desktop。首次运行时需要能够下载 Maven 依赖和指定版本的容器镜像。
 
+## 测试定位与定向选择
+
+测试文件位于 `api/src/test/java/com/gba/merchantbao/test/`，按 `auth`、`product`、`inventory`、`order`、`shipment`、`agent`、`chat`、`common`、`foundation`、`integration` 分目录，共享辅助类放 `support`。`chat` 同时容纳 `ChatAcceptanceIT` 及其显式手工入口 `AgentApifoxWorkspace`；fixture 仍位于 `api/src/test/resources/db/fixture`。
+
+`chat` 中的 `ChatRunExecutionTest`、`ChatSseLifecycleTest` 分别保留 `com.gba.merchantbao.chat.service`、`com.gba.merchantbao.chat.controller` 包声明，以访问包级内部实现；其余声明随目录分包。两个例外保留原断言，无需扩大生产代码可见性，也不改 dev/prod profile 或运行环境。
+
+Surefire 保留 `*Test`、Failsafe 保留 `*IT` 的默认发现规则。简单类名选择不变，例如 `mvn -f api/pom.xml '-Dtest=AuthInputTest' test`；需要全名时可用 `com.gba.merchantbao.test.auth.AuthInputTest`。隔离集成定向例：`mvn -f api/pom.xml test-compile '-Dit.test=ProductAvailabilityIT,AuthDevManualIT' failsafe:integration-test failsafe:verify`。定向结果不能替代全量验收；手工工作区只在显式选择其类/方法时启动。
+
 在仓库根目录执行以下命令：
 
 ```powershell
