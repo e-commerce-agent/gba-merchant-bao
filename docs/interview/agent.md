@@ -1,6 +1,6 @@
 # Agent 基础与对话接口面试卡片
 
-更新：2026-11-10。实现已由 [PR #15](https://github.com/e-commerce-agent/gba-merchant-bao/pull/15) 合入, 本次docs/agent-interview分支已归档. 验收记录见 [Agent 验收记录](../../api/docs/testing/20261108-agent-foundation/README.md)。
+更新：2026-11-10。Agent 基础对话由 [PR #15](https://github.com/e-commerce-agent/gba-merchant-bao/pull/15), 基础验收记录见 [Agent 基础验收](../../api/docs/testing/20261108-agent-foundation/README.md)。
 
 openspec的change add-agent-foundation-conversation-api, Apifox的6.1、6.2尚未完成实际配置与协议执行
 
@@ -8,7 +8,7 @@ openspec的change add-agent-foundation-conversation-api, Apifox的6.1、6.2尚�
 
 消费者或商户员工登录后，需要创建自己的对话、继续发送消息，并在刷新页面或连接中断后读取历史。服务端必须确保会话只对所属商户、账号和角色开放；同一条消息不能因网络重试重复触发模型调用。
 
-本模块提供本人会话创建、列表、详情、归档、历史分页和流式发送。消息与运行状态保存到 MySQL，模型通过 OpenAI Chat Completions 兼容协议接入，SSE 负责把增量回答发回客户端。当前交付基础对话，不包含知识检索、业务工具调用、完整前端或真实 Nginx 多实例部署。
+本模块提供本人会话创建、列表、详情、归档、历史分页和流式发送。消息与运行状态保存到 MySQL，模型通过 OpenAI Chat Completions 兼容协议接入，SSE 负责把增量回答发回客户端。本文聚焦 Agent 基础对话，不包含知识检索、业务工具调用、完整前端或真实 Nginx 多实例部署。项目后续增加的 RAG 和只读订单 Function Calling 分别见 [RAG 面试卡片](rag.md) 与 [Function Calling 面试卡片](function-calling.md)。完整前端和真实 Nginx 多实例部署尚未完成。
 
 可直接讲的开场：
 
@@ -45,7 +45,10 @@ openspec的change add-agent-foundation-conversation-api, Apifox的6.1、6.2尚�
 | `ChatSessionMapper`、`ChatMessageMapper`；`V5__agent_conversation.sql` | 会话/消息持久化、租户归属、序号和幂等约束 | `520862d` / [PR #15](https://github.com/e-commerce-agent/gba-merchant-bao/pull/15) |
 | `ChatAcceptanceIT` | 真实认证链路、HTTP/SSE、隔离和终态集成验收 | `b86f2ce` / [PR #15](https://github.com/e-commerce-agent/gba-merchant-bao/pull/15) |
 
-## 三、技术深挖：两个主讲难点
+## 三、技术深挖：基础对话阶段的两个难点
+
+Function Calling的轮次 上下文预算又是不一样的, 还加了Actor授权
+, 两个主讲难点见 [Function Calling 面试卡片](function-calling.md)。本页保留 Agent 基础对话阶段的历史技术深挖，供基础模块复习。
 
 ### 难点一：上下文预算怎么计算和选取？
 
@@ -71,9 +74,9 @@ openspec的change add-agent-foundation-conversation-api, Apifox的6.1、6.2尚�
 
 当前通过 `OpenAiStreamingChatModel` 的低层 streaming 调用，把消息列表交给 `StreamingChatResponseHandler`，再映射成 `AgentModel.Listener`。LangChain4j 负责 OpenAI 兼容请求序列化、上游 SSE 解析及流式回调；应用保留上下文选择、运行生命周期、事务、取消、错误映射和对外 SSE 的控制。
 
-当前主要验收约束在运行生命周期：消息要先落库，运行权要跨实例共享，模型调用要受 deadline 控制，完成前要先提交终态，客户端断开要尽可能取消上游，迟到回调不得覆盖后继运行。低层 API 让这些边界仍由 `ChatService`、`ChatRunExecution` 和 `AgentModel` 显式管理。当前没有 LangChain4j Tool 编排或 ChatMemory 能力要交给框架，因此尚无必须采用 AiServices 的需求。
+当前主要验收约束在运行生命周期：消息要先落库，运行权要跨实例共享，模型调用要受 deadline 控制，完成前要先提交终态，客户端断开要尽可能取消上游，迟到回调不得覆盖后继运行。低层 API 让这些边界仍由 `ChatService`、`ChatRunExecution` 和 `AgentModel` 显式管理。当前没有 LangChain4j Tool 编排或 ChatMemory 能力要交给框架，因此尚无必须采用 AiServices 的需求。接入 Function Calling 后，项目继续沿用低层 API，让这些边界以及工具往返仍由应用显式管理。
 
-这不是说 AiServices 不适用，也不是对后续 RAG/Function Calling 的最终选型。RAG 可以先作为上下文准备步骤评估；Function Calling 到来时，应按实际 API 能力和生命周期测试比较 AiServices 与低层工具调用，并继续满足可信 Actor 注入、参数授权、消息持久化、取消和错误状态要求。
+低层 API 是当前实现选择，不代表 AiServices 不适用。Function Calling 的实现经过协议与生命周期测试后仍采用显式工具调用，核心约束是可信 Actor 注入、参数授权、消息持久化、取消和错误状态。
 
 面试话术：
 
@@ -81,7 +84,7 @@ openspec的change add-agent-foundation-conversation-api, Apifox的6.1、6.2尚�
 
 证据：`OpenAiAgentModel#stream`、`ChatService#accept/#execute/#finish`、`ChatRunExecution`；`AgentModelProtocolTest` 使用本地 HTTP stub 验证协议，`ChatAcceptanceIT` 验证真实认证链路和 HTTP/SSE。当前没有 Agent 工具调用或 RAG 验收。
 
-其余实现问题收录在 [painpoints.md](painpoints.md)，不增加第三个主讲难点。
+Function Calling 的两个主讲难点见 [function-calling.md](function-calling.md)；其余实现问题收录在 [painpoints.md](painpoints.md)。
 
 ## 四、高频八股
 

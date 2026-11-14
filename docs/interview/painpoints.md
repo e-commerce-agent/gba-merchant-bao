@@ -1,6 +1,6 @@
 # 技术问题与决策记录
 
-认证更新：2026-11-06；Agent 追加：2026-11-10；RAG 追加：2026-11-14。本页记录有代码、测试或开发环境记录可追溯的问题；“设计约束”“隔离测试构造故障”“实际开发库验证”分别标明，不包装成线上事故。认证面试选 AUTH-01、AUTH-02，Agent 选 AGENT-01、AGENT-02，RAG 选 RAG-01、RAG-02；其他条目留作备查。
+认证更新：2026-11-06；Agent 基础对话追加：2026-11-10；RAG 追加：2026-11-14；Function Calling 追加：2026-11-15。本页记录有代码、测试或开发环境记录可追溯的问题；“设计约束”“隔离测试构造故障”“实际开发库验证”分别标明，不包装成线上事故。当前面试主讲选 AUTH-01、AUTH-02，RAG 选 RAG-01、RAG-02，Agent Function Calling 选 AGENT-11、AGENT-12；其余条目留作备查。
 
 共同来源：认证 [实现 PR #12](https://github.com/e-commerce-agent/gba-merchant-bao/pull/12)、[验收](../../api/docs/testing/20261106-auth-acceptance/README.md)；Agent [实现 PR #15](https://github.com/e-commerce-agent/gba-merchant-bao/pull/15)、[验收](../../api/docs/testing/20261108-agent-foundation/README.md)。全部数字对应代码规则、具名测试或本机维护记录；没有线上性能指标。
 
@@ -25,8 +25,8 @@ RAG 来源：[实现 PR #27](https://github.com/e-commerce-agent/gba-merchant-ba
 | AUTH-15 / 构建与包迁移 | 移动包后旧 class/SQL 可残留，扫描/XML/Springdoc 引用可能失效 | 29 类迁移时同步所有引用，clean verify 清除生成残留，逐类核对方法体未变；不将只改目录等同于验收完成 | 44 单元/契约 + 62 IT 全过，[包结构](../../api/docs/architecture/packages.md)；`7f09f0b` | 否 |
 | AUTH-16 / 测试边界 | 定向测试成功可能被误认为全量成功；固定开发端口会污染业务卷 | Docker 不可用失败，完整 clean verify 实际执行 Failsafe，动态端口/可销毁容器/报告仅 target | [测试说明](../../api/docs/testing/README.md)、最终验收 106 项；没有 Apifox/浏览器/性能测试结论；`7f09f0b` | 否 |
 | AUTH-17 / 文档与版本策略 | 归档目录增加一级后相对链接失效；本地主规格被仓库忽略 | 修正归档 design 的相对链接；同步 14 条主规格并逐段对比。保持 openspec/.gitignore 的 `/specs/` 规则，提交归档 delta 作为可追溯来源 | 本次 docs/auth-interview；新 commit 和 mini PR 尚待作者创建 | 否 |
-| AGENT-01 / 预算策略 | 长会话可能超过模型上下文；简单截断可能损坏当前问题或只留下半轮 | 先预留 maxOutputTokens，再扣 system/当前输入；以 UTF-8 字节数+每条消息4作近似，从最新完整成功轮次向前选，受条数与剩余预算双限；固定输入超限明确拒绝 | AgentContext#assemble；AgentContextTest#budgetReservesOutputAndNeverTruncatesCurrentInputOrUsesHalfARound；`abc38b2` / PR #15 | 是 |
-| AGENT-02 / API 选型 | 高层编排可能把当前必须显式控制的消息/运行生命周期藏到框架抽象里 | 本期用 OpenAiStreamingChatModel 低层 streaming API 交给 SDK 处理协议，应用保留持久化、Actor、deadline、取消与终态控制。RAG/Function Calling 尚未实现，不预判后续必须或不能使用 AiServices | OpenAiAgentModel#stream、ChatService#accept/#execute/#finish；`abc38b2` / PR #15 | 是 |
+| AGENT-01 / 预算策略 | 长会话可能超过模型上下文；简单截断可能损坏当前问题或只留下半轮 | 先预留 maxOutputTokens，再扣 system/当前输入；以 UTF-8 字节数+每条消息4作近似，从最新完整成功轮次向前选，受条数与剩余预算双限；固定输入超限明确拒绝 | AgentContext#assemble；AgentContextTest#budgetReservesOutputAndNeverTruncatesCurrentInputOrUsesHalfARound；`abc38b2` / PR #15 | 否（基础对话备查） |
+| AGENT-02 / API 选型 | 高层编排可能把当前必须显式控制的消息/运行生命周期藏到框架抽象里 | 使用 OpenAI 兼容低层 streaming API；SDK 处理协议与流解析，应用显式协调工具回合、Actor 授权、deadline、取消、持久化和终态。是否使用 AiServices 按生命周期能力评估 | `OpenAiAgentModel#stream`、`AgentAttempts#stream`、`ChatService#execute`；基础实现 `abc38b2` / PR #15，FC 编排 `bd46cac` / PR #29 | 否（API 选型备查） |
 | AGENT-03 / 并发设计 | 单机 synchronized 无法协调同一会话落到不同后端实例的请求 | 以 MySQL active_run_id 与 run_deadline_at 作为共享运行权，短事务内竞争，模型调用不持有事务；过期后按 runId 恢复 | ChatService#accept/#finish；ChatServiceIT 两个执行上下文共享隔离库；`abc38b2` / PR #15 | 否 |
 | AGENT-04 / 幂等顺序 | 相同请求在运行中重试会被 busy 拒绝，若先检查状态则难以返回原运行 | 先按 clientMessageId 查记录并核对正文，再检查归档/busy；同 key 同文返回旧运行，同 key 改文 409，唯一索引兜底并发 | ChatService#accept、ChatAcceptanceIT；`abc38b2`、`b86f2ce` / PR #15 | 否 |
 | AGENT-05 / 终态竞争 | 取消、超时、完成和迟到模型回调可能同时更新助手状态或误释放新 run | 终态事务校验 active_run_id、deadline 和 message/run 归属；只有条件更新成功才释放运行权，done 在提交后发送 | ChatService#finish、ChatRunExecution；ChatServiceIT、ChatAcceptanceIT；`abc38b2`、`b86f2ce` / PR #15 | 否 |
@@ -46,9 +46,11 @@ RAG 来源：[实现 PR #27](https://github.com/e-commerce-agent/gba-merchant-ba
 | RAG-09 / 实际契约验证问题 | JSON/YAML对比时SnakeYAML把ISO日期示例转为Date，再序列化带时区变化 | 验证比较线格式schema及关键结构；Springdoc仍直接导出HTTP原始响应。交付multipart、Source、ChatDone和SSE扩展，不另手写一份OpenAPI | `ChatHttpIT`、验证记录Badcase/前端契约章节；11项定向验证通过；`ef88281` / PR #27 | 否 |
 | RAG-10 / 实际dev配置排查 | 源application-dev.yml已有RAG设置，target/classes副本却陈旧且不含RAG，容易误判运行中的配置 | IDEA构建/同步资源，核对两份SHA-256一致，显式dev profile重启；结合实际进程日志、Flyway V10、OpenAPI与真实上传/问答确认连接。本次3份上传READY、5问及幂等检查通过 | 验证记录2026-11-14配置检查及结果；`e30b5fc`，独立PR未核实；不是线上故障 | 否 |
 | RAG-11 / 实际样例与检索观察 | 初版资料用了项目外保温杯；真实dev店铺规则题同时召回售后和商品资料 | 样例改为R__040的3C商品快照，售后/店铺承诺显式合成；2026-11-14五问来源/答案核对通过，额外两条来源单列观察。API未暴露分数，没有依据调整阈值；各文件1片不足以评估长文切片 | `examples/product.md`、`examples/after-sales.txt`、`examples/store-rules.md`（均在api/docs/rag下）；`ef88281` / PR #27、`e30b5fc` 实测记录；无准确率收益结论 | 否 |
+| AGENT-11 / 运行轮次与工具往返 | 原有链路一次模型调用直接 SSE；加入 RAG 后检索应先于生成，FC 又增加模型工具选择回合，容易把 API 调用数误当成对话轮次，或把工具正文误发给客户端 | 一条用户消息仍创建一个持久化 run/轮次。RAG 后最多一次带工具定义的非流式模型请求；服务端至多执行一次订单查询；再最多一次不带工具定义的模型请求统一流式生成最终正文。正文、RAG sources、工具摘要同一终态事务提交后才发 done | `AgentAttempts#stream`、`ChatService#execute`、`ChatRunExecution#complete`；`ChatFunctionCallingIT`；`bd46cac`、`c1429f7`、`d819be1` / PR #29 | 是 |
+| AGENT-12 / 工具授权与隐私 | 模型可能给出任意参数或试图查询其他用户/商户订单；持久化完整工具输入输出会泄露订单与个人信息 | 工具白名单仅含 `lookup_order(orderNo)`，参数严格解析；服务端将可信 Actor 显式传入工具执行并调用现有订单授权服务，消费者仅本人、员工仅本商户。跨商户/他人/不存在不可见；工具摘要仅保留固定名称和状态，不存订单号、参数或原始订单结果 | `OrderLookupCall#parse`、`AgentOrderLookup#query`、`OrderQueryService`；`OrderPersistenceIT`、`ChatFunctionCallingIT`；`9111695`、`c1429f7`、`d819be1` / PR #29 | 是 |
 
 ## 证据保存约定
 
-每次追加问题时注明：问题类型、实际触发条件、发现工具/用例、修复或设计决策、验证结果、限制、commit 和 PR。代码中的 TTL/位数是参数，类中的测试数量是用例数量，Maven 总耗时是构建时间；均不能替换成并发数、接口耗时或线上成功率。Agent 的主讲点详见 [面试卡片](agent.md)，RAG 的主讲点详见 [RAG 面试卡片](rag.md)；其余条目是备查，不包装成线上事故。
+每次追加问题时注明：问题类型、实际触发条件、发现工具/用例、修复或设计决策、验证结果、限制、commit 和 PR。代码中的 TTL/位数是参数，类中的测试数量是用例数量，Maven 总耗时是构建时间；均不能替换成并发数、接口耗时或线上成功率。Agent 基础对话见 [Agent 面试卡片](agent.md)，RAG 见 [RAG 面试卡片](rag.md)，Function Calling 见 [Function Calling 面试卡片](function-calling.md)；其余条目是备查，不包装成线上事故。
 
 原始测试 XML、脚本输出、开发备份按现有忽略规则保留，仓库只保存脱敏摘要与可运行步骤。没有原始观测依据时写“未测”，不补估计值；后续真实压测或生产问题另行追加，不回写成当前实现已经测得的收益。
