@@ -54,8 +54,8 @@ class ChatAcceptanceIT {
     @BeforeEach void modelAndSms() {
         calls.set(0);
         doAnswer(i->{codes.put(i.getArgument(0),i.getArgument(1));return null;}).when(sms).sendLoginCode(anyString(),anyString());
-        doAnswer(i->{calls.incrementAndGet();AgentModel.Listener l=i.getArgument(1);
-            l.delta("hello");l.delta(" world");l.complete(null);return (AgentModel.Call)()->{};}).when(model).stream(anyList(),any());
+        doAnswer(i->{calls.incrementAndGet();AgentModel.Listener l=i.getArgument(2);
+            l.delta("hello");l.delta(" world");l.complete(null);return (AgentModel.Call)()->{};}).when(model).stream(anyList(),eq(true),any());
     }
     URI uri(String path){return URI.create("http://127.0.0.1:"+port+path);}
     HttpRequest request(String token,String method,String path,String body) {
@@ -127,7 +127,7 @@ class ChatAcceptanceIT {
     }
     @Test void busyRetryTimeoutAndDependencyFailureRemainQueryableThroughRealAuthentication()throws Exception {
         var cancelled=new CountDownLatch(1);var began=new CountDownLatch(1);
-        doAnswer(i->{calls.incrementAndGet();began.countDown();return (AgentModel.Call)cancelled::countDown;}).when(model).stream(anyList(),any());
+        doAnswer(i->{calls.incrementAndGet();began.countDown();return (AgentModel.Call)cancelled::countDown;}).when(model).stream(anyList(),eq(true),any());
         String token=consumer("M_3C_DEMO","+8613900000504"),id=create(token),key=UUID.randomUUID().toString(),body=body("wait",key);
         try(var client=HttpClient.newHttpClient()){
             var pending=client.sendAsync(request(token,"POST",path(id)+"/messages",body),HttpResponse.BodyHandlers.ofString());
@@ -139,14 +139,14 @@ class ChatAcceptanceIT {
             assertThat(cancelled.await(2,TimeUnit.SECONDS)).isTrue();var message=assistant(token,id);
             assertStored(id,message.path("runId").asText(),"TIMED_OUT","");assertThat(calls.get()).isOne();
         }
-        doAnswer(i->{AgentModel.Listener l=i.getArgument(1);l.delta("partial");l.error(new IllegalStateException("test upstream failure"));return (AgentModel.Call)()->{};}).when(model).stream(anyList(),any());
+        doAnswer(i->{AgentModel.Listener l=i.getArgument(2);l.delta("partial");l.error(new IllegalStateException("test upstream failure"));return (AgentModel.Call)()->{};}).when(model).stream(anyList(),eq(true),any());
         String failed=create(token);var stream=call(token,"POST",path(failed)+"/messages",body("fail",UUID.randomUUID().toString()),200);
         assertThat(stream.body()).contains("event:error","DEPENDENCY_ERROR").doesNotContain("event:done","test upstream failure");
         var message=assistant(token,failed);assertStored(failed,message.path("runId").asText(),"FAILED","partial");
     }
     @Test void disconnectCancelsAndRevokedTokenCannotRecoverHistory()throws Exception {
         var cancelled=new CountDownLatch(1);var listener=new AtomicReference<AgentModel.Listener>();
-        doAnswer(i->{AgentModel.Listener l=i.getArgument(1);listener.set(l);l.delta("partial");return (AgentModel.Call)cancelled::countDown;}).when(model).stream(anyList(),any());
+        doAnswer(i->{AgentModel.Listener l=i.getArgument(2);listener.set(l);l.delta("partial");return (AgentModel.Call)cancelled::countDown;}).when(model).stream(anyList(),eq(true),any());
         String token=consumer("M_3C_DEMO","+8613900000505"),id=create(token);
         try(var client=HttpClient.newHttpClient()){
             var response=client.send(request(token,"POST",path(id)+"/messages",body("abort",UUID.randomUUID().toString())),HttpResponse.BodyHandlers.ofInputStream());

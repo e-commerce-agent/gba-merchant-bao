@@ -127,10 +127,10 @@ class ChatServiceIT {
         var owner=actor(501,"M_3C_DEMO",AccountRole.CONSUMER);long id=service.create(owner,null).id();
         var run=service.accept(owner,id,java.util.UUID.randomUUID().toString(),"persist first");
         var done=new java.util.concurrent.CountDownLatch(1);var committed=new java.util.concurrent.atomic.AtomicBoolean();
-        when(model.stream(anyList(),any())).thenAnswer(invocation->{
+        when(model.stream(anyList(),eq(true),any())).thenAnswer(invocation->{
             var before=service.history(owner,id,null,20).items();
             committed.set(before.size()==2&&before.getFirst().status().equals("COMPLETED")&&before.getLast().status().equals("STARTED"));
-            AgentModel.Listener callback=invocation.getArgument(1);callback.delta("saved answer");callback.complete(new AgentModel.Usage(2L,2L));
+            AgentModel.Listener callback=invocation.getArgument(2);callback.delta("saved answer");callback.complete(new AgentModel.Usage(2L,2L));
             return (AgentModel.Call)()->{};
         });
         var call=service.execute(run,"req-success",new AgentModel.Listener(){public void delta(String d){}public void complete(AgentModel.Usage u){
@@ -145,7 +145,7 @@ class ChatServiceIT {
         var owner=actor(502,"M_3C_DEMO",AccountRole.CONSUMER);long id=service.create(owner,null).id();
         var run=service.accept(owner,id,java.util.UUID.randomUUID().toString(),"stop me");
         var started=new java.util.concurrent.CountDownLatch(1);var cancelled=new java.util.concurrent.atomic.AtomicBoolean();
-        when(model.stream(anyList(),any())).thenAnswer(invocation->{started.countDown();return (AgentModel.Call)()->cancelled.set(true);});
+        when(model.stream(anyList(),eq(true),any())).thenAnswer(invocation->{started.countDown();return (AgentModel.Call)()->cancelled.set(true);});
         var call=service.execute(run,"req-cancel",new AgentModel.Listener(){public void delta(String d){}public void complete(AgentModel.Usage u){}public void error(Throwable e){}});
         assertThat(started.await(3,java.util.concurrent.TimeUnit.SECONDS)).isTrue();call.cancel();
         assertThat(cancelled).isTrue();assertThat(service.history(owner,id,null,20).items().getLast().status()).isEqualTo("CANCELLED");

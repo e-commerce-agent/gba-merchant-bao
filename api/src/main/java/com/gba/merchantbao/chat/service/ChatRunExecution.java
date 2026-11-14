@@ -25,11 +25,12 @@ final class ChatRunExecution implements AgentModel.Listener,AgentModel.Call {
     synchronized void bindPreparation(Future<?> task){preparation=task;if(terminal&&!task.isDone())task.cancel(true);}
     synchronized void bindDeadline(Future<?> task){deadline=task;if(terminal)task.cancel(false);}
     synchronized void generate(AgentAttempts attempts,java.util.List<dev.langchain4j.data.message.ChatMessage> prompt,
-                               java.util.List<com.gba.merchantbao.knowledge.vo.KnowledgeSource> sources){
+                               java.util.List<com.gba.merchantbao.knowledge.vo.KnowledgeSource> sources,
+                               java.util.function.Function<OrderLookupCall,String> lookup,ExecutorService worker){
         if(terminal)return;
         if(!clock.instant().isBefore(run.deadline())){end("TIMED_OUT","TIMEOUT",null);return;}
         this.sources=java.util.List.copyOf(sources);
-        bind(attempts.stream(prompt,run.deadline(),this));
+        bind(attempts.stream(prompt,run.deadline(),lookup,worker,this));
     }
     synchronized boolean terminal(){return terminal;}
     @Override public synchronized void delta(String delta){

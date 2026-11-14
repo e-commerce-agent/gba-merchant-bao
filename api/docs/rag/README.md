@@ -77,7 +77,7 @@ curl -N -X POST http://localhost:8080/api/v1/chat/sessions/<sessionId>/messages 
 
 sources 最多 topK 条（上限5），excerpt 最多300个 Unicode 码点，与实际入模片段一致。它表示模型参考资料，不表示逐句核验回答。成功正文和 sources 同事务提交后才发 done；GET 同一路径的本人分页历史为每条消息追加 sources，读取已保存快照，不重新查文档或向量。资料后续变化、关闭 RAG 都不影响已保存来源。
 
-无匹配、全部低于门槛或所有片段都放不进预算时，直接返回“当前资料中没有找到相关信息，请补充说明或联系店铺确认”，sources=[]，不调用生成模型。检索依赖失败走 error/DEPENDENCY_ERROR；检索超时走 error/TIMEOUT；断线或取消后不再启动生成。旧消息、USER、失败/取消/超时、关闭 RAG 时的新回答均返回空来源。生成的预正文重试复用已检索上下文；相同 clientMessageId 与正文重复提交仍返回原 ChatRunView JSON，来源从历史读取。
+无匹配、全部低于门槛或所有片段都放不进预算时，以 sources=[] 和原始问题继续调用模型，允许选择一次已授权的只读订单查询；不再返回服务端固定的资料不足回答。模型应依据可用资料或工具结果回答，缺少依据时明确说明。检索依赖失败走 error/DEPENDENCY_ERROR；检索超时走 error/TIMEOUT；断线或取消后不再启动生成。旧消息、USER、失败/取消/超时、关闭 RAG 时的新回答均返回空来源。生成的预正文重试复用已检索上下文；相同 clientMessageId 与正文重复提交仍返回原 ChatRunView JSON，来源从历史读取。
 
 任务2验证使用隔离 MySQL/Milvus 与受控外部模型替身，不代表真实 Embedding 与生成服务的完整链路已联调。
 
@@ -99,7 +99,7 @@ sources 最多 topK 条（上限5），excerpt 最多300个 Unicode 码点，与
 pwsh -File api/scripts/tools/verify-rag-live.ps1 -BaseUrl http://127.0.0.1:8080
 ```
 
-实际答案和来源写入 `api/target/rag-live/<UTC时间>/results.json`，不记录 token；脚本只检查协议、预期来源和无匹配提示，答案用词仍需人工核对。它使用应用已配置的服务，不替换模型；使用前确认服务地址、模型名称和维度确实是真实服务。
+实际答案和来源写入 `api/target/rag-live/<UTC时间>/results.json`，不记录 token；脚本只检查协议、预期来源及无匹配时的空来源和非空模型回答，答案用词仍需人工核对。它使用应用已配置的服务，不替换模型；使用前确认服务地址、模型名称和维度确实是真实服务。
 
 关闭 `MERCHANT_RAG_ENABLED` 并重启应用即可恢复原聊天，不要求 Milvus/Embedding 可用；新回答 sources=[]，已保存的历史来源继续可读。复查普通聊天成功即可，保留新增表列和 Milvus 卷，不回退 Flyway。
 

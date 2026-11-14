@@ -103,7 +103,21 @@ mvn -Dtest=AgentModelProtocolTest,AgentFunctionCallingProtocolTest,AgentAttempts
 
 `OrderQueryServiceTest` 覆盖本人/员工读取详情、他人/跨商户/不存在统一拒绝，以及无效输入不访问数据库；从 `api/` 执行 `mvn -Dtest=OrderQueryServiceTest test`。`OrderPersistenceIT#orderNumberDetailEnforcesSqlOwnerScopeAndSeparatesSameNumberAcrossTenants` 使用隔离 MySQL 验证真实 Mapper 授权及跨商户同号订单隔离。
 
-当前已交付订单服务入口和独立模型 Function Calling 协议；聊天工具编排、RAG 无匹配路径调整和工具摘要仍在后续任务中。现有聊天尚未启用订单工具。
+当前已接入订单服务入口、模型 Function Calling 协议和聊天工具编排；工具摘要持久化及聊天契约扩展仍在第 4 组任务中。
+
+## 聊天工具编排与 RAG 协作
+
+聊天接受请求后，`PreparedRun` 在服务端保留认证入口传入的原始 Actor。工具查询还会核对 Actor 与运行所属身份一致，再由 `AgentOrderLookup` 调用 `OrderQueryService.detailByOrderNo`；模型参数不能提供身份，也不会调用服务凭证查询入口。
+
+`AgentAttempts` 对一次聊天协调“允许工具的模型回合 → 一次授权查询 → 禁用工具的最终流式回合”。最终回合上下文追加原 assistant 工具消息和对应 tool result，随后逐片发送最终正文；再次请求工具按依赖错误结束。订单详情序列化后沿用现有 UTF-8 字节估算核对上下文及输出预留预算，放不下则失败，不截断订单事实。
+
+RAG 检索成功但无匹配，或参考片段全部放不进预算时，空来源与原问题继续进入模型。命中时使用原有 `withEvidence` 规则，来源在最终成功时一同保存；检索失败、取消和超时不会继续启动模型或查询订单。
+
+订单查询在现有有界运行线程池执行。模型选择、查询、最终生成及有限重试共用原运行 deadline、首正文等待时限和重试次数；不会因第二个回合重置预算。终止时取消模型句柄及查询任务，查询前后均检查运行状态；已取消或超时的查询结果不能启动后续生成。JDBC 实际停止读取仍取决于驱动对线程中断的响应，运行终态与迟到结果丢弃不依赖驱动立即返回。
+
+仅正文输出前的模型瞬时失败允许重试；查询故障不重试。最终回合重试复用本次已取得的订单结果，不重复读取订单或检索 RAG。成功用量合并工具选择和最终成功回合，缺失的用量字段仍保留为未知。
+
+`AgentToolConversationTest` 与 `ChatFunctionCallingTest` 覆盖编排顺序、原 Actor、订单授权入口、第二次工具拒绝、来源、共享预算、取消、迟到回调和查询结果复用；既有 `RagChatIT`、`ChatServiceIT`、`ChatAcceptanceIT` 验证事务与 SSE 回归。本组不新增工具摘要列或聊天响应字段。
 
 ## 后续职责
 

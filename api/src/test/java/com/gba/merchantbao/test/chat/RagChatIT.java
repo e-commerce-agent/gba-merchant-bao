@@ -68,7 +68,7 @@ class RagChatIT {
         jdbc.update("INSERT INTO knowledge_chunk VALUES (?,?,?,?,?,UTC_TIMESTAMP(3))",chunk,merchant,document,1,EXCERPT);
         when(embedding.embed(anyList(),any())).thenReturn(List.of(List.of(1f,0f)));
         when(vectors.search(eq(merchant),anyList(),any())).thenReturn(List.of(new MilvusKnowledgeStore.Hit(chunk,document,.95f)));
-        when(model.stream(anyList(),any())).thenAnswer(i->{AgentModel.Listener l=i.getArgument(1);
+        when(model.stream(anyList(),eq(true),any())).thenAnswer(i->{AgentModel.Listener l=i.getArgument(2);
             l.delta("按资料可申请退货");l.complete(new AgentModel.Usage(100L,10L));return (AgentModel.Call)()->{};});
     }
     @AfterEach void restore(){rag.setEnabled(false);agent.setTotalTimeout(Duration.ofSeconds(90));agent.setContextTokens(8192);}
@@ -81,9 +81,9 @@ class RagChatIT {
             return List.of(List.of(1f,0f));
         });
         doAnswer(i->{
-            input.set(List.copyOf(i.getArgument(0)));AgentModel.Listener l=i.getArgument(1);
+            input.set(List.copyOf(i.getArgument(0)));AgentModel.Listener l=i.getArgument(2);
             l.delta("answer");l.complete(null);return (AgentModel.Call)()->{};
-        }).when(model).stream(anyList(),any());
+        }).when(model).stream(anyList(),eq(true),any());
         long id=chat.create(owner,null).id();String key=UUID.randomUUID().toString(),body=body(key);
         try(var client=HttpClient.newHttpClient()) {
             var response=send(client,"POST",path(id),body);
@@ -111,12 +111,12 @@ class RagChatIT {
             var duplicate=send(client,"POST",path(id),body);
             assertThat(duplicate.headers().firstValue("Content-Type").orElse("")).startsWith("application/json");
             assertThat(json.readTree(duplicate.body()).path("data").path("runId").asText()).isEqualTo(done.path("runId").asText());
-            verify(embedding).embed(eq(List.of(QUESTION)),any());verify(vectors).search(eq(merchant),anyList(),any());verify(model).stream(anyList(),any());
+            verify(embedding).embed(eq(List.of(QUESTION)),any());verify(vectors).search(eq(merchant),anyList(),any());verify(model).stream(anyList(),eq(true),any());
             var other=new Actor(new AuthPrincipal(7302,merchant,AccountRole.CONSUMER),"other");
             assertThatThrownBy(()->chat.history(other,id,null,20)).hasMessage("resource not found");
         }
     }
-    @Test void noMatchAndNoEvidenceFitsCompleteWithoutCallingTheModel() throws Exception {
+    @Test void noMatchAndNoEvidenceFitsContinueToTheModel() throws Exception {
         for(boolean tooLarge:List.of(false,true)) {
             if(!tooLarge)when(vectors.search(eq(merchant),anyList(),any())).thenReturn(List.of());
             else {
@@ -126,10 +126,10 @@ class RagChatIT {
             }
             var run=accept();var result=execute(run).get(3,TimeUnit.SECONDS);
             assertThat(result.error()).isNull();assertThat(result.sources()).isEmpty();
-            var saved=last(run);assertThat(saved.content()).isEqualTo(KnowledgeRetrieval.NO_MATCH);
+            var saved=last(run);assertThat(saved.content()).isEqualTo("按资料可申请退货");
             assertThat(ChatMessageView.from(saved).sources()).isEmpty();
         }
-        verifyNoInteractions(model);
+        verify(model,times(2)).stream(anyList(),eq(true),any());
     }
     @Test void dependencyFailuresNeverBecomeNoMatchAndLeaveEmptySources() throws Exception {
         for(String stage:List.of("embedding","vectors","mysql","generation")) {
@@ -139,7 +139,7 @@ class RagChatIT {
             if(stage.equals("embedding"))when(embedding.embed(anyList(),any())).thenThrow(new IllegalStateException("embedding failed"));
             if(stage.equals("vectors"))when(vectors.search(anyLong(),anyList(),any())).thenThrow(new IllegalStateException("vector failed"));
             if(stage.equals("mysql"))doThrow(new org.springframework.dao.DataAccessResourceFailureException("mysql failed")).when(knowledge).readyReferences(anyLong(),anyList());
-            if(stage.equals("generation"))when(model.stream(anyList(),any())).thenAnswer(i->{AgentModel.Listener l=i.getArgument(1);l.delta("partial");l.error(new IllegalStateException("bad generation"));return (AgentModel.Call)()->{};});
+            if(stage.equals("generation"))when(model.stream(anyList(),eq(true),any())).thenAnswer(i->{AgentModel.Listener l=i.getArgument(2);l.delta("partial");l.error(new IllegalStateException("bad generation"));return (AgentModel.Call)()->{};});
             try {
                 var run=accept();var result=execute(run).get(3,TimeUnit.SECONDS);
                 assertThat(result.error()).isEqualTo("DEPENDENCY_ERROR");assertThat(last(run).status()).isEqualTo("FAILED");
@@ -152,10 +152,10 @@ class RagChatIT {
     @Test void generationRetryReusesTheSameRetrievedContext() throws Exception {
         var count=new AtomicInteger();var prompts=new CopyOnWriteArrayList<List<ChatMessage>>();
         doAnswer(i->{
-            prompts.add(i.getArgument(0));AgentModel.Listener l=i.getArgument(1);
+            prompts.add(i.getArgument(0));AgentModel.Listener l=i.getArgument(2);
             if(count.incrementAndGet()==1)l.error(new RuntimeException(new java.io.IOException("retry")));
             else {l.delta("retried");l.complete(null);}return (AgentModel.Call)()->{};
-        }).when(model).stream(anyList(),any());
+        }).when(model).stream(anyList(),eq(true),any());
         var run=accept();assertThat(execute(run).get(3,TimeUnit.SECONDS).error()).isNull();
         assertThat(prompts).hasSize(2);assertThat(prompts.get(0)).isSameAs(prompts.get(1));
         verify(embedding).embed(anyList(),any());verify(vectors).search(anyLong(),anyList(),any());
