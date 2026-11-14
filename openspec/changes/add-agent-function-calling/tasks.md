@@ -18,9 +18,9 @@
 
 ## 4. 工具摘要持久化和聊天契约
 
-- [ ] 4.1 新增向前兼容的 Flyway 迁移，在 `chat_message` 增加可空 `tool_calls_json` JSON 列，并扩展 Mapper/消息行；通过迁移测试验证既有消息可读且旧值映射为空数组。
-- [ ] 4.2 将非敏感工具摘要与完成正文、RAG 来源在同一终态事务持久化；扩展消息历史及 SSE done 的 `toolCalls` 数组，并测试成功摘要一致、未调用/失败/取消/超时为空、摘要不包含订单号及原始结果。
-- [ ] 4.3 更新聊天 OpenAPI schema 与接口说明，确认无新增 HTTP 路由或请求字段，仍仅有 `start/token/done/error` 事件；运行聊天 OpenAPI 契约测试并导出接口定义核对 `toolCalls` 字段。
+- [x] 4.1 新增向前兼容的 Flyway 迁移，在 `chat_message` 增加可空 `tool_calls_json` JSON 列，并扩展 Mapper/消息行；通过迁移测试验证既有消息可读且旧值映射为空数组。
+- [x] 4.2 将非敏感工具摘要与完成正文、RAG 来源在同一终态事务持久化；扩展消息历史及 SSE done 的 `toolCalls` 数组，并测试成功摘要一致、未调用/失败/取消/超时为空、摘要不包含订单号及原始结果。
+- [x] 4.3 更新聊天 OpenAPI schema 与接口说明，确认无新增 HTTP 路由或请求字段，仍仅有 `start/token/done/error` 事件；运行聊天 OpenAPI 契约测试并导出接口定义核对 `toolCalls` 字段。
 
 ## 5. 集成验证
 

@@ -1,10 +1,10 @@
 # Agent 会话数据设计
 
-本文件对应 change 的任务 2，聚焦持久化设计；接口见 [接口契约（本目录入口）](README.md#api-design)，需求见 [requirements 文档（本目录入口）](README.md#requirements)。模型调用、Service 编排与 HTTP/SSE 的实现证据见 [验收记录（本目录入口）](README.md#verification)；Redis ChatMemory 仍属后续工作。
+本文件描述 Agent 会话的持久化设计；接口见 [接口契约（本目录入口）](README.md#api-design)，需求见 [requirements 文档（本目录入口）](README.md#requirements)。模型调用、Service 编排与 HTTP/SSE 的实现证据见 [验收记录（本目录入口）](README.md#verification)；Redis ChatMemory 仍属后续工作。
 
 ## 迁移与数据约定
 
-现有结构迁移为 V1–V4；新增 `V5__agent_conversation.sql`，不改写既有脚本及 checksum。商品/订单等模块汇合时只协调**尚未执行**的编号；已执行的迁移只通过后续前向迁移修正。生产回退先禁用功能，保留历史，不删除已执行迁移。
+会话基础结构由 `V5__agent_conversation.sql` 引入，不改写既有脚本及 checksum。商品/订单等模块汇合时只协调**尚未执行**的编号；已执行的迁移只通过后续前向迁移修正。生产回退先禁用功能，保留历史，不删除已执行迁移。RAG 通过 V10 增加来源快照，Function Calling 通过 `V11__agent_tool_summary.sql` 新增可空 `tool_calls_json JSON`；既有消息保持 NULL，读取时映射为 `[]`。
 
 沿用 InnoDB、utf8mb4、BIGINT Snowflake ID 和 merchant 租户根。Java 持久化行使用 record，ID 由现有 IdGenerator 分配；API 层另行转换为十进制字符串。本模块时间用 UTC `DATETIME(3)`，Java 用 LocalDateTime 表达数据库 UTC 墙钟值，后续 Service 必须用 UTC 时钟创建，VO 转 ISO-8601 UTC；既有认证表的 TIMESTAMP(6) 不改动。DATETIME 不自动转换时区，不能使用服务器本地时间写入。
 
@@ -40,6 +40,8 @@
 | error_code | VARCHAR(64) ASCII binary，可空 | 失败/取消/超时的稳定错误；成功及非终态为空 |
 | prompt_version / model_service_label / model_name | VARCHAR(64)/VARCHAR(64)/VARCHAR(128)，可空 | 助手调用元信息，不保存 URL、key 或完整 Prompt |
 | input_tokens / output_tokens | BIGINT，可空 | 助手可得用量，非负；未知为 NULL，USER 必须空 |
+| sources_json | JSON，可空 | V10：成功助手消息实际入模的 RAG 来源快照；其他情况为空 |
+| tool_calls_json | JSON，可空 | V11：最多一个固定工具成功摘要，仅 name=lookup_order、status=SUCCEEDED；不存参数、订单号或原始结果 |
 | created_at / completed_at | DATETIME(3) | 创建非空，终态完成时间非空，非终态完成时间为空；完成不早于创建 |
 
 复合 FK `(merchant_id,session_id) → chat_session(merchant_id,id)` 阻止跨租户挂载，默认 RESTRICT，不级联删除审计历史。唯一键均为租户前缀：
@@ -70,3 +72,9 @@
 每组都有同商户两个消费者、一个员工和另一商户消费者；每个会话各一轮静态问答，next_message_seq=3。所有开发问答标明为演示，不冒充模型联调。R030 的依赖/身份检查在业务写入前完成，保留临时校验列名作为错误定位；MySQL 临时表不能在同一语句中重复打开，依赖和身份校验分成三条 INSERT。显式补种也要求停写、备份及核对身份，不对业务并发补种作承诺。
 
 持久化阶段结果见 [本目录 README](README.md#persistence-verification)。
+
+## Function Calling 终态快照
+
+`ChatService.finish` 在同一短事务内校验本人会话及原运行权，更新助手正文/终态/用量，保存 `sources_json` 和 `tool_calls_json`，再释放运行权。任一写入失败均回滚，不发送 SSE done。仅在事务提交后向客户端发送相同的来源和工具摘要。
+
+只有工具查询和最终回答都成功完成才保存 `[{"name":"lookup_order","status":"SUCCEEDED"}]`；成功但未调用工具保存 `[]`。失败、取消、超时清空两个快照；USER、旧消息及未成功完成的消息在 API 中统一返回 `toolCalls: []`。模型调用 id、原始参数、订单结果只留在本次服务端协议往返中。

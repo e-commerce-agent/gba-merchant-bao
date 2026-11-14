@@ -76,6 +76,11 @@ public class ChatService {
     }
     public boolean finish(PreparedRun run,String status,String text,String error,com.gba.merchantbao.agent.service.AgentModel.Usage usage,
                           java.util.List<com.gba.merchantbao.knowledge.vo.KnowledgeSource> sources) {
+        return finish(run,status,text,error,usage,sources,java.util.List.of());
+    }
+    public boolean finish(PreparedRun run,String status,String text,String error,com.gba.merchantbao.agent.service.AgentModel.Usage usage,
+                          java.util.List<com.gba.merchantbao.knowledge.vo.KnowledgeSource> sources,
+                          java.util.List<com.gba.merchantbao.chat.vo.ToolCallSummary> toolCalls) {
         if(!java.util.Set.of("COMPLETED","CANCELLED","TIMED_OUT","FAILED").contains(status))throw ChatError.invalid();
         return Boolean.TRUE.equals(tx.execute(s->{
             var session=sessions.lockOwned(run.owner(),run.sessionId());if(session==null)throw ChatError.missing();var now=now();
@@ -87,6 +92,8 @@ public class ChatService {
             if(messages.finishOwned(run.owner(),run.sessionId(),run.messageId(),run.runId(),status,bounded(text),error,
                     usage==null?null:usage.inputTokens(),usage==null?null:usage.outputTokens(),now)!=1)return false;
             if(status.equals("COMPLETED")&&messages.saveSourcesOwned(run.owner(),run.sessionId(),run.messageId(),run.runId(),ChatSources.encode(sources))!=1)
+                throw ChatError.storage();
+            if(status.equals("COMPLETED")&&messages.saveToolCallsOwned(run.owner(),run.sessionId(),run.messageId(),run.runId(),ChatToolCalls.encode(toolCalls))!=1)
                 throw ChatError.storage();
             if(sessions.releaseRun(run.owner(),run.sessionId(),run.runId(),now)!=1)throw ChatError.storage();
             return true;

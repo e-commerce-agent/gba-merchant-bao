@@ -103,7 +103,7 @@ mvn -Dtest=AgentModelProtocolTest,AgentFunctionCallingProtocolTest,AgentAttempts
 
 `OrderQueryServiceTest` 覆盖本人/员工读取详情、他人/跨商户/不存在统一拒绝，以及无效输入不访问数据库；从 `api/` 执行 `mvn -Dtest=OrderQueryServiceTest test`。`OrderPersistenceIT#orderNumberDetailEnforcesSqlOwnerScopeAndSeparatesSameNumberAcrossTenants` 使用隔离 MySQL 验证真实 Mapper 授权及跨商户同号订单隔离。
 
-当前已接入订单服务入口、模型 Function Calling 协议和聊天工具编排；工具摘要持久化及聊天契约扩展仍在第 4 组任务中。
+当前已接入订单服务入口、模型 Function Calling 协议、聊天工具编排，以及第 4 组的工具摘要持久化和聊天契约。
 
 ## 聊天工具编排与 RAG 协作
 
@@ -117,7 +117,13 @@ RAG 检索成功但无匹配，或参考片段全部放不进预算时，空来�
 
 仅正文输出前的模型瞬时失败允许重试；查询故障不重试。最终回合重试复用本次已取得的订单结果，不重复读取订单或检索 RAG。成功用量合并工具选择和最终成功回合，缺失的用量字段仍保留为未知。
 
-`AgentToolConversationTest` 与 `ChatFunctionCallingTest` 覆盖编排顺序、原 Actor、订单授权入口、第二次工具拒绝、来源、共享预算、取消、迟到回调和查询结果复用；既有 `RagChatIT`、`ChatServiceIT`、`ChatAcceptanceIT` 验证事务与 SSE 回归。本组不新增工具摘要列或聊天响应字段。
+`AgentToolConversationTest` 与 `ChatFunctionCallingTest` 覆盖编排顺序、原 Actor、订单授权入口、第二次工具拒绝、来源、共享预算、取消、迟到回调和查询结果复用；既有 `RagChatIT`、`ChatServiceIT`、`ChatAcceptanceIT` 验证事务与 SSE 回归。第 4 组通过 V11 增加工具摘要列，在完成正文和来源的同一终态事务保存摘要；SSE done 和消息历史统一返回 toolCalls 数组。
+
+## 工具摘要与聊天契约
+
+工具摘要由运行编排的成功终态生成，只包含固定的 `name=lookup_order`、`status=SUCCEEDED`，最多一项。模型不能提供或覆盖摘要；调用 id、订单号、原始参数、订单详情不会写入摘要。只有授权查询和最终回答都成功完成才有摘要；未调用或未成功完成统一为空数组。
+
+`ChatService.finish` 同事务提交正文、RAG 来源和工具摘要，然后才发送 done；任何快照保存失败都会回滚并发送 error。历史读取旧列 NULL 为 `[]`。不增加请求字段、HTTP 路由或 SSE 事件，仍为 start/token/done/error。接口定义由 `ChatHttpIT` 从实际 Springdoc 分组导出 JSON/YAML，并核对 toolCalls、封闭摘要 schema、四种事件和六个操作。
 
 ## 后续职责
 

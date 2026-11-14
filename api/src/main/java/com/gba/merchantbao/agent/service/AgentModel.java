@@ -19,6 +19,9 @@ public interface AgentModel {
         void complete(Usage usage);
         void error(Throwable error);
 
+        /** Runtime completion metadata; model adapters still report only usage. */
+        default void complete(Usage usage, boolean usedOrderLookup) { complete(usage); }
+
         /** Terminal alternative to complete; never executes the business lookup. */
         default void toolCall(OrderLookupCall call, Usage usage) { error(new ProtocolException()); }
     }

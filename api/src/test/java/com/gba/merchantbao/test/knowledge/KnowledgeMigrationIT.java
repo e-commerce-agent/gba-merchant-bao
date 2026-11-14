@@ -22,7 +22,7 @@ class KnowledgeMigrationIT {
             jdbc.update("INSERT INTO chat_message(id,merchant_id,session_id,message_seq,sender_type,content,status,run_id,created_at,completed_at) "
                     + "VALUES(11,1,10,1,'ASSISTANT','old answer','COMPLETED',12,UTC_TIMESTAMP(3),UTC_TIMESTAMP(3))");
             var latest = Flyway.configure().dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())
-                    .locations("classpath:db/migration").load();
+                    .locations("classpath:db/migration").target("10").load();
             assertThat(latest.migrate().migrationsExecuted).isOne(); latest.validate();
             assertThat(jdbc.queryForObject("SELECT content FROM chat_message WHERE id=11", String.class)).isEqualTo("old answer");
             assertThat(jdbc.queryForObject("SELECT sources_json FROM chat_message WHERE id=11", String.class)).isNull();

@@ -27,7 +27,7 @@ public class ChatOpenApiConfiguration {
                 components.setSchemas(new LinkedHashMap<>());
                 components.addSecuritySchemes("chatBearer",new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer").description("对应商户、消费者或员工的 access token；不是模型 API key"));
                 components.addSchemas("ChatSession",session());components.addSchemas("ChatMessage",message());components.addSchemas("ChatRun",run());
-                components.addSchemas("Source",source());components.addSchemas("ChatDone",done());
+                components.addSchemas("ToolCallSummary",toolSummary());components.addSchemas("Source",source());components.addSchemas("ChatDone",done());
                 components.addSchemas("ChatError",envelope(nullType()));
                 components.addSchemas("ChatSessionEnvelope",envelope(ref("ChatSession")));
                 components.addSchemas("ChatRunEnvelope",envelope(ref("ChatRun")));
@@ -43,7 +43,7 @@ public class ChatOpenApiConfiguration {
                 archive.requestBody(new RequestBody().required(false).content(json(object().description("允许无 body 或空对象；拒绝 null/未知字段"))));
                 var history=operation("listChatMessages","按 messageSeq 升序读取本人消息；含失败轮次与部分文本","200","ChatMessagePageEnvelope");sessionId(history);pagination(history);
                 var send=operation("sendChatMessage","提交消息并生成 SSE，或返回同 key 同正文的原 run JSON","200","ChatRunEnvelope");sessionId(send);
-                send.setDescription("必须同时处理 text/event-stream 和 application/json。幂等先于 busy/归档判断；key 相同正文不同返回 409，不重跑检索或生成。RAG 仅检索本商户 READY 资料；无匹配返回资料不足提示和空 sources，依赖失败为 error。done.data 对应 ChatDone，正文与实际入模来源同事务提交；历史保留来源快照。客户端不能覆盖身份、system、role 或模型。断开后查历史，不支持 Last-Event-ID 重放。citation/tool_call 留待未来扩展，本期不发送。");
+                send.setDescription("必须同时处理 text/event-stream 和 application/json。幂等先于 busy/归档判断；key 相同正文不同返回 409，不重跑检索或生成。RAG 仅检索本商户 READY 资料；无匹配时空 sources 与原问题继续进入模型，可选择唯一只读订单查询工具；检索或工具依赖失败为 error。done.data 对应 ChatDone，正文、实际入模来源和非敏感工具摘要同事务提交；历史保留相同快照。客户端不能覆盖身份、system、role 或模型。断开后查历史，不支持 Last-Event-ID 重放。本期仅发送 start/token/done/error，不发送 citation/tool_call 事件。");
                 send.requestBody(new RequestBody().required(true).content(json(object()
                     .addProperty("content",new StringSchema().minLength(1).maxLength(4000).description("非空白；保留原文，限制按 Unicode 字符计数"))
                     .addProperty("clientMessageId",new StringSchema().pattern("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$").example("00000000-0000-4000-8000-000000000001"))
@@ -51,7 +51,8 @@ public class ChatOpenApiConfiguration {
                 send.getResponses().get("200").setDescription("新 run 为 SSE；重复提交为 JSON 原标识。SSE 首帧 start，随后非空 token，最后仅 done 或 error。done 前终态已提交。注释 heartbeat 不续期认证。");
                 send.getResponses().get("200").getContent().addMediaType("text/event-stream",new MediaType().schema(new StringSchema())
                     .addExamples("completed",new Example().summary("start → token → done；usage 未提供为 null").value(SUCCESS))
-                    .addExamples("noMatch",new Example().summary("无匹配直接提示资料不足；sources=[]，不调用生成模型").value(NO_MATCH))
+                    .addExamples("noMatch",new Example().summary("无匹配仍由模型生成回答；sources=[]，未调用工具时 toolCalls=[]").value(NO_MATCH))
+                    .addExamples("orderLookup",new Example().summary("完成一次订单查询；摘要不含订单号、参数或原始结果").value(ORDER_LOOKUP))
                     .addExamples("timeout",new Example().summary("start 后的超时终态；HTTP 已为 200").value(TIMEOUT)));
                 send.getResponses().get("200").getContent().get("text/event-stream")
                     .addExtension("x-sse-data-schemas",Map.of("done",ref("ChatDone")));
@@ -113,8 +114,8 @@ public class ChatOpenApiConfiguration {
             .addProperty("content",new StringSchema()).addProperty("status",values("STARTED","STREAMING","COMPLETED","CANCELLED","TIMED_OUT","FAILED"))
             .addProperty("errorCode",nullable(new StringSchema())).addProperty("inputTokens",nullable(new IntegerSchema().format("int64").minimum(java.math.BigDecimal.ZERO)))
             .addProperty("outputTokens",nullable(new IntegerSchema().format("int64").minimum(java.math.BigDecimal.ZERO))).addProperty("createdAt",time()).addProperty("completedAt",nullable(time()))
-            .addProperty("sources",sources())
-            .required(List.of("messageId","messageSeq","runId","clientMessageId","senderType","content","status","errorCode","inputTokens","outputTokens","createdAt","completedAt","sources"));}
+            .addProperty("sources",sources()).addProperty("toolCalls",toolCalls())
+            .required(List.of("messageId","messageSeq","runId","clientMessageId","senderType","content","status","errorCode","inputTokens","outputTokens","createdAt","completedAt","sources","toolCalls"));}
     private static Schema<?> source(){return object().description("实际入模的参考片段快照；不代表逐句核验回答")
             .addProperty("documentId",id()).addProperty("chunkId",id()).addProperty("title",new StringSchema().maxLength(200))
             .addProperty("chunkNo",new IntegerSchema().minimum(java.math.BigDecimal.ONE).maximum(java.math.BigDecimal.valueOf(200)))
@@ -122,14 +123,21 @@ public class ChatOpenApiConfiguration {
             .required(List.of("documentId","chunkId","title","chunkNo","excerpt"));}
     private static Schema<?> sources(){return new ArraySchema().items(ref("Source")).maxItems(5)
             .description("成功助手消息的来源快照；旧消息、USER、失败、取消、超时、无资料均为空数组");}
-    private static Schema<?> done(){return object().description("SSE event: done 的 data JSON；仅在成功正文及 sources 提交后发送")
+    private static Schema<?> toolSummary(){return object().description("唯一只读订单工具的固定成功摘要；不含调用 id、参数、订单号或原始结果")
+            .addProperty("name",values("lookup_order")).addProperty("status",values("SUCCEEDED"))
+            .required(List.of("name","status"));}
+    private static Schema<?> toolCalls(){return new ArraySchema().items(ref("ToolCallSummary")).maxItems(1)
+            .description("已成功完成回答的工具摘要；旧消息、USER、未调用、失败、取消、超时均为空数组");}
+    private static Schema<?> done(){return object().description("SSE event: done 的 data JSON；仅在成功正文、sources 及 toolCalls 同事务提交后发送")
             .addProperty("version",values("v1")).addProperty("runId",id()).addProperty("sessionId",id()).addProperty("messageId",id())
             .addProperty("requestId",new StringSchema()).addProperty("status",values("COMPLETED"))
             .addProperty("usage",nullable(object().addProperty("inputTokens",nullable(new IntegerSchema().format("int64")))
                     .addProperty("outputTokens",nullable(new IntegerSchema().format("int64"))).required(List.of("inputTokens","outputTokens"))))
-            .addProperty("sources",sources()).required(List.of("version","runId","sessionId","messageId","requestId","status","usage","sources"));}
+            .addProperty("sources",sources()).addProperty("toolCalls",toolCalls()).required(List.of("version","runId","sessionId","messageId","requestId","status","usage","sources","toolCalls"));}
     private static final String START="id: 41:1\nevent: start\ndata: {\"version\":\"v1\",\"runId\":\"41\",\"sessionId\":\"31\",\"messageId\":\"61\",\"requestId\":\"chat-example\",\"userMessageId\":\"51\"}\n\n";
-    private static final String SUCCESS=START+"id: 41:2\nevent: token\ndata: {\"version\":\"v1\",\"runId\":\"41\",\"sessionId\":\"31\",\"messageId\":\"61\",\"requestId\":\"chat-example\",\"delta\":\"购买后七日内，未拆封商品可申请退货。\"}\n\nid: 41:3\nevent: done\ndata: {\"version\":\"v1\",\"runId\":\"41\",\"sessionId\":\"31\",\"messageId\":\"61\",\"requestId\":\"chat-example\",\"status\":\"COMPLETED\",\"usage\":null,\"sources\":[{\"documentId\":\"610000000000000001\",\"chunkId\":\"620000000000000001\",\"title\":\"售后政策\",\"chunkNo\":1,\"excerpt\":\"购买后七日内，未拆封商品可申请退货。\"}]}\n\n";
-    private static final String NO_MATCH=START+"id: 41:2\nevent: token\ndata: {\"version\":\"v1\",\"runId\":\"41\",\"sessionId\":\"31\",\"messageId\":\"61\",\"requestId\":\"chat-example\",\"delta\":\"当前资料中没有找到相关信息，请补充说明或联系店铺确认\"}\n\nid: 41:3\nevent: done\ndata: {\"version\":\"v1\",\"runId\":\"41\",\"sessionId\":\"31\",\"messageId\":\"61\",\"requestId\":\"chat-example\",\"status\":\"COMPLETED\",\"usage\":null,\"sources\":[]}\n\n";
+    private static final String SUCCESS=START+"id: 41:2\nevent: token\ndata: {\"version\":\"v1\",\"runId\":\"41\",\"sessionId\":\"31\",\"messageId\":\"61\",\"requestId\":\"chat-example\",\"delta\":\"购买后七日内，未拆封商品可申请退货。\"}\n\nid: 41:3\nevent: done\ndata: {\"version\":\"v1\",\"runId\":\"41\",\"sessionId\":\"31\",\"messageId\":\"61\",\"requestId\":\"chat-example\",\"status\":\"COMPLETED\",\"usage\":null,\"sources\":[{\"documentId\":\"610000000000000001\",\"chunkId\":\"620000000000000001\",\"title\":\"售后政策\",\"chunkNo\":1,\"excerpt\":\"购买后七日内，未拆封商品可申请退货。\"}],\"toolCalls\":[]}\n\n";
+    private static final String NO_MATCH=START+"id: 41:2\nevent: token\ndata: {\"version\":\"v1\",\"runId\":\"41\",\"sessionId\":\"31\",\"messageId\":\"61\",\"requestId\":\"chat-example\",\"delta\":\"当前资料中没有找到相关信息，请补充说明或联系店铺确认\"}\n\nid: 41:3\nevent: done\ndata: {\"version\":\"v1\",\"runId\":\"41\",\"sessionId\":\"31\",\"messageId\":\"61\",\"requestId\":\"chat-example\",\"status\":\"COMPLETED\",\"usage\":null,\"sources\":[],\"toolCalls\":[]}\n\n";
+    private static final String ORDER_LOOKUP=NO_MATCH.replace("当前资料中没有找到相关信息，请补充说明或联系店铺确认","订单查询完成")
+            .replace("\"toolCalls\":[]","\"toolCalls\":[{\"name\":\"lookup_order\",\"status\":\"SUCCEEDED\"}]");
     private static final String TIMEOUT=START+"id: 41:2\nevent: error\ndata: {\"version\":\"v1\",\"runId\":\"41\",\"sessionId\":\"31\",\"messageId\":\"61\",\"requestId\":\"chat-example\",\"code\":\"TIMEOUT\",\"message\":\"模型响应超时\",\"terminalStatus\":\"TIMED_OUT\"}\n\n";
 }

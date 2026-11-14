@@ -71,7 +71,7 @@ class ChatFunctionCallingTest {
                 savedStatus.set(i.getArgument(1));savedText.set(i.getArgument(2));savedSources.set(List.copyOf(i.getArgument(5)));
                 assertThat(Thread.currentThread().isInterrupted()).isFalse();
                 return true;
-            }).when(service).finish(any(),anyString(),anyString(),nullable(String.class),nullable(AgentModel.Usage.class),anyList());
+            }).when(service).finish(any(),anyString(),anyString(),nullable(String.class),nullable(AgentModel.Usage.class),anyList(),anyList());
             var now=Instant.now();
             var row=new OrderRow(50,1,"SO-1",10,"SHIPPED","PAID",new BigDecimal("79.00"),new BigDecimal("79.00"),
                     "CNY",now,now,now,0);
@@ -196,7 +196,7 @@ class ChatFunctionCallingTest {
             assertThat(result.await().error).isEqualTo("CANCELLED");
             assertThat(interrupted.await(2,TimeUnit.SECONDS)).isTrue();
             assertThat(h.savedStatus.get()).isEqualTo("CANCELLED");assertThat(h.turns.get()).isOne();
-            verify(h.service).finish(any(),eq("CANCELLED"),eq(""),eq("CANCELLED"),isNull(),eq(List.of()));
+            verify(h.service).finish(any(),eq("CANCELLED"),eq(""),eq("CANCELLED"),isNull(),eq(List.of()),eq(List.of()));
         }
     }
 }

@@ -32,7 +32,11 @@ final class SseSession {
     AgentModel.Listener listener(){return new com.gba.merchantbao.chat.service.ChatRunListener(){
         public void delta(String delta){offer("token",data("token",delta,null,null,null,null,null),false);}
         public void complete(AgentModel.Usage usage,java.util.List<com.gba.merchantbao.knowledge.vo.KnowledgeSource> sources){
-            var done=data("done",null,"COMPLETED",usage,null,null,null);done.put("sources",sources);offer("done",done,true);
+            complete(usage,sources,java.util.List.of());
+        }
+        public void complete(AgentModel.Usage usage,java.util.List<com.gba.merchantbao.knowledge.vo.KnowledgeSource> sources,
+                             java.util.List<com.gba.merchantbao.chat.vo.ToolCallSummary> toolCalls){
+            var done=data("done",null,"COMPLETED",usage,null,null,null);done.put("sources",sources);done.put("toolCalls",toolCalls);offer("done",done,true);
         }
         public void error(Throwable error){
             String code=error.getMessage();if(code==null||!Set.of("TIMEOUT","DEPENDENCY_ERROR","CHAT_DEPENDENCY_UNAVAILABLE","CANCELLED","INTERNAL_ERROR").contains(code))code="DEPENDENCY_ERROR";

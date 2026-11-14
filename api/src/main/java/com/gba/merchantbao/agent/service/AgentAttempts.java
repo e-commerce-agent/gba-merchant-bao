@@ -97,7 +97,7 @@ public final class AgentAttempts {
                     }
                     public void complete(AgentModel.Usage usage) {
                         if(ended.compareAndSet(false,true)&&active()&&stopped.compareAndSet(false,true)) {
-                            cleanup(false);downstream.complete(add(selectionUsage,usage));
+                            cleanup(false);downstream.complete(add(selectionUsage,usage),usedTool.get());
                         }
                     }
                     public void toolCall(OrderLookupCall call,AgentModel.Usage usage) {

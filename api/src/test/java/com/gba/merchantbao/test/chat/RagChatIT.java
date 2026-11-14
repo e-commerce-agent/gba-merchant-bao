@@ -53,6 +53,7 @@ class RagChatIT {
     @Autowired ObjectMapper json; @Autowired JdbcTemplate jdbc; @Autowired ChatService chat;
     @Autowired RagProperties rag; @Autowired AgentProperties agent;
     @MockitoBean SessionService sessions; @MockitoBean AgentModel model;
+    @MockitoBean com.gba.merchantbao.agent.service.AgentOrderLookup orderLookup;
     @MockitoBean KnowledgeEmbedding embedding; @MockitoBean MilvusKnowledgeStore vectors;
     @MockitoSpyBean KnowledgeMapper knowledge; @MockitoSpyBean ChatMessageMapper messages;
     Actor owner;long merchant,document,chunk;
@@ -91,6 +92,8 @@ class RagChatIT {
             assertThat(response.body()).contains("event:start","event:token","event:done").doesNotContain("event:error");
             var done=event(response.body(),"done");var saved=chat.history(owner,id,null,20).items().getLast();
             assertThat(saved.content()).isEqualTo("answer");assertThat(saved.status()).isEqualTo("COMPLETED");
+            assertThat(done.path("toolCalls")).isEmpty();assertThat(ChatMessageView.from(saved).toolCalls()).isEmpty();
+            assertThat(saved.toolCallsJson()).isEqualTo("[]");
             assertThat(done.path("sources")).isEqualTo(json.readTree(saved.sourcesJson())).hasSize(1);
             var source=done.path("sources").get(0);
             assertThat(source.path("documentId").asText()).isEqualTo(Long.toString(document));
@@ -209,6 +212,81 @@ class RagChatIT {
         assertThat(execute(run).get(3,TimeUnit.SECONDS).sources()).isEmpty();verifyNoInteractions(embedding,vectors);
         jdbc.update("UPDATE chat_message SET sources_json=NULL WHERE session_id=?",run.sessionId());
         assertThat(chat.history(owner,run.sessionId(),null,20).items()).allSatisfy(r->assertThat(ChatMessageView.from(r).sources()).isEmpty());
+    }
+    void selectOrderTool() {
+        when(orderLookup.query(eq(owner),any())).thenReturn("{\"orderNo\":\"SO-1\",\"privateResult\":\"private-order-result\"}");
+        when(model.stream(anyList(),eq(true),any())).thenAnswer(i->{
+            AgentModel.Listener l=i.getArgument(2);
+            l.toolCall(com.gba.merchantbao.agent.service.FunctionCallingFixtures.orderCall(),null);
+            return (AgentModel.Call)()->{};
+        });
+    }
+    @Test void toolSummaryMatchesCommittedHistoryAndSseWithoutArgumentsOrRawResult() throws Exception {
+        selectOrderTool();
+        when(model.stream(anyList(),eq(false),any())).thenAnswer(i->{
+            AgentModel.Listener l=i.getArgument(2);l.delta("查询完成");l.complete(null);return (AgentModel.Call)()->{};
+        });
+        long id=chat.create(owner,null).id();
+        try(var client=HttpClient.newHttpClient()) {
+            var response=send(client,"POST",path(id),body(UUID.randomUUID().toString()));
+            assertThat(response.body()).contains("event:done").doesNotContain("event:error","SO-1","private-order-result");
+            var done=event(response.body(),"done");var saved=chat.history(owner,id,null,20).items().getLast();
+            assertThat(saved.content()).isEqualTo("查询完成");
+            var expected=json.readTree("[{\"name\":\"lookup_order\",\"status\":\"SUCCEEDED\"}]");
+            assertThat(json.readTree(saved.toolCallsJson())).isEqualTo(expected);
+            assertThat(done.path("toolCalls")).isEqualTo(expected);
+            assertThat(done.path("sources")).isEqualTo(json.readTree(saved.sourcesJson())).hasSize(1);
+            var history=json.readTree(send(client,"GET",path(id),null).body()).path("data").path("items");
+            assertThat(history.get(0).path("toolCalls")).isEmpty();
+            assertThat(history.get(1).path("toolCalls")).isEqualTo(done.path("toolCalls"));
+            verify(orderLookup).query(eq(owner),any());
+        }
+    }
+    @Test void completedLookupFollowedByFailureCancellationOrTimeoutLeavesNoSummary() throws Exception {
+        for(String mode:List.of("FAILED","CANCELLED","TIMED_OUT")) {
+            reset(model,orderLookup);selectOrderTool();agent.setTotalTimeout(Duration.ofMillis(1200));
+            var entered=new CountDownLatch(1);var late=new AtomicReference<AgentModel.Listener>();
+            when(model.stream(anyList(),eq(false),any())).thenAnswer(i->{
+                AgentModel.Listener l=i.getArgument(2);late.set(l);entered.countDown();
+                if(mode.equals("FAILED"))l.error(new IllegalStateException("private-order-result"));
+                return (AgentModel.Call)()->{};
+            });
+            var run=accept();var done=new CompletableFuture<String>();
+            var call=chat.execute(run,"summary-terminal",new ChatRunListener(){
+                public void delta(String d){}
+                public void complete(AgentModel.Usage u,List<KnowledgeSource> sources){done.complete("unexpected success");}
+                public void error(Throwable e){done.complete(e.getMessage());}
+            });
+            assertThat(entered.await(2,TimeUnit.SECONDS)).isTrue();
+            if(mode.equals("CANCELLED"))call.cancel();
+            assertThat(done.get(3,TimeUnit.SECONDS)).isEqualTo(mode.equals("FAILED")?"DEPENDENCY_ERROR":mode.equals("TIMED_OUT")?"TIMEOUT":"CANCELLED");
+            late.get().complete(null);late.get().delta("late private-order-result");
+            var saved=last(run);assertThat(saved.status()).isEqualTo(mode);
+            assertThat(saved.toolCallsJson()).isNull();assertThat(ChatMessageView.from(saved).toolCalls()).isEmpty();
+            assertThat(saved.content()).isEmpty();assertThat(saved.sourcesJson()).isNull();
+            verify(orderLookup).query(eq(owner),any());
+        }
+    }
+    @Test void summaryWriteFailureRollsBackBodySourcesAndRunReleaseWithoutDone() throws Exception {
+        selectOrderTool();
+        when(model.stream(anyList(),eq(false),any())).thenAnswer(i->{
+            AgentModel.Listener l=i.getArgument(2);l.delta("查询完成");l.complete(null);return (AgentModel.Call)()->{};
+        });
+        doReturn(0).when(messages).saveToolCallsOwned(any(),anyLong(),anyLong(),anyLong(),anyString());
+        long id=chat.create(owner,null).id();
+        try(var client=HttpClient.newHttpClient()) {
+            var response=send(client,"POST",path(id),body(UUID.randomUUID().toString()));
+            assertThat(response.body()).contains("event:error").doesNotContain("event:done","SO-1","private-order-result");
+            var saved=chat.history(owner,id,null,20).items().getLast();
+            assertThat(saved.status()).isEqualTo("STREAMING");assertThat(saved.content()).isEmpty();
+            assertThat(saved.sourcesJson()).isNull();assertThat(saved.toolCallsJson()).isNull();
+            assertThat(chat.detail(owner,id).activeRunId()).isEqualTo(saved.runId());
+        } finally {
+            reset(messages);
+            // Recover only this test's accepted run after proving the rollback.
+            jdbc.update("UPDATE chat_session SET run_deadline_at=UTC_TIMESTAMP(3)-INTERVAL 1 SECOND WHERE id=?",id);
+            chat.detail(owner,id);
+        }
     }
     PreparedRun accept(){return chat.accept(owner,chat.create(owner,null).id(),UUID.randomUUID().toString(),QUESTION);}
     com.gba.merchantbao.chat.entity.ChatMessageRow last(PreparedRun run){return chat.history(owner,run.sessionId(),null,20).items().getLast();}
