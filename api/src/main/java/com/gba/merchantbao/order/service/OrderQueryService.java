@@ -55,6 +55,28 @@ public class OrderQueryService {
         return detail(row, items.findByOrder(row.merchantId(), row.id()));
     }
 
+    /**
+     * 内部只读入口，供服务端以认证得到的可信 Actor 按订单号查询；不新增 HTTP 路由。
+     * 消费者只能查询本商户本人订单，员工只能查询本商户订单；不可见与不存在统一返回 404。
+     */
+    public Detail detailByOrderNo(Actor actor, String orderNo) {
+        if (actor == null || actor.principal() == null || orderNo == null
+                || !orderNo.matches("[A-Za-z0-9][A-Za-z0-9_-]{0,63}")) {
+            throw OrderError.notFound();
+        }
+        var principal = actor.principal();
+        OrderRow row;
+        if (principal.role() == AccountRole.CONSUMER) {
+            row = orders.findOwnedByOrderNo(principal.merchantId(), orderNo, principal.accountId());
+        } else if (principal.role() == AccountRole.MERCHANT_STAFF) {
+            row = orders.findByOrderNo(principal.merchantId(), orderNo);
+        } else {
+            row = null;
+        }
+        if (row == null) throw OrderError.notFound();
+        return detail(row, items.findByOrder(row.merchantId(), row.id()));
+    }
+
     /** Locate an order after applying the same Actor scope as the order detail endpoint. */
     public OrderLocation locateForActor(Actor actor, long orderId) {
         return location(accessibleOrder(actor, orderId));

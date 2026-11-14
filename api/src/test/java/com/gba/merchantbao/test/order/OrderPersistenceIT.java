@@ -123,6 +123,48 @@ class OrderPersistenceIT {
 
     @Test
     @Sql({"/db/fixture/auth_accounts.sql", "/db/fixture/product_catalog.sql", "/db/fixture/orders.sql"})
+    void orderNumberDetailEnforcesSqlOwnerScopeAndSeparatesSameNumberAcrossTenants() {
+        long demo = tenant("M_3C_DEMO"), isolated = tenant("M_ISOLATION_TEST");
+        var consumer = actor(2000000000000201L, demo, AccountRole.CONSUMER);
+        var other = actor(2000000000000202L, demo, AccountRole.CONSUMER);
+        var staff = actor(2000000000000101L, demo, AccountRole.MERCHANT_STAFF);
+        var isolatedConsumer = actor(2000000000000203L, isolated, AccountRole.CONSUMER);
+        var isolatedStaff = actor(2000000000000102L, isolated, AccountRole.MERCHANT_STAFF);
+
+        var detail = service.detailByOrderNo(consumer, "DEV-2026-0901");
+        assertThat(detail).isEqualTo(service.detail(consumer, 2000000000000301L));
+        assertThat(service.detailByOrderNo(staff, "DEV-2026-0901")).isEqualTo(detail);
+        assertThat(service.detailByOrderNo(staff, "DEV-2026-0903").orderId().value()).isEqualTo(2000000000000303L);
+        // 同一订单号在不同商户只能定位到各自商户的真实订单及商品快照。
+        var isolatedDetail = service.detailByOrderNo(isolatedConsumer, "DEV-2026-0901");
+        assertThat(isolatedDetail.orderId().value()).isEqualTo(2000000000000304L);
+        assertThat(isolatedDetail.items()).singleElement()
+                .satisfies(item -> assertThat(item.productName()).isEqualTo("隔离测试充电线"));
+        assertThat(service.detailByOrderNo(isolatedStaff, "DEV-2026-0901")).isEqualTo(isolatedDetail);
+        assertThat(orders.findOwnedByOrderNo(demo, "DEV-2026-0901", other.principal().accountId())).isNull();
+        assertThat(orders.findOwnedByOrderNo(isolated, "DEV-2026-0901", consumer.principal().accountId())).isNull();
+
+        for (var denied : new Actor[]{other, actor(2000000000000201L, isolated, AccountRole.CONSUMER)}) {
+            assertOrderNumberNotFound(denied, "DEV-2026-0901");
+        }
+        for (var denied : new Actor[]{isolatedConsumer, isolatedStaff}) {
+            assertOrderNumberNotFound(denied, "DEV-2026-0902");
+        }
+        for (var caller : new Actor[]{consumer, staff}) {
+            assertOrderNumberNotFound(caller, "MISSING");
+        }
+    }
+
+    private void assertOrderNumberNotFound(Actor actor, String orderNo) {
+        assertThatThrownBy(() -> service.detailByOrderNo(actor, orderNo))
+                .isInstanceOfSatisfying(OrderError.class, error -> {
+                    assertThat(error.status()).isEqualTo(404);
+                    assertThat(error.code().getCode()).isEqualTo(10004);
+                });
+    }
+
+    @Test
+    @Sql({"/db/fixture/auth_accounts.sql", "/db/fixture/product_catalog.sql", "/db/fixture/orders.sql"})
     void paginationHonoursLimitOffsetAndIsExplainable() throws Exception {
         long demo = tenant("M_3C_DEMO");
         var consumer = actor(2000000000000201L, demo, AccountRole.CONSUMER);
