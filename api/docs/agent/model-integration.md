@@ -72,6 +72,24 @@ dev 的完整真实配置保存在被忽略的 application-dev.yml；可提交�
 system+当前输入超限明确拒绝，不截断用户正文；失败/取消/超时轮次保留在 MySQL 历史，不能加入成功上下文。
 `AgentContextTest` 精确断言角色、顺序、完整轮次、预算及输出预留；`ScriptedAgentModel` 提供确定 delta、延迟、错误和取消。
 
+## 模型 Function Calling 协议
+
+`AgentModel.stream(messages, true, listener)` 显式允许当前回合选择唯一函数 `lookup_order`；默认的两参数 `stream` 不发送工具定义，继续逐片转发普通正文。函数采用严格对象 schema，仅声明必填字符串 `orderNo`，关闭并行工具调用。
+
+允许工具的回合先有界保留文本，直到 SDK 完成响应：存在工具请求时，仅以终态 `listener.toolCall(OrderLookupCall, Usage)` 返回结构化请求，中间文本不进入正文回调；没有工具请求时，才把保留的文本交给 delta 并 complete。工具后的最终回合使用不启用工具的 `stream`，恢复逐片正文输出。工具选择回合的缓冲上限复用 `max-output-chars`。
+
+`OrderLookupCall.orderNo()` 提供已校验订单号；`assistantMessage()` 保留完整 assistant 工具消息，`toolResult(resultJson)` 生成保留原调用 id 的 tool 消息。后续调用方应依次把这两条消息追加到本次上下文，再请求模型；适配器不查询订单、不构造 Actor，也不自行启动后续回合。
+
+工具参数最多 1024 个字符，必须是只含一个 `orderNo` 的 JSON 对象。订单号格式与订单领域入口一致；拒绝重复键、尾随 JSON、身份字段、未知函数、缺失调用 id、多个调用、截断或结束原因不一致的工具响应。不允许工具的回合收到调用也会拒绝。协议失败统一返回无原始 cause 的 `AgentModel.ProtocolException`，每次调用只接受一个终态；取消同时停止 SDK handle 和 transport，包括工具参数接收期间。
+
+SDK 请求/响应日志保持关闭。模型错误只保留 HTTP 状态码或网络错误分类用于后续重试判断，不附带供应商响应、原始工具参数或密钥。`OrderLookupCall` 的字符串表示隐藏参数；其 assistant/tool 消息仍含本次协议数据，只可用于服务端当前往返，不得直接记录日志或写入工具摘要。
+
+`AgentFunctionCallingProtocolTest` 使用本地 HTTP 桩验证严格函数定义、UTF-8 与工具参数分片、调用 id、assistant/tool 请求格式、最终文本 delta、未知函数和畸形协议、身份覆盖字段、取消及日志不含敏感值。与既有文本和重试测试一起运行：
+
+```shell
+mvn -Dtest=AgentModelProtocolTest,AgentFunctionCallingProtocolTest,AgentAttemptsTest test
+```
+
 ## 订单查询的内部授权入口
 
 `OrderQueryService.detailByOrderNo(Actor actor, String orderNo)` 提供按订单号查询详情的 Java Service 入口，供服务端使用认证得到的可信 Actor 调用，不新增 HTTP 路由。调用方不得根据模型参数或客户端字段构造身份。
@@ -85,7 +103,7 @@ system+当前输入超限明确拒绝，不截断用户正文；失败/取消/�
 
 `OrderQueryServiceTest` 覆盖本人/员工读取详情、他人/跨商户/不存在统一拒绝，以及无效输入不访问数据库；从 `api/` 执行 `mvn -Dtest=OrderQueryServiceTest test`。`OrderPersistenceIT#orderNumberDetailEnforcesSqlOwnerScopeAndSeparatesSameNumberAcrossTenants` 使用隔离 MySQL 验证真实 Mapper 授权及跨商户同号订单隔离。
 
-当前只交付订单服务入口；模型 Function Calling 协议、聊天工具编排和工具摘要仍在后续任务中。
+当前已交付订单服务入口和独立模型 Function Calling 协议；聊天工具编排、RAG 无匹配路径调整和工具摘要仍在后续任务中。现有聊天尚未启用订单工具。
 
 ## 后续职责
 
