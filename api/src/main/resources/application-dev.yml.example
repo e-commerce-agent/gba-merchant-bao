@@ -14,6 +14,27 @@ merchant:
     # dots 默认开启深度思考，为首个正文 token 留出时间。
     first-token-timeout: 90s
     total-timeout: 180s
+
+  # ── RAG 知识库 ─────────────────────────────────────────────
+    # 默认关闭：关闭时不校验下面任何配置，也不要求 Milvus 启动。
+    # 启用前请先填好 embedding-base-url 与 embedding-api-key。
+  rag:
+    enabled: false
+        # 阿里云百炼 OpenAI 兼容地址：把 <WorkspaceId> 换成
+        # 控制台 → 业务空间管理 → API Host 列的第一段（形如 llm-xxxx / ws-xxxx）
+    embedding-base-url: https://<WorkspaceId>.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+        # 百炼 API Key：控制台 → API 管理 → API Key；本文件会进 Git，绝不可填真实密钥
+    embedding-api-key: ""
+        # 需单批上限 ≥ 16 条的模型（qwen3.7-text-embedding 支持 20 条 / 1536 维）
+    embedding-model: qwen3.7-text-embedding
+        # 必须与 Milvus collection 维度一致，否则启动即拒绝
+    embedding-dimension: 1536
+        # IDEA 中的后端通过宿主机端口访问 Milvus（19530 是 gRPC 端口）
+    milvus-uri: http://127.0.0.1:19530
+        # 换模型或换维度必须换 collection 名（向量空间不通用）
+    collection: knowledge_qwen37_1536
+    top-k: 3
+    min-score: 0.5
   auth:
     sms:
       provider: mock

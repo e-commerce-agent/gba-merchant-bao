@@ -1,8 +1,10 @@
 # 技术问题与决策记录
 
-认证更新：2026-11-06；Agent 追加：2026-11-10。本页记录认证与 Agent 实现中已有代码、测试或维护记录可追溯的问题；“设计约束”“隔离测试构造故障”“实际开发库维护”分别标明，不把它们包装成线上事故。认证面试只选 AUTH-01、AUTH-02；Agent 面试只选 AGENT-01、AGENT-02，其余保留为备查。
+认证更新：2026-11-06；Agent 追加：2026-11-10；RAG 追加：2026-11-14。本页记录有代码、测试或开发环境记录可追溯的问题；“设计约束”“隔离测试构造故障”“实际开发库验证”分别标明，不包装成线上事故。认证面试选 AUTH-01、AUTH-02，Agent 选 AGENT-01、AGENT-02，RAG 选 RAG-01、RAG-02；其他条目留作备查。
 
 共同来源：认证 [实现 PR #12](https://github.com/e-commerce-agent/gba-merchant-bao/pull/12)、[验收](../../api/docs/testing/20261106-auth-acceptance/README.md)；Agent [实现 PR #15](https://github.com/e-commerce-agent/gba-merchant-bao/pull/15)、[验收](../../api/docs/testing/20261108-agent-foundation/README.md)。全部数字对应代码规则、具名测试或本机维护记录；没有线上性能指标。
+
+RAG 来源：[实现 PR #27](https://github.com/e-commerce-agent/gba-merchant-bao/pull/27)、[面试卡片](rag.md)、[验证记录](../../api/docs/rag/validation.md)。`5eadf90` 为导入，`bd26680` 为聊天接入，`ef88281` 为交付/协议验收，`e30b5fc` 为后续真实 dev 联调记录（独立 PR 未核实）。2026-11-13 是隔离定向回归，2026-11-14 是真实开发服务五问；本次文档 commit/mini PR 由作者后续创建。
 
 | 编号 / 类型 | 问题或现象 | 原因与处理 | 证据 / commit | 面试主讲 |
 | --- | --- | --- | --- | --- |
@@ -33,9 +35,20 @@
 | AGENT-08 / 协议兼容 | 兼容服务可能使用非 Bearer 鉴权头，base-url 也可能重复拼接终端路径 | 使用 SDK 的 api-key/customHeaders 配置，base-url 保持 API 根路径；本地 HTTP stub 验证最终 `/chat/completions`、鉴权头、消息角色和流式解析 | OpenAiAgentModel#stream、AgentModelProtocolTest；`abc38b2` / PR #15 | 否 |
 | AGENT-09 / 交付验收 | 自动化测试和真实模型联调容易被误写成已完成 Apifox 客户端验收 | 保留 6.1/6.2 未勾选；截至 2026-11-10 总计27/29。已导入两个契约，但环境、凭据引用和协议用例实际执行未完成 | tasks.md、api/docs/agent/apifox-verification.md、api/docs/agent/verification.md；`b86f2ce` / PR #15 | 否 |
 | AGENT-10 / 迁移汇合 | V5 已经在开发库执行，后续模块若也使用 V5，改写本迁移会破坏已记录的 Flyway 校验和 | 已执行 V5 保持不变；冲突时协调尚未执行的迁移编号并通过前向迁移演进，不用 repair 掩盖两份不同迁移 | `V5__agent_conversation.sql`、Flyway 开发库记录；`520862d` / PR #15 | 否 |
+| RAG-01 / 对话链路接入 | 原有 SSE 需要先持久化用户消息与运行权，RAG 应插在何处，且怎样避免不同商户资料串用或把未完成资料暴露给模型 | 在 `ChatService#accept` 提交 MySQL 用户消息、助手占位和 run deadline 后，异步执行阶段才做问题 Embedding、Milvus 商户过滤和 MySQL READY 回源；预算内来源进入原 AgentContext，再复用原 LLM/SSE。完成正文和 sources 同事务提交后才发 done；同一幂等键返回旧运行，不重跑检索 | `ChatService#accept/#execute/#finish`、`KnowledgeRetrieval#retrieve`、`AgentContext#withEvidence`、`ChatRunExecution#end`；`bd26680` / [PR #27](https://github.com/e-commerce-agent/gba-merchant-bao/pull/27)；[真实联调记录](../../api/docs/rag/validation.md) | 是 |
+| RAG-02 / 切片设计取舍 | 长度硬切可能拆散事实和条件，长片占用上下文，重叠又会增加重复召回 | 超过300码点才在窗口中从偏移30起查找最后一个双LF段落边界，其次句界，再硬切；重叠为 min(30,本片窗口长度/2向下取整)，计入下一片300上限。300/30是小型文本的工程起点，未做参数消融；750个emoji边界测试得到3片、合计810码点，真实三份资料各1片，不能证明长文召回质量 | `KnowledgeText#split`；`KnowledgeTextTest#validUtf8MarkdownKeepsUnicodeBoundariesAndLimitsOverlap`、`#rejectsWrongFormatEmptyMalformedAndOversizedInputs`；`5eadf90` / PR #27 | 是 |
+| RAG-03 / 双存储发布边界，隔离故障验证 | MySQL文档已建而Milvus只写入部分向量；外部调用不能与MySQL组成一个普通本地事务 | PROCESSING与切片先提交，事务外向量化/写入/强一致确认，再短事务发布READY；故障标FAILED，标记失败也写不回时PROCESSING仍不可见。本期不恢复/清理残留向量 | `KnowledgeService#upload`、`MilvusKnowledgeStore#insertAndConfirm`；`KnowledgeIngestionIT#partialVectorFailureRemainsFailedAndUnavailableToReadyReads` 通过；`5eadf90` / PR #27 | 否 |
+| RAG-04 / 模型与索引契约，隔离验证 | 默认聊天服务未必支持Embedding；模型维度或collection schema变化会使向量不兼容 | 独立Embedding配置，校验返回数量、维度、有限值及非零向量；collection已有schema/维度/COSINE不符拒绝启动，换模型使用独立collection重新导入。关闭RAG无需连接新依赖 | `KnowledgeEmbeddingTest#usesIndependentEmbeddingProtocolAndRejectsWrongDimension`、`MilvusKnowledgeStoreIT#createsExplicitSchemaConfirmsVisibilityAndRejectsDimensionMismatch`、`RagConfigurationTest`；`5eadf90` / PR #27 | 否 |
+| RAG-05 / 超时取消竞争，隔离故障验证 | 检索另起超时会突破原run总预算，取消后迟到结果可能继续调用LLM | 检索复用已提交deadline剩余时间并检查终态；生成入口再次检查run状态/deadline；依赖故障、超时与空匹配分开，生成前重试复用已检索上下文 | `RagChatIT#retrievalSharesTheSavedDeadlineAndLateResultsCannotStartGeneration`、`#servletDisconnectDuringRetrievalCancelsAndNeverStartsGeneration`、`#dependencyFailuresNeverBecomeNoMatchAndLeaveEmptySources`、`#generationRetryReusesTheSameRetrievedContext` 通过；`bd26680` / PR #27 | 否 |
+| RAG-06 / 上下文与来源一致性，隔离验证 | 候选片段全部展示为sources，会将未实际入模资料误记为依据；资料预算不足也可能挤掉当前问题 | 保留system/原问题并预留输出；按排名放完整证据，再回选完整成功历史。第一个放不下的片段处停止，全部放不下则固定资料不足、不调用生成。sources只取实际注入片段，不能视为逐句核验 | `AgentContext#withEvidence`；`RagChatIT#sseAndHistoryExposeTheExactCommittedEvidenceAndDuplicateDoesNotRerun`、`#noMatchAndNoEvidenceFitsCompleteWithoutCallingTheModel` 通过；`bd26680` / PR #27 | 否 |
+| RAG-07 / 终态原子性，隔离故障验证 | 正文已标成功而sources保存失败，会让done与历史不一致 | 成功正文、sources和运行权释放同事务；注入sources写入故障验证正文和释放操作回滚，返回error，不报告done。旧NULL和关闭RAG的新消息来源为空 | `ChatService#finish`、`ChatSources`；`RagChatIT#sourcesFailureRollsBackBodyAndRunReleaseAndSendsErrorInsteadOfDone`、`#disabledRagAndLegacyNullRowsExposeEmptySources` 通过；`bd26680` / PR #27 | 否 |
+| RAG-08 / 实际交付修正 | 迁移契约测试原先禁止V10及以上，与本次V10冲突；不能为过测试改写迁移 | 改验数字版本1..N连续唯一，保留DDL-only和冻结摘要验证，6项迁移契约通过；不改迁移SQL或伪造Flyway历史 | `MigrationScriptContractTest#commerceMigrationVersionsAreUniqueDdlOnlyAndOrdered`；`ef88281` / PR #27；验证记录Badcase章节 | 否 |
+| RAG-09 / 实际契约验证问题 | JSON/YAML对比时SnakeYAML把ISO日期示例转为Date，再序列化带时区变化 | 验证比较线格式schema及关键结构；Springdoc仍直接导出HTTP原始响应。交付multipart、Source、ChatDone和SSE扩展，不另手写一份OpenAPI | `ChatHttpIT`、验证记录Badcase/前端契约章节；11项定向验证通过；`ef88281` / PR #27 | 否 |
+| RAG-10 / 实际dev配置排查 | 源application-dev.yml已有RAG设置，target/classes副本却陈旧且不含RAG，容易误判运行中的配置 | IDEA构建/同步资源，核对两份SHA-256一致，显式dev profile重启；结合实际进程日志、Flyway V10、OpenAPI与真实上传/问答确认连接。本次3份上传READY、5问及幂等检查通过 | 验证记录2026-11-14配置检查及结果；`e30b5fc`，独立PR未核实；不是线上故障 | 否 |
+| RAG-11 / 实际样例与检索观察 | 初版资料用了项目外保温杯；真实dev店铺规则题同时召回售后和商品资料 | 样例改为R__040的3C商品快照，售后/店铺承诺显式合成；2026-11-14五问来源/答案核对通过，额外两条来源单列观察。API未暴露分数，没有依据调整阈值；各文件1片不足以评估长文切片 | `examples/product.md`、`examples/after-sales.txt`、`examples/store-rules.md`（均在api/docs/rag下）；`ef88281` / PR #27、`e30b5fc` 实测记录；无准确率收益结论 | 否 |
 
 ## 证据保存约定
 
-每次追加问题时注明：问题类型、实际触发条件、发现工具/用例、修复或设计决策、验证结果、限制、commit 和 PR。代码中的 TTL/位数是参数，类中的测试数量是用例数量，Maven 总耗时是构建时间；均不能替换成并发数、接口耗时或线上成功率。Agent 的两个主讲点详见 [面试卡片](agent.md)；剩余条目是备查，不包装成线上事故。
+每次追加问题时注明：问题类型、实际触发条件、发现工具/用例、修复或设计决策、验证结果、限制、commit 和 PR。代码中的 TTL/位数是参数，类中的测试数量是用例数量，Maven 总耗时是构建时间；均不能替换成并发数、接口耗时或线上成功率。Agent 的主讲点详见 [面试卡片](agent.md)，RAG 的主讲点详见 [RAG 面试卡片](rag.md)；其余条目是备查，不包装成线上事故。
 
 原始测试 XML、脚本输出、开发备份按现有忽略规则保留，仓库只保存脱敏摘要与可运行步骤。没有原始观测依据时写“未测”，不补估计值；后续真实压测或生产问题另行追加，不回写成当前实现已经测得的收益。
