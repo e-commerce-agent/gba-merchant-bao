@@ -30,7 +30,7 @@ class ChatSchemaIT {
                 if (upgrade) sql(c, "INSERT INTO merchant(id,merchant_code,merchant_name) VALUES(91,'PRESERVED','人工名称')");
                 var before = upgrade ? history(c) : java.util.Map.<String,Integer>of();
                 config.target("latest").load().migrate();
-                assertThat(config.load().info().current().getVersion().getVersion()).isEqualTo("10");
+                assertThat(config.load().info().current().getVersion().getVersion()).isEqualTo("11");
                 if (upgrade) {
                     assertThat(history(c)).containsAllEntriesOf(before);
                     try (var rs = c.createStatement().executeQuery("SELECT merchant_name FROM merchant WHERE merchant_code='PRESERVED'")) {

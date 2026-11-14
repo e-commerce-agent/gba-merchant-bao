@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.*;
 
 /** Deliberately opts into devdata/mock on disposable infrastructure; normal test profile excludes it. */
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT,properties={
+    "merchant.rag.enabled=false","merchant.agent.enabled=false",
     "merchant.auth.namespace=dev-manual-it","merchant.auth.sms.provider=mock","merchant.auth.sms.expose-debug-code=true",
     "spring.flyway.locations=classpath:db/migration,classpath:db/seed/common,classpath:db/seed/nonprod,classpath:db/devdata"})
 @ActiveProfiles({"dev","test"}) @Testcontainers @DirtiesContext

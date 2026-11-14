@@ -78,10 +78,11 @@ class RagPipelineIT {
                     assertThat(evidence).startsWith("<reference_material>\n").endsWith("</reference_material>");
                     String question=messages.get(2).path("content").asText();
                     assertThat(evidence).doesNotContain(question);
-                } else assertThat(evidence).isEqualTo("关闭RAG后的普通问题");
+                } else assertThat(evidence).isNotBlank();
                 GENERATIONS.incrementAndGet();
                 // Return the supplied evidence verbatim, proving that the actual wire request carried it.
-                String answer=messages.size()==2?"普通回答":evidence.substring(evidence.indexOf('\n',evidence.indexOf("[documentId="))+1,
+                String answer=messages.size()==2?(evidence.equals("关闭RAG后的普通问题")?"普通回答":
+                        com.gba.merchantbao.knowledge.service.KnowledgeRetrieval.NO_MATCH):evidence.substring(evidence.indexOf('\n',evidence.indexOf("[documentId="))+1,
                         evidence.lastIndexOf("</reference_material>")).strip();
                 String delta=JSON.writeValueAsString(Map.of("id","pipeline","object","chat.completion.chunk","model","pipeline-chat",
                         "choices",List.of(Map.of("index",0,"delta",Map.of("role","assistant","content",answer)))));
@@ -136,11 +137,11 @@ class RagPipelineIT {
             }
             int before=GENERATIONS.get();
             assertThat(ask(client,"other","SKU-CHG-65W-CN的功率是什么？").get("done").path("sources")).isEmpty();
-            assertThat(GENERATIONS.get()).isEqualTo(before);
+            assertThat(GENERATIONS.get()).isEqualTo(before+1);
             properties.setEnabled(false);
             try { assertThat(ask(client,"consumer","关闭RAG后的普通问题").get("done").path("sources")).isEmpty(); }
             finally { properties.setEnabled(true); }
-            assertThat(GENERATIONS.get()).isEqualTo(5);
+            assertThat(GENERATIONS.get()).isEqualTo(7);
             assertThat(EMBEDDINGS.get()).isEqualTo(9); // three documents, five questions, one isolated merchant; disabled skips embedding
             assertThat(PROTOCOL_FAILURE.get()).isNull();
             Files.createDirectories(Path.of("target/rag-pipeline"));

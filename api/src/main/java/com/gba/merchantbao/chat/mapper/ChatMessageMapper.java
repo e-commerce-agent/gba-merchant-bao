@@ -13,6 +13,8 @@ public interface ChatMessageMapper {
     /** Called before releasing the run, in the terminal transaction with finishOwned. */
     int saveSourcesOwned(@Param("owner") ChatOwner owner,@Param("sessionId") long sessionId,
                          @Param("messageId") long messageId,@Param("runId") long runId,@Param("sourcesJson") String sourcesJson);
+    int saveToolCallsOwned(@Param("owner") ChatOwner owner,@Param("sessionId") long sessionId,
+                           @Param("messageId") long messageId,@Param("runId") long runId,@Param("toolCallsJson") String toolCallsJson);
     ChatMessageRow findAssistantByRun(@Param("owner") ChatOwner owner,@Param("sessionId") long sessionId,@Param("runId") long runId);
     int markStreaming(@Param("owner") ChatOwner owner,@Param("sessionId") long sessionId,@Param("messageId") long messageId,
                       @Param("runId") long runId,@Param("now") LocalDateTime now);

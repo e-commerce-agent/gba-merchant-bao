@@ -16,6 +16,7 @@ final class ChatRunExecution implements AgentModel.Listener,AgentModel.Call {
     private final long started=System.nanoTime();private long first=-1;private boolean terminal;
     private AgentModel.Call upstream;
     private java.util.List<com.gba.merchantbao.knowledge.vo.KnowledgeSource> sources=java.util.List.of();
+    private java.util.List<com.gba.merchantbao.chat.vo.ToolCallSummary> toolCalls=java.util.List.of();
     private Future<?> preparation;private Future<?> deadline;
     ChatRunExecution(ChatService service,PreparedRun run,String requestId,AgentProperties p,AgentModel.Listener client,
                      Runnable release,Clock clock,MeterRegistry metrics){
@@ -25,11 +26,12 @@ final class ChatRunExecution implements AgentModel.Listener,AgentModel.Call {
     synchronized void bindPreparation(Future<?> task){preparation=task;if(terminal&&!task.isDone())task.cancel(true);}
     synchronized void bindDeadline(Future<?> task){deadline=task;if(terminal)task.cancel(false);}
     synchronized void generate(AgentAttempts attempts,java.util.List<dev.langchain4j.data.message.ChatMessage> prompt,
-                               java.util.List<com.gba.merchantbao.knowledge.vo.KnowledgeSource> sources){
+                               java.util.List<com.gba.merchantbao.knowledge.vo.KnowledgeSource> sources,
+                               java.util.function.Function<OrderLookupCall,String> lookup,ExecutorService worker){
         if(terminal)return;
         if(!clock.instant().isBefore(run.deadline())){end("TIMED_OUT","TIMEOUT",null);return;}
         this.sources=java.util.List.copyOf(sources);
-        bind(attempts.stream(prompt,run.deadline(),this));
+        bind(attempts.stream(prompt,run.deadline(),lookup,worker,this));
     }
     synchronized boolean terminal(){return terminal;}
     @Override public synchronized void delta(String delta){
@@ -44,6 +46,11 @@ final class ChatRunExecution implements AgentModel.Listener,AgentModel.Call {
         } catch(RuntimeException failure){end("FAILED","CHAT_DEPENDENCY_UNAVAILABLE",null);}
     }
     @Override public synchronized void complete(AgentModel.Usage usage){
+        complete(usage,false);
+    }
+    @Override public synchronized void complete(AgentModel.Usage usage,boolean usedOrderLookup){
+        if(terminal)return;
+        toolCalls=usedOrderLookup?ChatToolCalls.orderLookupSucceeded():java.util.List.of();
         end(clock.instant().isBefore(run.deadline())?"COMPLETED":"TIMED_OUT",
                 clock.instant().isBefore(run.deadline())?null:"TIMEOUT",usage);
     }
@@ -58,9 +65,10 @@ final class ChatRunExecution implements AgentModel.Listener,AgentModel.Call {
         if(terminal)return;terminal=true;
         String reason=code==null?"completed":code;
         try {
-            boolean saved=service.finish(run,status,text.toString(),code,usage,sources);
+            boolean saved=service.finish(run,status,text.toString(),code,usage,sources,
+                    status.equals("COMPLETED")?toolCalls:java.util.List.of());
             if(saved){if(status.equals("COMPLETED")){
-                if(client instanceof ChatRunListener listener)listener.complete(usage,sources);else client.complete(usage);
+                if(client instanceof ChatRunListener listener)listener.complete(usage,sources,toolCalls);else client.complete(usage);
             }else client.error(new IllegalStateException(code));}
             else client.error(new IllegalStateException(clock.instant().isBefore(run.deadline())?"CANCELLED":"TIMEOUT"));
         } catch(RuntimeException failure){status="FAILED";reason="storage_failure";client.error(new IllegalStateException("CHAT_DEPENDENCY_UNAVAILABLE"));}

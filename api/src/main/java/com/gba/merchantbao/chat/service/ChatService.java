@@ -26,6 +26,9 @@ public class ChatService {
     private io.micrometer.core.instrument.MeterRegistry metrics;
     private final java.util.concurrent.ThreadPoolExecutor runtime;
     private com.gba.merchantbao.knowledge.service.KnowledgeRetrieval retrieval;
+    private com.gba.merchantbao.agent.service.AgentOrderLookup orderLookup;
+    @org.springframework.beans.factory.annotation.Autowired
+    void orderLookup(com.gba.merchantbao.agent.service.AgentOrderLookup lookup){this.orderLookup=lookup;}
     private final java.util.concurrent.ScheduledExecutorService deadlines=java.util.concurrent.Executors.newSingleThreadScheduledExecutor(r->{
         var t=new Thread(r,"chat-run-deadline");t.setDaemon(true);return t;
     });
@@ -73,6 +76,11 @@ public class ChatService {
     }
     public boolean finish(PreparedRun run,String status,String text,String error,com.gba.merchantbao.agent.service.AgentModel.Usage usage,
                           java.util.List<com.gba.merchantbao.knowledge.vo.KnowledgeSource> sources) {
+        return finish(run,status,text,error,usage,sources,java.util.List.of());
+    }
+    public boolean finish(PreparedRun run,String status,String text,String error,com.gba.merchantbao.agent.service.AgentModel.Usage usage,
+                          java.util.List<com.gba.merchantbao.knowledge.vo.KnowledgeSource> sources,
+                          java.util.List<com.gba.merchantbao.chat.vo.ToolCallSummary> toolCalls) {
         if(!java.util.Set.of("COMPLETED","CANCELLED","TIMED_OUT","FAILED").contains(status))throw ChatError.invalid();
         return Boolean.TRUE.equals(tx.execute(s->{
             var session=sessions.lockOwned(run.owner(),run.sessionId());if(session==null)throw ChatError.missing();var now=now();
@@ -84,6 +92,8 @@ public class ChatService {
             if(messages.finishOwned(run.owner(),run.sessionId(),run.messageId(),run.runId(),status,bounded(text),error,
                     usage==null?null:usage.inputTokens(),usage==null?null:usage.outputTokens(),now)!=1)return false;
             if(status.equals("COMPLETED")&&messages.saveSourcesOwned(run.owner(),run.sessionId(),run.messageId(),run.runId(),ChatSources.encode(sources))!=1)
+                throw ChatError.storage();
+            if(status.equals("COMPLETED")&&messages.saveToolCallsOwned(run.owner(),run.sessionId(),run.messageId(),run.runId(),ChatToolCalls.encode(toolCalls))!=1)
                 throw ChatError.storage();
             if(sessions.releaseRun(run.owner(),run.sessionId(),run.runId(),now)!=1)throw ChatError.storage();
             return true;
@@ -127,14 +137,14 @@ public class ChatService {
                         if(execution.terminal())return;
                         budget.remaining();
                         var grounded=context.withEvidence(prompt,references);
-                        if(grounded.sources().isEmpty()) {
-                            execution.delta(com.gba.merchantbao.knowledge.service.KnowledgeRetrieval.NO_MATCH);
-                            execution.complete(null);return;
-                        }
                         prompt=grounded.messages();
                         sources=grounded.sources();
                     }
-                    execution.generate(attempts,prompt,sources);
+                    execution.generate(attempts,prompt,sources,
+                            orderLookup==null?null:call->{
+                                if(run.actor()==null||!owner(run.actor()).equals(run.owner()))throw new com.gba.merchantbao.agent.service.AgentModel.ProtocolException();
+                                return orderLookup.query(run.actor(),call);
+                            },runtime);
                 }
                 catch(RuntimeException failure){execution.error(failure);}
                 finally {if(execution.terminal())active.remove(execution);}
@@ -169,7 +179,7 @@ public class ChatService {
             var u=new ChatMessageRow(user,o.merchantId(),sessionId,seq,"USER",o.accountId(),key,content,"COMPLETED",run,null,null,null,null,null,null,now,now);
             var a=new ChatMessageRow(assistant,o.merchantId(),sessionId,seq+1,"ASSISTANT",null,null,"","STARTED",run,null,p.getPromptVersion(),p.getServiceLabel(),p.getModel(),null,null,now,null);
             if(messages.insertOwned(o,u)!=1||messages.insertOwned(o,a)!=1)throw ChatError.storage();
-            return new PreparedRun(o,sessionId,run,user,assistant,"STARTED",false,deadline.toInstant(ZoneOffset.UTC),prompt);
+            return new PreparedRun(o,sessionId,run,user,assistant,"STARTED",false,deadline.toInstant(ZoneOffset.UTC),prompt,actor);
         });
     }
     public ChatSessionRow archive(Actor actor,long sessionId) {

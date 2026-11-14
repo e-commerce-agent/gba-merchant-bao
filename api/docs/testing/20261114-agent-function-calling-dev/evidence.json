@@ -1,0 +1,80 @@
+{
+  "testedAt": "2026-11-14T23:28:51.5459313+08:00",
+  "completedAt": "2026-11-14T23:29:54.0920608+08:00",
+  "mode": "Compose dependencies + local dev profile + real model; PowerShell",
+  "model": "dots3-note-prev",
+  "order": {
+    "status": "SHIPPED",
+    "orderNo": "DEV-2026-0002",
+    "payStatus": "PAID",
+    "totalAmount": 89.9
+  },
+  "sessionId": "115110711369138176",
+  "runId": "115110711624990720",
+  "messageId": "115110711624990722",
+  "events": [
+    {
+      "event": "start",
+      "elapsedSeconds": 0.016
+    },
+    {
+      "event": "token",
+      "elapsedSeconds": 3.306
+    },
+    {
+      "event": "token",
+      "elapsedSeconds": 3.462
+    },
+    {
+      "event": "token",
+      "elapsedSeconds": 3.624
+    },
+    {
+      "event": "token",
+      "elapsedSeconds": 3.823
+    },
+    {
+      "event": "token",
+      "elapsedSeconds": 4.024
+    },
+    {
+      "event": "token",
+      "elapsedSeconds": 4.089
+    },
+    {
+      "event": "done",
+      "elapsedSeconds": 4.175
+    }
+  ],
+  "sources": [],
+  "toolCalls": [
+    {
+      "name": "lookup_order",
+      "status": "SUCCEEDED"
+    }
+  ],
+  "checks": {
+    "databaseMatchesSse": true,
+    "realModelToolSucceeded": true,
+    "liveSpringdocHasToolCalls": true,
+    "historyMatchesSse": true,
+    "idempotency": true,
+    "answerMatchesCurrentOrder": true
+  },
+  "openapi": {
+    "operations": [
+      "listChatSessions",
+      "createChatSession",
+      "getChatSession",
+      "archiveChatSession",
+      "listChatMessages",
+      "sendChatMessage"
+    ],
+    "exportRequired": false,
+    "operationCount": 6,
+    "snapshotTextEqualIgnoringLineEndings": true,
+    "group": "agent-conversation-v1"
+  },
+  "verificationLoginRevoked": true,
+  "pass": true
+}

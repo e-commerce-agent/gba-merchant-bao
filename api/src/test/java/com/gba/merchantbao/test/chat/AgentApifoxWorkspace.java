@@ -28,7 +28,7 @@ class AgentApifoxWorkspace extends ChatAcceptanceIT {
         var pending = new java.util.concurrent.ConcurrentHashMap<String, AgentModel.Listener>();
         doAnswer(invocation -> {
             List<dev.langchain4j.data.message.ChatMessage> context = invocation.getArgument(0);
-            AgentModel.Listener listener = invocation.getArgument(1);
+            AgentModel.Listener listener = invocation.getArgument(2);
             String command = ((UserMessage)context.getLast()).singleText();
             calls.incrementAndGet();
             if (command.equals("accept:timeout")) return (AgentModel.Call) () -> {};
@@ -40,7 +40,7 @@ class AgentApifoxWorkspace extends ChatAcceptanceIT {
             if (command.equals("accept:error")) listener.error(new IllegalStateException("controlled upstream error"));
             else { listener.delta(" world"); listener.complete(null); }
             return (AgentModel.Call) () -> {};
-        }).when(model).stream(anyList(), any());
+        }).when(model).stream(anyList(), org.mockito.ArgumentMatchers.eq(true), any());
 
         String owner = consumer("M_3C_DEMO", "+8613900000591");
         String staff = staff("M_3C_DEMO"), other = staff("M_ISOLATION_TEST");

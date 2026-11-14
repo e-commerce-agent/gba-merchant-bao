@@ -25,5 +25,8 @@ public final class ScriptedAgentModel implements AgentModel, AutoCloseable {
         },delay.toMillis(),TimeUnit.MILLISECONDS);
         return ()->{if(cancelled.compareAndSet(false,true))cancellations.incrementAndGet();future.cancel(true);};
     }
+    @Override public Call stream(List<ChatMessage> messages,boolean allowOrderLookup,Listener listener) {
+        return stream(messages,listener);
+    }
     @Override public void close(){executor.shutdownNow();}
 }

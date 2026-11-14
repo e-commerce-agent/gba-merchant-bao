@@ -74,7 +74,7 @@ try {
         $history = (Send-RagRequest 'GET' $path $ChatToken $null | ConvertFrom-Json).data.items
         $saved = @($history | Where-Object senderType -eq 'ASSISTANT')[-1]
         $sameSnapshot = $null -ne $done -and (($done.sources | ConvertTo-Json -Depth 10 -Compress) -eq ($saved.sources | ConvertTo-Json -Depth 10 -Compress))
-        $expectedSource = if ($case.noMatch) { @($done.sources).Count -eq 0 -and $answer -eq $case.expected } else { $case.title -in @($done.sources.title) }
+        $expectedSource = if ($case.noMatch) { @($done.sources).Count -eq 0 -and -not [string]::IsNullOrWhiteSpace($answer) } else { $case.title -in @($done.sources.title) }
         $duplicate = Send-RagRequest 'POST' $path $ChatToken (Json-Body $body) | ConvertFrom-Json
         $pass = -not $terminalError -and $null -ne $done -and $sameSnapshot -and $expectedSource -and $saved.content -eq $answer -and $duplicate.data.runId -eq $done.runId
         $results.Add([ordered]@{question=$case.question; expected=$case.expected; answer=$answer; sources=$done.sources; snapshotMatches=$sameSnapshot; contractPass=$pass; answerReview='manual review required'})
