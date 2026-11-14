@@ -17,5 +17,5 @@
 ## 3. 联调与前端交付
 
 - [x] 3.1 为新增上传/列表和聊天 sources 完善 Springdoc schema、鉴权与 SSE 示例；导出运行时 OpenAPI JSON，检查前端能获得 multipart、Source 与 done 数据结构。
-- [ ] 3.2 用商品/售后/店铺规则三个合成文件和约5个问题跑真实 Embedding→Milvus→现有LLM 问答，记录命中、无匹配及简单 Badcase 修正结果；没有真实服务的项目明确记为未测，不虚构指标。
+- [x] 3.2 用商品/售后/店铺规则三个合成文件和约5个问题跑真实 Embedding→Milvus→现有LLM 问答，记录命中、无匹配及简单 Badcase 修正结果；没有真实服务的项目明确记为未测，不虚构指标。
 - [x] 3.3 执行相关认证/会话回归与 RAG 集成验证，交付 Springdoc 导出文件及一份简短联调说明（配置、上传、提问、sources、关闭RAG）；确认未引入匿名、FC、RabbitMQ或ChatMemory实现。
