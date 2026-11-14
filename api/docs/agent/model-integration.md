@@ -72,6 +72,21 @@ dev 的完整真实配置保存在被忽略的 application-dev.yml；可提交�
 system+当前输入超限明确拒绝，不截断用户正文；失败/取消/超时轮次保留在 MySQL 历史，不能加入成功上下文。
 `AgentContextTest` 精确断言角色、顺序、完整轮次、预算及输出预留；`ScriptedAgentModel` 提供确定 delta、延迟、错误和取消。
 
+## 订单查询的内部授权入口
+
+`OrderQueryService.detailByOrderNo(Actor actor, String orderNo)` 提供按订单号查询详情的 Java Service 入口，供服务端使用认证得到的可信 Actor 调用，不新增 HTTP 路由。调用方不得根据模型参数或客户端字段构造身份。
+
+- 消费者查询在 SQL 中同时限定 `merchant_id`、`customer_id` 和 `order_no`，只能读取本商户本人订单。
+- 员工查询同时限定 `merchant_id` 和 `order_no`，只能读取本商户订单。
+- 订单号为 1–64 个 ASCII 字符，首位为字母或数字，后续允许字母、数字、下划线、连字符；不自动去空白或改写大小写。缺少 Actor 或订单号格式无效时不访问数据库。
+- 不存在、跨商户、非本人及无效输入统一抛出 `OrderError`（404 / `RESOURCE_NOT_FOUND`），不泄露订单是否存在；拒绝发生在读取商品明细之前。存储异常继续向调用方传播，不伪装为订单不存在。
+- 返回复用现有 `Detail`，包含订单状态、支付状态、金额、币种、下单时间和商品交易快照；不包含地址、手机号或凭证。同一订单号在不同商户对应各自商户的订单。
+- 既有 `locateForService(merchantId, orderNo)` 属于服务凭证调用边界，不具备消费者本人过滤，不能代替此 Actor 入口。
+
+`OrderQueryServiceTest` 覆盖本人/员工读取详情、他人/跨商户/不存在统一拒绝，以及无效输入不访问数据库；从 `api/` 执行 `mvn -Dtest=OrderQueryServiceTest test`。`OrderPersistenceIT#orderNumberDetailEnforcesSqlOwnerScopeAndSeparatesSameNumberAcrossTenants` 使用隔离 MySQL 验证真实 Mapper 授权及跨商户同号订单隔离。
+
+当前只交付订单服务入口；模型 Function Calling 协议、聊天工具编排和工具摘要仍在后续任务中。
+
 ## 后续职责
 
 RAG 负责检索、可见性与引用注入；Function Calling 负责可信身份下的工具调用；ChatMemory 以后替换历史选择策略。

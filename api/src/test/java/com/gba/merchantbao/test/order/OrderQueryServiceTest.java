@@ -3,6 +3,7 @@ package com.gba.merchantbao.test.order;
 import com.gba.merchantbao.auth.enums.AccountRole;
 import com.gba.merchantbao.auth.security.Actor;
 import com.gba.merchantbao.auth.security.AuthPrincipal;
+import com.gba.merchantbao.order.entity.OrderItemRow;
 import com.gba.merchantbao.order.entity.OrderRow;
 import com.gba.merchantbao.order.exception.OrderError;
 import com.gba.merchantbao.order.mapper.OrderItemQueryMapper;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -35,6 +37,7 @@ class OrderQueryServiceTest {
         when(orders.findOwnedById(MERCHANT, ORDER, OWNER)).thenReturn(row);
         when(orders.findById(MERCHANT, ORDER)).thenReturn(row);
         when(orders.findByOrderNo(MERCHANT, "SO-1")).thenReturn(row);
+        when(orders.findOwnedByOrderNo(MERCHANT, "SO-1", OWNER)).thenReturn(row);
     }
 
     @Test
@@ -69,6 +72,64 @@ class OrderQueryServiceTest {
         verify(orders).findByOrderNo(MERCHANT, "missing");
         verifyNoMoreInteractions(orders);
         verifyNoInteractions(items);
+    }
+
+    @Test
+    void ownerAndMerchantStaffCanReadDetailByOrderNumberWithItemSnapshots() {
+        var now = Instant.parse("2026-11-11T00:00:00Z");
+        var item = new OrderItemRow(101L, MERCHANT, ORDER, 201L, 301L, "商品交易快照", "白色",
+                new BigDecimal("79.00"), 1, new BigDecimal("79.00"), now, now);
+        when(items.findByOrder(MERCHANT, ORDER)).thenReturn(List.of(item));
+
+        var consumer = service.detailByOrderNo(actor(MERCHANT, OWNER, AccountRole.CONSUMER), "SO-1");
+        var staff = service.detailByOrderNo(actor(MERCHANT, OTHER, AccountRole.MERCHANT_STAFF), "SO-1");
+
+        assertThat(staff).isEqualTo(consumer);
+        assertThat(consumer.orderId().value()).isEqualTo(ORDER);
+        assertThat(consumer.orderNo()).isEqualTo("SO-1");
+        assertThat(consumer.status()).isEqualTo("SHIPPED");
+        assertThat(consumer.payStatus()).isEqualTo("PAID");
+        assertThat(consumer.totalAmount()).isEqualByComparingTo("79.00");
+        assertThat(consumer.items()).singleElement().satisfies(snapshot -> {
+            assertThat(snapshot.productName()).isEqualTo("商品交易快照");
+            assertThat(snapshot.skuAttributes()).isEqualTo("白色");
+            assertThat(snapshot.quantity()).isOne();
+        });
+        verify(orders).findOwnedByOrderNo(MERCHANT, "SO-1", OWNER);
+        verify(orders).findByOrderNo(MERCHANT, "SO-1");
+        verifyNoMoreInteractions(orders);
+        verify(items, times(2)).findByOrder(MERCHANT, ORDER);
+    }
+
+    @Test
+    void orderNumberDetailRejectsOtherConsumersForeignActorsAndMissingOrdersBeforeItems() {
+        var other = actor(MERCHANT, OTHER, AccountRole.CONSUMER);
+        var foreignConsumer = actor(FOREIGN, OWNER, AccountRole.CONSUMER);
+        var foreignStaff = actor(FOREIGN, OTHER, AccountRole.MERCHANT_STAFF);
+        assertNotFound(() -> service.detailByOrderNo(other, "SO-1"));
+        assertNotFound(() -> service.detailByOrderNo(foreignConsumer, "SO-1"));
+        assertNotFound(() -> service.detailByOrderNo(foreignStaff, "SO-1"));
+        assertNotFound(() -> service.detailByOrderNo(actor(MERCHANT, OWNER, AccountRole.CONSUMER), "missing"));
+        assertNotFound(() -> service.detailByOrderNo(actor(MERCHANT, OTHER, AccountRole.MERCHANT_STAFF), "missing"));
+
+        verify(orders).findOwnedByOrderNo(MERCHANT, "SO-1", OTHER);
+        verify(orders).findOwnedByOrderNo(FOREIGN, "SO-1", OWNER);
+        verify(orders).findByOrderNo(FOREIGN, "SO-1");
+        verify(orders).findOwnedByOrderNo(MERCHANT, "missing", OWNER);
+        verify(orders).findByOrderNo(MERCHANT, "missing");
+        verifyNoMoreInteractions(orders);
+        verifyNoInteractions(items);
+    }
+
+    @Test
+    void orderNumberDetailRejectsMissingActorAndInvalidNumbersWithoutReadingStorage() {
+        assertNotFound(() -> service.detailByOrderNo(null, "SO-1"));
+        assertNotFound(() -> service.detailByOrderNo(new Actor(null, "sid"), "SO-1"));
+        var consumer = actor(MERCHANT, OWNER, AccountRole.CONSUMER);
+        for (String number : new String[]{null, "", " ", " SO-1", "SO-1 ", "SO\n1", "SO'1", "x".repeat(65)}) {
+            assertNotFound(() -> service.detailByOrderNo(consumer, number));
+        }
+        verifyNoInteractions(orders, items);
     }
 
     private void assertNotFound(org.assertj.core.api.ThrowableAssert.ThrowingCallable call) {
