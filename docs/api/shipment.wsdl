@@ -1,0 +1,114 @@
+<?xml version='1.0' encoding='UTF-8'?><wsdl:definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="https://gba.merchantbao/shipment/v1" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:ns1="http://schemas.xmlsoap.org/soap/http" name="ShipmentWebService" targetNamespace="https://gba.merchantbao/shipment/v1">
+  <wsdl:types>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="https://gba.merchantbao/shipment/v1" attributeFormDefault="unqualified" elementFormDefault="unqualified" targetNamespace="https://gba.merchantbao/shipment/v1" version="1.0">
+  <xs:element name="ping" type="tns:ping"/>
+  <xs:element name="pingResponse" type="tns:pingResponse"/>
+  <xs:element name="queryShipmentByOrderNo" type="tns:queryShipmentByOrderNo"/>
+  <xs:element name="queryShipmentByOrderNoResponse" type="tns:queryShipmentByOrderNoResponse"/>
+  <xs:complexType name="queryShipmentByOrderNo">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="merchantCode" type="xs:string"/>
+      <xs:element minOccurs="0" name="orderNo" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="queryShipmentByOrderNoResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="tns:ShipmentSummary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="ShipmentSummary">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="orderNo" type="xs:string"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+      <xs:element minOccurs="0" name="carrierName" type="xs:string"/>
+      <xs:element minOccurs="0" name="carrierCode" type="xs:string"/>
+      <xs:element minOccurs="0" name="trackingNo" type="xs:string"/>
+      <xs:element minOccurs="0" name="lastEventTime" type="xs:string"/>
+      <xs:element maxOccurs="unbounded" minOccurs="0" name="track" type="tns:TrackSummary"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="TrackSummary">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="eventTime" type="xs:string"/>
+      <xs:element minOccurs="0" name="status" type="xs:string"/>
+      <xs:element minOccurs="0" name="description" type="xs:string"/>
+      <xs:element minOccurs="0" name="location" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="ping">
+    <xs:sequence/>
+  </xs:complexType>
+  <xs:complexType name="pingResponse">
+    <xs:sequence>
+      <xs:element minOccurs="0" name="return" type="xs:string"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="ShipmentFault" nillable="true" type="xs:string"/>
+</xs:schema>
+  </wsdl:types>
+  <wsdl:message name="queryShipmentByOrderNo">
+    <wsdl:part element="tns:queryShipmentByOrderNo" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="pingResponse">
+    <wsdl:part element="tns:pingResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="queryShipmentByOrderNoResponse">
+    <wsdl:part element="tns:queryShipmentByOrderNoResponse" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="ShipmentWebServiceFault">
+    <wsdl:part element="tns:ShipmentFault" name="ShipmentWebServiceFault">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:message name="ping">
+    <wsdl:part element="tns:ping" name="parameters">
+    </wsdl:part>
+  </wsdl:message>
+  <wsdl:portType name="ShipmentWebServicePort">
+    <wsdl:operation name="queryShipmentByOrderNo">
+      <wsdl:input message="tns:queryShipmentByOrderNo" name="queryShipmentByOrderNo">
+    </wsdl:input>
+      <wsdl:output message="tns:queryShipmentByOrderNoResponse" name="queryShipmentByOrderNoResponse">
+    </wsdl:output>
+      <wsdl:fault message="tns:ShipmentWebServiceFault" name="ShipmentWebServiceFault">
+    </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="ping">
+      <wsdl:input message="tns:ping" name="ping">
+    </wsdl:input>
+      <wsdl:output message="tns:pingResponse" name="pingResponse">
+    </wsdl:output>
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="ShipmentWebServiceSoapBinding" type="tns:ShipmentWebServicePort">
+    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <wsdl:operation name="queryShipmentByOrderNo">
+      <soap:operation soapAction="queryShipmentByOrderNo" style="document"/>
+      <wsdl:input name="queryShipmentByOrderNo">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="queryShipmentByOrderNoResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+      <wsdl:fault name="ShipmentWebServiceFault">
+        <soap:fault name="ShipmentWebServiceFault" use="literal"/>
+      </wsdl:fault>
+    </wsdl:operation>
+    <wsdl:operation name="ping">
+      <soap:operation soapAction="ping" style="document"/>
+      <wsdl:input name="ping">
+        <soap:body use="literal"/>
+      </wsdl:input>
+      <wsdl:output name="pingResponse">
+        <soap:body use="literal"/>
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="ShipmentWebService">
+    <wsdl:port binding="tns:ShipmentWebServiceSoapBinding" name="ShipmentWebServicePort">
+      <soap:address location="http://localhost:8080/services/shipment"/>
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

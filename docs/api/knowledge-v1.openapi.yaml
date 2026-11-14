@@ -161,15 +161,15 @@ paths:
               schema:
                 $ref: "#/components/schemas/KnowledgeDocumentEnvelope"
               example:
-                code: 0
-                message: success
-                requestId: knowledge-example
                 data:
-                  title: 售后政策
-                  chunkCount: 1
-                  status: READY
-                  createdAt: 2026-11-13T10:00:00Z
                   documentId: "610000000000000001"
+                  createdAt: 2026-11-13T10:00:00Z
+                  status: READY
+                  chunkCount: 1
+                  title: 售后政策
+                requestId: knowledge-example
+                message: success
+                code: 0
         "400":
           description: 10001 非法字段、文件、分页或游标
           headers:
