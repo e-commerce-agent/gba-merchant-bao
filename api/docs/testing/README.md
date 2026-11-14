@@ -34,3 +34,5 @@
 - [订单与物流整合验证](20261111-shipment-order-integration/README.md)：物流改用订单授权服务引起的验证，用于核对成交快照与 REST/SOAP 隔离结果。
 - <a id="commerce-integration-verification"></a><a id="deployment-commerce-dev-recovery"></a>[电商模块关联整合验证](20261112-commerce-integration/README.md)：电商模块关联整合引起的验证，用于追溯跨日验收、失败恢复和实际开发库结果。
 - [后端维护整理验收](20261113-backend-maintenance/README.md)：目录与运行材料整理引起的验收，用于核对导航、保护范围、测试发现及本地交付说明。
+- [Agent Function Calling 集成验证](20261114-agent-function-calling/README.md)：只读订单工具交付引起的端到端及全量验收，用于核对真实 SQL 授权、模型协议、RAG、SSE 和历史一致性。
+- [Agent Function Calling dev 实际联调](20261114-agent-function-calling-dev/README.md)：新增 5.3 引起的真实模型验收，用于核对 Compose/dev 启动、实时订单工具闭环和无需重复导出的依据。
