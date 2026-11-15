@@ -18,7 +18,16 @@
 
 ## 3. 隔离集成与 dev 验收
 
-- [ ] 3.1 提交使用真实 Nginx、两个真实后端应用上下文、Testcontainers MySQL/Redis 和本地模型协议替身的集成验证，随机端口和日志只写 `api/target/`，不访问 dev 业务卷；验证一批只读请求命中两个 upstream、相同登录凭证跨节点可用，以及会话幂等与共享历史保持原契约；运行新增集成验证并记录结果。
-- [ ] 3.2 在上述隔离验证中加入有间隔的成功 token、受控错误、流中断和同幂等键 JSON 重试场景；验证成功 run 的 start/token/done、失败 run 的 start/error、token 在完成前逐步到达、代理不会提前截断长流或重放已发送的 POST；运行用例并核对事件时序及历史状态。
-- [ ] 3.3 在 Docker Desktop 本机链路验证 `127.0.0.1:8081` 到宿主机 8080/8082 的轮询，检查容器可解析并访问 `host.docker.internal`；停止一个后端后验证新只读请求仍可由另一个处理、恢复后再次命中两个节点，保存日志证据，不要求 SSE 跨实例接续。
-- [ ] 3.4 完成后运行 `mvn -f api/pom.xml clean verify`，按实际配置检查启用时的共享 Milvus standalone 和知识文件上传代理兼容性；真实模型成功流仅作为可选 smoke test，无配置时明确未测；记录配置版本、测试结果、IDEA/真实模型的实际验证边界，将报告放在 target、无凭据摘要放入实际日期的 `api/docs/testing/YYYYmmdd-nginx-load-balancing/` 并维护目录 README，确认生产文件和现有业务卷未改动。
+- [x] 3.1 提交使用真实 Nginx、两个真实后端应用上下文、Testcontainers MySQL/Redis 和本地模型协议替身的集成验证，随机端口和日志只写 `api/target/`，不访问 dev 业务卷；验证一批只读请求命中两个 upstream、相同登录凭证跨节点可用，以及会话幂等与共享历史保持原契约；运行新增集成验证并记录结果。
+- [x] 3.2 在上述隔离验证中加入有间隔的成功 token、受控错误、流中断和同幂等键 JSON 重试场景；验证成功 run 的 start/token/done、失败 run 的 start/error、token 在完成前逐步到达、代理不会提前截断长流或重放已发送的 POST；运行用例并核对事件时序及历史状态。
+- [x] 3.3 在 Docker Desktop 本机链路验证 `127.0.0.1:8081` 到宿主机 8080/8082 的轮询，检查容器可解析并访问 `host.docker.internal`；停止一个后端后验证新只读请求仍可由另一个处理、恢复后再次命中两个节点，保存日志证据，不要求 SSE 跨实例接续。
+- [x] 3.4 完成后运行 `mvn -f api/pom.xml clean verify`，按实际配置检查启用时的共享 Milvus standalone 和知识文件上传代理兼容性；真实模型成功流仅作为可选 smoke test，无配置时明确未测；记录配置版本、测试结果、IDEA/真实模型的实际验证边界，将报告放在 target、无凭据摘要放入实际日期的 `api/docs/testing/YYYYmmdd-nginx-load-balancing/` 并维护目录 README，确认生产文件和现有业务卷未改动。
+
+## 4. Agent Conversation 浏览器真实联调
+
+本节仅验收基础对话技术模块；RAG 与 Function Calling 的前端功能和专属错误不在本轮实施/验收范围。沿用后端现有 dev 配置，不以这两个模块的前端能力作为基础对话通过条件。
+
+- [x] 4.1 复现浏览器发送消息的 `403 Invalid CORS request`，核验 Origin/Host 在 Vite→Nginx→dev 双后端的传递并修复开发代理；保留后端来源限制，增加覆盖真实 Vite 代理的回归验证，并检查合法同源 POST 与恶意跨源请求。
+- [x] 4.2 按 `docs/api/agent-conversation-v1.openapi.yaml` 核对前端调用与展示，修复联调发现的会话创建字段、SSE 终态/错误及历史恢复问题；真实模式不使用演示会话或伪造成功，保留离线 Mock，运行前端类型检查、构建与针对性回归。
+- [x] 4.3 在已启动的 dev 环境关闭 Mock，实际操作浏览器创建会话、发送消息、观察流式回复并刷新查看历史；通过同一 Vite/Nginx 入口验证契约全部六个操作（创建/列表/详情/归档/历史/发送）、幂等 JSON 重试及归档冲突，记录双 upstream 和真实模型的实际结果。
+- [x] 4.4 将复现、根因、修复、命令与脱敏验收结果补充到本日期联调报告及本地开发说明，明确浏览器验证和自动化协议验证的边界；执行 OpenSpec strict 校验并按证据更新任务状态。

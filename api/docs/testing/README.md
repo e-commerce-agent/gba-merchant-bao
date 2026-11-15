@@ -5,6 +5,7 @@
 ## 本目录文件
 
 - [automation.md](automation.md)：自动化测试环境、运行方法和覆盖范围。
+- [基础对话浏览器联调](20261115-nginx-load-balancing/basic-chat-browser.md)：2026-11-15，定位 CORS 403 并验证真实浏览器及六个基础对话操作，补充第 4 节验收证据。
 
 ## 相关资料
 
@@ -36,3 +37,4 @@
 - [后端维护整理验收](20261113-backend-maintenance/README.md)：目录与运行材料整理引起的验收，用于核对导航、保护范围、测试发现及本地交付说明。
 - [Agent Function Calling 集成验证](20261114-agent-function-calling/README.md)：只读订单工具交付引起的端到端及全量验收，用于核对真实 SQL 授权、模型协议、RAG、SSE 和历史一致性。
 - [Agent Function Calling dev 实际联调](20261114-agent-function-calling-dev/README.md)：新增 5.3 引起的真实模型验收，用于核对 Compose/dev 启动、实时订单工具闭环和无需重复导出的依据。
+- [dev Nginx 双实例验收](20261115-nginx-load-balancing/README.md)：新增反向代理引起的隔离 SSE、跨节点状态、Docker Desktop 故障恢复及知识上传验证。

@@ -17,6 +17,7 @@ npm run dev      # http://127.0.0.1:5173
 ```bash
 npm run build    # vue-tsc --noEmit && vite build
 npm run typecheck
+npm test         # 隔离前端回归，不访问 dev 数据库或模型
 ```
 
 ## Mock 与真实接口切换
@@ -40,6 +41,9 @@ VITE_MOCK_UNIMPLEMENTED=false
 最后在 `view` 运行 `npm run dev`，页面仍为 `http://127.0.0.1:5173`。
 请求链路为浏览器同源 `/api` → Vite → `http://localhost:8081` Nginx → 宿主机 8080/8082，
 保持 `/api` 前缀，不需要新增 CORS。8081 仅提供 API，不能当作前端首页。
+Vite 的 `changeOrigin` 必须为 `false`，将页面的 Host 和原始 Origin 一起传到 Nginx；
+Nginx 继续保留 Host，Spring 才能识别同源 POST。若收到 `403 Invalid CORS request`，
+先检查此链路，不要删除 Origin 或将后端来源白名单放宽到 `*`。
 可在浏览器 Network 核对 `/api/v1/...` 的 Request URL 仍为 5173，结合响应 X-Request-Id 和
 `docker compose logs --tail 50 nginx` 的 upstream 地址检查实际后端。
 
@@ -100,17 +104,29 @@ src/
 
 - 统一响应体：`{ code, message, data, requestId }`，`code === 0` 为成功；HTTP 状态表达协议结果。
 - 认证：`Authorization: Bearer <jwt>`；请求头 `X-Request-Id` 随机生成并透传。
-- 命令式接口用冒号风格：`:takeover`、`:resume-agent`、`:retry`、`:stream`。
-- 消费者对话最终走 SSE（`POST /v1/chat/sessions/{id}/messages:stream`），
-  当前 Mock 用普通 JSON 模拟，SSE 接入位置在 `ChatView.vue` 的 `send()`。
+- 对话使用 `docs/api/agent-conversation-v1.openapi.yaml` 的六个操作；
+  `POST /v1/chat/sessions/{id}/messages` 新运行返回 SSE，幂等重试返回 JSON。
+  `src/api/chat.ts` 处理 start/token/done/error，使用历史恢复原回答。
+  本轮只联调基础对话，RAG 来源和 Function Calling 工具摘要的前端展示后续单独开发。
+- 会话创建将 `sessionId` 转换为页面 `id`，新会话 URL 保留真实 ID；历史按游标读取。
+  本期没有 `:takeover`、`:resume-agent` 或 `messages:stream`。
 - 字段与路径以后端导出的 `/v3/api-docs.yaml` 为准，不一致时以后端契约为先。
 
 ## 待办
 
+基础对话 dev 验收在已启动的服务上显式运行（会新增标记测试会话、调用真实模型，最后撤销自身登录；需要 dev 短信 mock 的 debugCode）：
+
+```bash
+node scripts/verify-chat-dev.mjs
+```
+
+覆盖六个基础对话操作、历史游标、幂等重试、归档冲突和来源限制。脱敏结果写入
+`api/target/nginx-browser/agent-dev-results.json`；此脚本不属于 `npm test`，不验收 RAG/Function Calling 前端。
+
 - [x] 真实登录 / 验证码 / 登出（Redis 会话模块）
 - [x] 订单列表与详情（order-v1）
 - [x] 物流详情抽屉（shipment-v1，四态）
-- [ ] SSE 流式回答与打字机效果
+- [x] 基础 SSE 回答、错误终态与历史恢复（2026-11-15 真实 dev 联调）
 - [x] 商品 / 库存 / 知识库写操作表单（等 inventory / catalog 契约稳定）
 - [ ] 商户端会话接管与消息的实时刷新（轮询或 SSE）
 - [ ] 移动端深度适配（当前已做基础响应式）

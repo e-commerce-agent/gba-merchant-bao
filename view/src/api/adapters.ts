@@ -140,11 +140,11 @@ const CHAT_FAILED_TEXT: Record<string, string> = {
 }
 
 /** 消息气泡。契约 senderType 只有 USER/ASSISTANT（人工客服身份为未来扩展） */
-export function toChatBubble(message: ChatMessageView): ChatMessage {
-  const failedText = CHAT_FAILED_TEXT[message.status]
+export function toChatBubble(message: ChatMessageView, sessionId: string): ChatMessage {
+  const failedText = message.senderType === 'ASSISTANT' ? CHAT_FAILED_TEXT[message.status] : undefined
   return {
     id: message.messageId,
-    sessionId: message.runId,
+    sessionId,
     role: message.senderType === 'USER' ? 'user' : 'assistant',
     content: failedText ? `${message.content}\n\n（${failedText}）` : message.content,
     createdAt: message.createdAt,

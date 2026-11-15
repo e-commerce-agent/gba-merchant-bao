@@ -69,6 +69,9 @@ Apifox 可使用代理 API 入口 `http://localhost:8081/api/v1`，健康检查�
 Swagger `/swagger-ui.html` 和 `/v3/api-docs.yaml` 也通过后端直连访问。
 前端页面继续由 Vite 的 `http://127.0.0.1:5173` 提供，`/api` 默认代理到 Nginx 8081；
 真实联调需先按 [前端说明](../../../view/README.md#mock-与真实接口切换) 在本地覆盖中关闭两个 Mock 开关并重启 Vite。
+若浏览器 POST 返回 `403 Invalid CORS request`，检查 Vite `/api` 代理使用 `changeOrigin: false`，
+并由 Nginx 保留原 Host；否则 Host 被改为 8081、Origin 仍为页面 5173，会被 Spring 当作跨域拒绝。
+合法同源未登录请求应得到 JSON 401，恶意 Origin 仍应被拒绝，不需要放宽后端 CORS。
 数据库工具连接 127.0.0.1:3307/gba_dev，dev_admin；Redis 工具连接 127.0.0.1:6380，无认证。前端调用 API，不直接连接数据库。
 多个前端/后端开发者各自建立空库；共享联调如需 API 远程可达，单独约定主机地址。中间件保持 loopback。
 

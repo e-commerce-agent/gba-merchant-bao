@@ -97,3 +97,15 @@ ChatSchemaIT/ChatPersistenceIT 验证结构和 Mapper；ChatServiceIT 验证两�
 Apifox 与真实网关联调属于独立验收，不能用这些自动化测试代替。证据、实际报告数量及未完成项见 [Agent 验收记录（本目录入口）](README.md#agent-verification)；手工步骤见 [Apifox（本目录入口）](README.md#agent-apifox-verification) 和 [curl/fetch（本目录入口）](README.md#agent-manual-verification)。
 
 `AgentApifoxWorkspace#serveApifoxOnDisposableInfrastructure` 是供 Apifox 人工验收的显式入口，默认测试发现规则不选择它。它继承真实认证/独立容器设置，仅替换外部短信和模型，应用与 fixture helper 只绑定本机；提供临时登录 token 和按业务标识查询的只读证据。必须人工停止或到时失败，不把“服务启动”记为“Apifox 通过”。启动/停止和可导入用例见上述 Apifox 文档。
+
+## Nginx 双实例隔离验证
+
+```powershell
+mvn -f api/pom.xml test-compile '-Dit.test=NginxLoadBalancingIT' failsafe:integration-test failsafe:verify
+```
+
+`nginx/NginxLoadBalancingIT` 启动两个真实 test 应用上下文，共享可销毁的 MySQL 8.0.34、Redis 7.4-alpine 和测试 JWT，分别使用随机 HTTP 端口、worker ID 1000/1001。Nginx 1.28.0-alpine 加载仓库 `docker/nginx/dev.conf`，仅将两个固定 upstream 地址替换为 Testcontainers 提供的宿主机转发地址和随机端口。首次运行还会拉取 Testcontainers 的 SSH 转发辅助镜像。测试不连接 dev MySQL/Redis/Milvus，不挂载业务卷。
+
+模型采用本机 HTTP 协议替身，保留真实 SDK、工具选择、只读订单查询和最终回答链路；没有替换应用 Bean。验证批量只读轮询、跨节点 JWT/Redis 认证、共享历史、幂等 JSON 与冲突，以及间隔 2 秒的 token、模型错误、客户端取消和后端退出。正常回答包含一次工具选择和一次最终生成；逐阶段计数及 Nginx upstream 日志共同检查没有 POST 重放。长流用例持续约 6 秒，验证渐进传输；不将其表述为实际等待过 300 秒的空闲超时测试。
+
+结果、事件相对时间、Nginx 日志和两个应用日志写入 `api/target/nginx-load-balancing/`，Failsafe 报告仍在 `api/target/failsafe-reports/`。完整 `clean verify` 默认包含该类；`clean` 会清除前一次报告。Docker Desktop 固定端口故障恢复和真实配置 Milvus/上传兼容性另外记录在对应日期的验收事件中。
