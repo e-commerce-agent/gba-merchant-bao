@@ -10,9 +10,9 @@ import {
 } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { ArrowRight, WarnTriangleFilled } from '@element-plus/icons-vue'
-import { getMerchantOverview, listDocumentTasks } from '@/api/knowledge'
+import { getMerchantOverview, listKnowledgeDocuments } from '@/api/knowledge'
 import { listSessions } from '@/api/chat'
-import type { ChatSession, DocumentTask, MerchantOverview } from '@/api/types'
+import type { ChatSession, KnowledgeDocumentView, MerchantOverview } from '@/api/types'
 import { relativeTime } from '@/utils/format'
 
 echarts.use([BarChart, LineChart, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer])
@@ -20,7 +20,7 @@ echarts.use([BarChart, LineChart, GridComponent, LegendComponent, TooltipCompone
 const router = useRouter()
 const overview = ref<MerchantOverview | null>(null)
 const sessions = ref<ChatSession[]>([])
-const tasks = ref<DocumentTask[]>([])
+const docs = ref<KnowledgeDocumentView[]>([])
 const chartRef = ref<HTMLElement>()
 let chart: echarts.ECharts | null = null
 
@@ -61,10 +61,6 @@ const kpis = computed(() => {
 
 const takeoverSessions = computed(() =>
   sessions.value.filter((s) => s.status === 'HUMAN' || (s.confidence ?? 1) < 0.7)
-)
-
-const runningTasks = computed(() =>
-  tasks.value.filter((t) => t.status !== 'SUCCEEDED' && t.status !== 'FAILED')
 )
 
 function renderChart() {
@@ -128,14 +124,14 @@ function resize() {
 }
 
 onMounted(async () => {
-  const [o, s, t] = await Promise.all([
+  const [o, s, k] = await Promise.all([
     getMerchantOverview(),
     listSessions({ size: 50, audience: 'merchant' }),
-    listDocumentTasks()
+    listKnowledgeDocuments(5)
   ])
   overview.value = o
   sessions.value = s
-  tasks.value = t
+  docs.value = k.items
   renderChart()
   window.addEventListener('resize', resize)
 })
@@ -219,26 +215,26 @@ onBeforeUnmount(() => {
     <div class="dash__row dash__row--bottom">
       <section class="card tasks-card">
         <header class="card__head">
-          <h3>文档处理任务</h3>
-          <button class="card__link" type="button" @click="router.push('/merchant/tasks')">
-            全部任务
+          <h3>知识库文档</h3>
+          <button class="card__link" type="button" @click="router.push('/merchant/knowledge')">
+            全部文档
           </button>
         </header>
 
-        <div v-if="!runningTasks.length" class="tasks-empty">当前没有进行中的任务</div>
+        <div v-if="!docs.length" class="tasks-empty">还没有导入知识文档</div>
 
         <ul v-else class="tasks">
-          <li v-for="t in runningTasks" :key="t.id" class="task">
+          <li v-for="d in docs" :key="d.documentId" class="task">
             <div class="task__info">
-              <span class="task__name ellipsis">{{ t.fileName }}</span>
-              <span class="task__status">{{ t.status }}</span>
+              <span class="task__name ellipsis">{{ d.title }}</span>
+              <span
+                class="task__status"
+                :style="{ color: d.status === 'READY' ? '#00A88F' : d.status === 'FAILED' ? '#E5484D' : '#3056D3' }"
+              >
+                {{ d.status }}
+              </span>
             </div>
-            <el-progress
-              :percentage="t.progress"
-              :show-text="false"
-              :stroke-width="6"
-              color="#3056D3"
-            />
+            <span class="task__chunks num">{{ d.chunkCount }} 片 · {{ relativeTime(d.createdAt) }}</span>
           </li>
         </ul>
       </section>
@@ -511,6 +507,11 @@ onBeforeUnmount(() => {
   font-size: 10.5px;
   color: var(--brand-600);
   font-family: var(--font-mono);
+}
+
+.task__chunks {
+  font-size: 11px;
+  color: var(--text-subtle);
 }
 
 .tasks-empty {

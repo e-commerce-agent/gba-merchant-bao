@@ -26,14 +26,10 @@ export const MOCK_UNIMPLEMENTED = String(import.meta.env.VITE_MOCK_UNIMPLEMENTED
 
 /**
  * 前端尚未按真实契约联调的接口：即使 USE_MOCK=false 也由本地 Mock 兜底。
- * chat 已按 agent-conversation-v1 重写（游标分页 + SSE），走真实接口，
+ * chat（agent-conversation-v1）与知识库文档（knowledge-v1）已按契约重写，走真实接口，
  * 仅当整站 Mock（VITE_USE_MOCK=true，离线演示）时由本地数据代答。
  */
-const MOCK_ONLY_PREFIXES = [
-  '/v1/knowledge-bases',
-  '/v1/document-tasks',
-  '/v1/merchant/overview'
-]
+const MOCK_ONLY_PREFIXES = ['/v1/merchant/overview']
 
 function shouldMock(url: string): boolean {
   if (USE_MOCK) return true
@@ -259,3 +255,20 @@ export const put = <T>(url: string, data?: unknown) => request<T>({ url, method:
 
 export const del = <T>(url: string, data?: unknown) =>
   request<T>({ url, method: 'delete', data })
+
+/**
+ * multipart 上传（knowledge-v1 同步导入）。
+ * Mock 模式没有 FormData 语义，改传平面对象给 mockDispatch；
+ * 真实模式由浏览器自动生成带 boundary 的 multipart/form-data。
+ */
+export const upload = <T>(url: string, form: FormData, mockPayload?: unknown): Promise<T> => {
+  if (shouldMock(url)) {
+    return request<T>({ url, method: 'post', data: mockPayload })
+  }
+  return http.request<T>({
+    url,
+    method: 'post',
+    data: form,
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }) as unknown as Promise<T>
+}

@@ -21,6 +21,11 @@ export default defineConfig(({ mode }) => {
             '/api': {
               target: env.VITE_PROXY_TARGET,
               changeOrigin: true
+            },
+            // 物流 WebService（SOAP 1.1，shipment.wsdl）：/services/shipment
+            '/services': {
+              target: env.VITE_PROXY_TARGET,
+              changeOrigin: true
             }
           }
         : undefined

@@ -5,7 +5,9 @@ import type {
   ChatMessageView,
   ChatPageView,
   ChatSession,
-  ChatSessionView
+  ChatSessionView,
+  ChatSourceView,
+  ChatToolCallView
 } from './types'
 import { getToken } from '@/utils/token'
 
@@ -16,7 +18,8 @@ import { getToken } from '@/utils/token'
  * - 列表与历史均为游标分页（size + cursor，未知参数会被 400/10001 拒绝）；
  * - 发送消息必须带 clientMessageId 幂等键，新 run 返回 SSE（start → token → done/error），
  *   同 key 同正文重放返回 JSON run 标识；
- * - 契约本期没有人工接管（:takeover / :resume-agent 不存在），相关入口已下线。
+ * - RAG 仅检索本商户 READY 资料，done 帧携带 sources（≤5）与 toolCalls（≤1），
+ *   契约没有人工接管（:takeover / :resume-agent 不存在），相关入口已下线。
  *
  * 离线演示（VITE_USE_MOCK=true）时返回展示模型原样数据，与真实模式的转换结果同构。
  */
@@ -183,11 +186,29 @@ export async function sendMessage(
   const decoder = new TextDecoder()
   let buffer = ''
   let streaming: ChatMessage | null = null
-  const finalize = (status: string, errorCode?: string) => {
+  /** done 帧 payload：sources / toolCalls 在正文同事务提交后发送 */
+  let donePayload: { sources?: ChatSourceView[]; toolCalls?: ChatToolCallView[] } | null = null
+
+  const finalize = (status: string, errorText?: string) => {
     if (!streaming) return
-    const done = { ...streaming, streaming: false }
-    if (errorCode) done.content += `\n\n（回答失败：${errorCode}）`
+    const done: ChatMessage = { ...streaming, streaming: false }
+    if (errorText) {
+      done.content += `\n\n（回答失败：${errorText}）`
+    } else if (donePayload) {
+      const citations = (donePayload.sources || []).map((s) => ({
+        documentName: s.chunkNo > 1 ? `${s.title} · 第 ${s.chunkNo} 片` : s.title,
+        snippet: s.excerpt
+      }))
+      const toolCalls = (donePayload.toolCalls || []).map((t) => ({
+        tool: t.name,
+        params: {},
+        success: t.status === 'SUCCEEDED'
+      }))
+      if (citations.length) done.citations = citations
+      if (toolCalls.length) done.toolCalls = toolCalls
+    }
     streaming = null
+    donePayload = null
     handlers.onDone?.(done)
     void status
   }
@@ -219,9 +240,20 @@ export async function sendMessage(
         handlers.onDelta?.(streaming, delta)
       }
     } else if (event === 'done') {
+      donePayload = {
+        sources: Array.isArray(parsed.sources)
+          ? (parsed.sources as unknown as ChatSourceView[])
+          : undefined,
+        toolCalls: Array.isArray(parsed.toolCalls)
+          ? (parsed.toolCalls as unknown as ChatToolCallView[])
+          : undefined
+      }
       finalize(String(parsed.status ?? 'COMPLETED'))
     } else if (event === 'error') {
-      finalize('FAILED', String(parsed.errorCode ?? 'UNKNOWN'))
+      // 契约 error 帧：code（如 TIMEOUT / CHAT_DEPENDENCY_UNAVAILABLE）+ message + terminalStatus
+      const code = String(parsed.code ?? parsed.errorCode ?? 'UNKNOWN')
+      const message = String(parsed.message ?? '')
+      finalize(String(parsed.terminalStatus ?? 'FAILED'), message ? `${message}（${code}）` : code)
     }
   }
 

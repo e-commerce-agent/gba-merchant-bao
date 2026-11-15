@@ -7,8 +7,8 @@ import {
   ChatLineSquare,
   Clock,
   Collection,
+  Connection,
   DataBoard,
-  Files,
   Fold,
   Goods,
   Expand,
@@ -36,7 +36,7 @@ const menus = computed(() =>
         { label: '订单管理', to: '/merchant/orders', icon: Tickets },
         { label: '库存管理', to: '/merchant/inventory', icon: Box },
         { label: '知识库', to: '/merchant/knowledge', icon: Collection },
-        { label: '文档任务', to: '/merchant/tasks', icon: Files }
+        { label: 'WebService 物流', to: '/merchant/shipment-ws', icon: Connection }
       ]
     : [
         { label: '智能客服', to: '/consumer/chat', icon: ChatDotRound },

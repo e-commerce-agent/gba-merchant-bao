@@ -2,7 +2,7 @@ import type {
   AuthUser,
   ChatMessage,
   ChatSession,
-  DocumentTask,
+  KnowledgeDocumentView,
   PrincipalView,
   SmsResult,
   Tokens
@@ -10,8 +10,7 @@ import type {
 import {
   consumerMessages,
   consumerSessions,
-  documentTasks,
-  knowledgeBases,
+  knowledgeDocs,
   merchantMessages,
   merchantOverview,
   merchantSessions,
@@ -21,7 +20,7 @@ import {
 /**
  * 本地 Mock 分发器。
  *
- * 覆盖范围：认证（离线演示）、会话、知识库、文档任务、工作台指标。
+ * 覆盖范围：认证（离线演示）、会话、知识库文档（knowledge-v1）、工作台指标。
  * 商品 / 库存 / 订单 / 物流 已由后端交付，前端直接走真实接口，
  * 这里不再维护它们的假数据，避免与契约漂移。
  *
@@ -334,10 +333,9 @@ export async function mockDispatch(config: MockConfig): Promise<unknown> {
       createdAt: new Date().toISOString(),
       citations: generated.citations,
       confidence: generated.confidence,
-      toolCalls:
-        generated.confidence > 0.6
-          ? [{ tool: 'knowledge.retrieve', params: { topK: 3 }, latencyMs: 64, success: true }]
-          : undefined
+      toolCalls: /订单|物流|快递|发货|到哪/.test(text)
+        ? [{ tool: 'lookup_order', params: {}, success: true }]
+        : undefined
     }
     const next = [...list, userMsg, agentMsg]
     sessionStore.set(sessionId, next)
@@ -354,23 +352,28 @@ export async function mockDispatch(config: MockConfig): Promise<unknown> {
     return agentMsg
   }
 
-  /* ---- Knowledge / Task ---- */
-  if (method === 'GET' && path === '/v1/knowledge-bases') {
-    return knowledgeBases
+  /* ---- Knowledge documents（knowledge-v1：同步上传 + 游标分页列表） ---- */
+  if (method === 'GET' && path === '/v1/knowledge/documents') {
+    const size = Math.min(Number(query.size) || 20, 100)
+    const cursor = Number(query.cursor) || 0
+    const items = knowledgeDocs.slice(cursor, cursor + size)
+    const nextCursor = cursor + size < knowledgeDocs.length ? String(cursor + size) : null
+    return { items, nextCursor, hasMore: nextCursor !== null }
   }
 
-  if (method === 'GET' && path === '/v1/document-tasks') {
-    return documentTasks as DocumentTask[]
-  }
-
-  const taskRetry = matchPath('/v1/document-tasks/:id', path)
-  if (method === 'POST' && taskRetry && action === 'retry') {
-    return { ...documentTasks[3], status: 'QUEUED', progress: 0, errorMessage: undefined }
-  }
-
-  const taskDetail = matchPath('/v1/document-tasks/:id', path)
-  if (method === 'GET' && taskDetail) {
-    return documentTasks.find((t) => t.id === taskDetail.id) || documentTasks[0]
+  if (method === 'POST' && path === '/v1/knowledge/documents') {
+    const payload = body as { title?: string; fileName?: string }
+    const title = String(payload?.title || '').trim()
+    if (!title) throw new MockError('标题不能为空', 10001, 400)
+    const doc: KnowledgeDocumentView = {
+      documentId: uid('61'),
+      title,
+      status: 'READY',
+      chunkCount: 1 + Math.floor(Math.random() * 6),
+      createdAt: new Date().toISOString()
+    }
+    knowledgeDocs.unshift(doc)
+    return doc
   }
 
   /* ---- Merchant overview（接口待后端补齐，先占位） ---- */

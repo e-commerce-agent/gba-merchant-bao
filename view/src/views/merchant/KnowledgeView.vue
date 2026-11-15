@@ -1,113 +1,187 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Collection, Plus } from '@element-plus/icons-vue'
-import { listDocumentTasks, listKnowledgeBases } from '@/api/knowledge'
-import type { DocumentTask, KnowledgeBase } from '@/api/types'
-import { formatFileSize, relativeTime } from '@/utils/format'
+import type { UploadFile, UploadRawFile } from 'element-plus'
+import { Document, Plus, RefreshRight } from '@element-plus/icons-vue'
+import { listKnowledgeDocuments, uploadKnowledgeDocument } from '@/api/knowledge'
+import { ApiError } from '@/api/request'
+import type { KnowledgeDocStatus, KnowledgeDocumentView } from '@/api/types'
+import { relativeTime } from '@/utils/format'
 
-const router = useRouter()
-const bases = ref<KnowledgeBase[]>([])
-const tasks = ref<DocumentTask[]>([])
+/**
+ * 知识库文档（knowledge-v1）：员工同步导入 TXT/Markdown，
+ * READY 后参与 Agent 的 RAG 检索；FAILED 不参与聊天。
+ */
+
+const docs = ref<KnowledgeDocumentView[]>([])
 const loading = ref(true)
+const nextCursor = ref<string | null>(null)
+const hasMore = ref(false)
+const loadingMore = ref(false)
 
-const statusText: Record<string, string> = {
-  QUEUED: '排队中',
-  PARSING: '解析中',
-  CHUNKING: '切分中',
-  EMBEDDING: '向量化中',
-  SUCCEEDED: '已完成',
-  FAILED: '失败'
+const dialogVisible = ref(false)
+const title = ref('')
+const file = ref<File | null>(null)
+const uploading = ref(false)
+
+const MAX_SIZE = 1024 * 1024 // 契约：1 MiB
+
+const statusMeta: Record<KnowledgeDocStatus, { label: string; cls: string }> = {
+  PROCESSING: { label: '处理中', cls: 'is-processing' },
+  READY: { label: '已就绪', cls: 'is-ready' },
+  FAILED: { label: '失败', cls: 'is-failed' }
 }
 
-onMounted(async () => {
+async function load(reset = false) {
+  if (reset) {
+    loading.value = true
+  } else {
+    loadingMore.value = true
+  }
   try {
-    const [b, t] = await Promise.all([listKnowledgeBases(), listDocumentTasks()])
-    bases.value = b
-    tasks.value = t
+    const page = await listKnowledgeDocuments(20, reset ? undefined : nextCursor.value || undefined)
+    docs.value = reset ? page.items : [...docs.value, ...page.items]
+    nextCursor.value = page.nextCursor
+    hasMore.value = page.hasMore
   } finally {
     loading.value = false
+    loadingMore.value = false
   }
-})
+}
+
+function onFileChange(uploadFile: UploadFile) {
+  const raw = uploadFile.raw as UploadRawFile | undefined
+  if (!raw) return
+  if (!/\.(txt|md)$/i.test(raw.name)) {
+    ElMessage.warning('仅支持 UTF-8 的 .txt / .md 文件')
+    return
+  }
+  if (raw.size > MAX_SIZE) {
+    ElMessage.warning('文件超过 1 MiB 上限')
+    return
+  }
+  file.value = raw
+}
+
+async function submit() {
+  const trimmed = title.value.trim()
+  if (!trimmed || trimmed.length > 200) {
+    ElMessage.warning('标题为必填项，1–200 字符')
+    return
+  }
+  if (!file.value) {
+    ElMessage.warning('请选择要导入的 TXT/MD 文件')
+    return
+  }
+  uploading.value = true
+  try {
+    const doc = await uploadKnowledgeDocument({ title: trimmed, file: file.value })
+    docs.value.unshift(doc)
+    ElMessage.success(
+      doc.status === 'READY'
+        ? `导入成功：已切分 ${doc.chunkCount} 片，Agent 现在可以引用它回答`
+        : '导入已提交，文档处理完成后自动参与检索'
+    )
+    dialogVisible.value = false
+    title.value = ''
+    file.value = null
+  } catch (e) {
+    if (e instanceof ApiError) {
+      if (e.code === 13501) ElMessage.error('RAG 功能未开启，请联系管理员开启后再导入')
+      else if (e.code === 13502) ElMessage.error('向量化服务（Embedding/Milvus）暂不可用，请稍后重试')
+      else if (e.status === 413) ElMessage.error('文件、码点或切片数量超限')
+      else if (e.status === 415) ElMessage.error('仅支持 TXT/MD 文件')
+      else ElMessage.error(e.message)
+    }
+  } finally {
+    uploading.value = false
+  }
+}
+
+onMounted(() => load(true))
 </script>
 
 <template>
   <div class="kb">
     <header class="kb__head">
       <div>
-        <h2 class="kb__title">知识库</h2>
+        <h2 class="kb__title">知识库文档</h2>
         <p class="kb__desc">
-          文档上传后进入异步任务：解析 → 切分 → 向量化 → 入库，Agent 回答时按相关度检索并回引来源
+          导入 UTF-8 的 TXT / Markdown（≤1 MiB），同步切分并向量化；
+          <b>已就绪</b>的文档才会被 Agent 检索引用，回答下方会展示命中的来源片段
         </p>
       </div>
-      <el-button
-        type="primary"
-        :icon="Plus"
-        @click="ElMessage.info('写接口待后端交付：POST /v1/knowledge-bases')"
-      >
-        新建知识库
-      </el-button>
+      <div class="kb__actions">
+        <el-button :icon="RefreshRight" @click="load(true)">刷新</el-button>
+        <el-button type="primary" :icon="Plus" @click="dialogVisible = true">导入文档</el-button>
+      </div>
     </header>
 
-    <div v-if="loading" class="kb__grid">
-      <div v-for="i in 2" :key="i" class="skeleton" style="height: 160px" />
-    </div>
+    <div v-if="loading" class="skeleton" style="height: 220px" />
 
-    <div v-else class="kb__grid">
-      <article v-for="b in bases" :key="b.id" class="kbcard">
-        <div class="kbcard__icon">
-          <el-icon :size="18"><Collection /></el-icon>
-        </div>
-        <h3 class="kbcard__name">{{ b.name }}</h3>
-        <p class="kbcard__desc">{{ b.description }}</p>
+    <section v-else class="panel">
+      <div v-if="!docs.length" class="empty">
+        <el-icon :size="34" color="#98A2B3"><Document /></el-icon>
+        <p>还没有导入任何文档</p>
+        <span>导入售后政策、产品说明书等资料后，Agent 就能引用它们回答客户问题</span>
+      </div>
 
-        <div class="kbcard__stats">
-          <div class="kbcard__stat">
-            <span class="num">{{ b.documentCount }}</span>
-            <em>文档</em>
+      <ul v-else class="list">
+        <li v-for="d in docs" :key="d.documentId" class="row">
+          <div class="row__main">
+            <span class="row__title">{{ d.title }}</span>
+            <span class="row__meta num">{{ d.createdAt.slice(0, 10) }} · {{ relativeTime(d.createdAt) }}</span>
           </div>
-          <div class="kbcard__stat">
-            <span class="num">{{ b.chunkCount }}</span>
-            <em>切片</em>
-          </div>
-          <div class="kbcard__stat">
-            <span class="num">{{ relativeTime(b.updatedAt) }}</span>
-            <em>更新</em>
-          </div>
-        </div>
-      </article>
-    </div>
-
-    <section class="recent">
-      <header class="recent__head">
-        <h3>最近导入</h3>
-        <button type="button" class="recent__more" @click="router.push('/merchant/tasks')">
-          查看全部任务
-        </button>
-      </header>
-
-      <ul class="recent__list">
-        <li v-for="t in tasks.slice(0, 4)" :key="t.id" class="rrow">
-          <div class="rrow__name">
-            <span class="rrow__file">{{ t.fileName }}</span>
-            <span class="rrow__size num">{{ formatFileSize(t.fileSize) }}</span>
-          </div>
-          <span class="rrow__status" :class="`is-${t.status.toLowerCase()}`">
-            {{ statusText[t.status] }}
+          <span class="row__chunks num">{{ d.chunkCount }} 片</span>
+          <span class="row__status" :class="statusMeta[d.status].cls">
+            {{ statusMeta[d.status].label }}
           </span>
-          <div class="rrow__progress">
-            <el-progress
-              :percentage="t.progress"
-              :show-text="false"
-              :stroke-width="5"
-              :color="t.status === 'FAILED' ? '#E5484D' : '#3056D3'"
-            />
-          </div>
-          <span class="rrow__chunks num">{{ t.chunkCount }} 片</span>
         </li>
       </ul>
+
+      <button
+        v-if="hasMore"
+        type="button"
+        class="panel__more"
+        :disabled="loadingMore"
+        @click="load(false)"
+      >
+        {{ loadingMore ? '加载中…' : '加载更多' }}
+      </button>
     </section>
+
+    <el-dialog v-model="dialogVisible" title="导入知识文档" width="460px">
+      <el-form label-width="72px" label-position="left">
+        <el-form-item label="标题" required>
+          <el-input
+            v-model="title"
+            maxlength="200"
+            show-word-limit
+            placeholder="例如：售后政策 2026 版"
+          />
+        </el-form-item>
+        <el-form-item label="文件" required>
+          <el-upload
+            drag
+            :limit="1"
+            :auto-upload="false"
+            accept=".txt,.md"
+            :on-change="onFileChange"
+            :on-exceed="() => ElMessage.warning('一次只能导入一个文件')"
+          >
+            <el-icon :size="30" color="#98A2B3"><Document /></el-icon>
+            <div class="el-upload__text">拖拽文件到此处，或<em>点击选择</em></div>
+            <template #tip>
+              <div class="el-upload__tip">UTF-8 编码的 .txt / .md，最大 1 MiB，最多切分 200 片</div>
+            </template>
+          </el-upload>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="uploading" @click="submit">同步导入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -127,121 +201,64 @@ onMounted(async () => {
 
 .kb__desc {
   margin-top: 6px;
-  max-width: 640px;
+  max-width: 680px;
   font-size: var(--fs-xs);
   line-height: 1.7;
   color: var(--text-subtle);
+
+  b {
+    color: var(--green-500);
+    font-weight: 500;
+  }
 }
 
-.kb__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: var(--space-4);
+.kb__actions {
+  display: flex;
+  gap: var(--space-2);
 }
 
-.kbcard {
-  padding: var(--space-5);
+.panel {
+  padding: var(--space-3) var(--space-5);
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
 }
 
-.kbcard__icon {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: var(--brand-50);
-  color: var(--brand-600);
-}
+.empty {
+  padding: var(--space-7) 0;
+  text-align: center;
+  color: var(--text-subtle);
 
-.kbcard__name {
-  margin-top: var(--space-3);
-  font-size: var(--fs-md);
-  font-weight: 500;
-}
-
-.kbcard__desc {
-  margin-top: 6px;
-  font-size: var(--fs-xs);
-  line-height: 1.7;
-  color: var(--text-muted);
-  min-height: 36px;
-}
-
-.kbcard__stats {
-  display: flex;
-  gap: var(--space-6);
-  margin-top: var(--space-4);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--border-subtle);
-}
-
-.kbcard__stat {
-  display: flex;
-  flex-direction: column;
+  p {
+    margin-top: var(--space-3);
+    font-size: var(--fs-sm);
+    color: var(--text-muted);
+  }
 
   span {
-    font-size: var(--fs-base);
-    font-weight: 500;
-    color: var(--text-strong);
-  }
-
-  em {
-    font-style: normal;
-    font-size: 10.5px;
-    color: var(--text-subtle);
+    font-size: var(--fs-xs);
   }
 }
 
-.recent {
-  margin-top: var(--space-6);
-  padding: var(--space-5);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-}
-
-.recent__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-3);
-
-  h3 {
-    font-size: var(--fs-base);
-    font-weight: 500;
-  }
-}
-
-.recent__more {
-  border: none;
-  background: transparent;
-  font-size: var(--fs-xs);
-  color: var(--brand-600);
-  cursor: pointer;
-}
-
-.rrow {
+.row {
   display: grid;
-  grid-template-columns: 1fr 88px 140px 60px;
+  grid-template-columns: 1fr 80px 84px;
   align-items: center;
   gap: var(--space-4);
-  padding: 10px 0;
+  padding: 12px 0;
 
   & + & {
     border-top: 1px solid var(--border-subtle);
   }
 }
 
-.rrow__name {
+.row__main {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.rrow__file {
+.row__title {
   font-size: var(--fs-sm);
   color: var(--text-body);
   overflow: hidden;
@@ -249,44 +266,62 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
-.rrow__size {
+.row__meta {
+  margin-top: 2px;
   font-size: 10.5px;
   color: var(--text-subtle);
 }
 
-.rrow__status {
-  font-size: 11.5px;
-
-  &.is-succeeded {
-    color: var(--green-500);
-  }
-  &.is-failed {
-    color: var(--red-500);
-  }
-  &.is-queued {
-    color: var(--text-subtle);
-  }
-  &.is-parsing,
-  &.is-chunking,
-  &.is-embedding {
-    color: var(--brand-600);
-  }
-}
-
-.rrow__chunks {
+.row__chunks {
   font-size: 11px;
-  color: var(--text-subtle);
+  color: var(--text-muted);
   text-align: right;
 }
 
-@media (max-width: 860px) {
-  .rrow {
-    grid-template-columns: 1fr 80px;
-    row-gap: 6px;
+.row__status {
+  justify-self: end;
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 500;
+
+  &.is-ready {
+    background: var(--teal-50, #e6f7f3);
+    color: var(--teal-600, #00a88f);
   }
-  .rrow__progress,
-  .rrow__chunks {
-    display: none;
+
+  &.is-processing {
+    background: var(--brand-50);
+    color: var(--brand-600);
+  }
+
+  &.is-failed {
+    background: var(--red-50, #fdecec);
+    color: var(--red-500, #e5484d);
+  }
+}
+
+.panel__more {
+  width: 100%;
+  padding: 10px;
+  margin-top: var(--space-2);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--brand-600);
+    border-color: var(--brand-200);
+  }
+}
+
+.el-upload__text {
+  em {
+    color: var(--brand-600);
+    font-style: normal;
   }
 }
 </style>

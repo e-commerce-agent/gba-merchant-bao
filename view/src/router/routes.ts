@@ -125,10 +125,10 @@ export const routes: RouteRecordRaw[] = [
         meta: { title: '知识库', requiresAuth: true, subjectType: 'MERCHANT_STAFF' }
       },
       {
-        path: 'tasks',
-        name: 'merchant-tasks',
-        component: () => import('@/views/merchant/TasksView.vue'),
-        meta: { title: '文档任务', requiresAuth: true, subjectType: 'MERCHANT_STAFF' }
+        path: 'shipment-ws',
+        name: 'merchant-shipment-ws',
+        component: () => import('@/views/merchant/ShipmentWsView.vue'),
+        meta: { title: 'WebService 物流查询', requiresAuth: true, subjectType: 'MERCHANT_STAFF' }
       }
     ]
   },
