@@ -11,10 +11,10 @@
 
 ## 2. IDEA Services 双实例与 Vite 联调
 
-- [ ] 2.1 在本地联调说明中给出两个 IDEA Run/Debug Configuration：均激活 dev、工作目录 api；实例一可不填 Program arguments，使用默认端口 8080、worker ID 0 和日志目录 `.runtime/logs`；新增的第二份配置填写 `--server.port=8082 --merchant.id.worker-id=1 --logging.file.path=.runtime/logs/dev-8082`。核对本地 YAML、环境变量及 JVM 参数没有覆盖实例一的默认值，两者日志目录独立、共享 dev MySQL/Redis/JWT、保留自动 Flyway，并说明先等实例一健康再启动实例二以避免首次 RAG 初始化竞争。
-- [ ] 2.2 补充 api 目录下已安装 Maven 的双终端备用命令：实例一仅激活 dev，实例二另行覆盖端口、worker ID 和日志目录；校验命令参数和 IDEA 配置一致，不引入 `mvnw`，不提交个人密钥配置。
-- [ ] 2.3 更新 `view/.env.development`、`view/.env.example` 中的代理目标为 `http://localhost:8081`，保持 `/api` 前缀，保留离线 Mock 能力；在 view README 记录使用本地覆盖关闭 `VITE_USE_MOCK` 与 `VITE_MOCK_UNIMPLEMENTED` 后重启 Vite；运行前端类型检查，并用真实请求确认浏览器页面仍在 5173、API 经 Vite 到 Nginx 后再到后端。
-- [ ] 2.4 记录 IDEA Services 的分别 Run/Debug、停止和重启操作，以及轮询导致断点仅在命中节点触发的行为；在本机联调时检查 8080/8082 健康响应和独立日志，实际执行 IDEA Debug 时验证各自断点，不将 Maven 进程验证冒充 IDEA 调试验证。
+- [x] 2.1 在本地联调说明中给出两个 IDEA Run/Debug Configuration：均激活 dev、工作目录 api；实例一可不填 Program arguments，使用默认端口 8080、worker ID 0 和日志目录 `.runtime/logs`；新增的第二份配置填写 `--server.port=8082 --merchant.id.worker-id=1 --logging.file.path=.runtime/logs/dev-8082`。核对本地 YAML、环境变量及 JVM 参数没有覆盖实例一的默认值，两者日志目录独立、共享 dev MySQL/Redis/JWT、保留自动 Flyway，并说明先等实例一健康再启动实例二以避免首次 RAG 初始化竞争。
+- [x] 2.2 补充 api 目录下已安装 Maven 的双终端备用命令：实例一仅激活 dev，实例二另行覆盖端口、worker ID 和日志目录；校验命令参数和 IDEA 配置一致，不引入 `mvnw`，不提交个人密钥配置。
+- [x] 2.3 更新 `view/.env.development`、`view/.env.example` 中的代理目标为 `http://localhost:8081`，保持 `/api` 前缀，保留离线 Mock 能力；在 view README 记录使用本地覆盖关闭 `VITE_USE_MOCK` 与 `VITE_MOCK_UNIMPLEMENTED` 后重启 Vite；运行前端类型检查，并用真实请求确认浏览器页面仍在 5173、API 经 Vite 到 Nginx 后再到后端。
+- [x] 2.4 记录 IDEA Services 的分别 Run/Debug、停止和重启操作，以及轮询导致断点仅在命中节点触发的行为；在本机联调时检查 8080/8082 健康响应和独立日志，实际执行 IDEA Debug 时验证各自断点，不将 Maven 进程验证冒充 IDEA 调试验证。
 
 ## 3. 隔离集成与 dev 验收
 

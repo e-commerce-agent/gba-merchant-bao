@@ -21,17 +21,30 @@ npm run typecheck
 
 ## Mock 与真实接口切换
 
-当前 `VITE_USE_MOCK=true`，全部请求由 `src/mock/` 拦截，**不需要启动后端**。
-后端接口就绪后只需改 `.env.development`：
+默认 `VITE_USE_MOCK=true`，请求由 `src/mock/` 拦截，**不需要启动后端**，保留离线演示能力。
+真实联调时复制 `.env.example` 为被 Git 忽略的 `.env.development.local`（已存在则合并修改），
+不要覆盖已有个人配置；填写：
 
 ```bash
-VITE_USE_MOCK=false   # 关掉 Mock，走 vite 代理转发到后端
+VITE_API_BASE_URL=/api
+VITE_PROXY_TARGET=http://localhost:8081
+VITE_USE_MOCK=false
+VITE_MOCK_UNIMPLEMENTED=false
 ```
 
-代理配置读取 `VITE_PROXY_TARGET`（默认 http://localhost:8080），把 `/api` 转发到后端，
-因此本地开发不依赖后端 CORS 配置。
+`VITE_USE_MOCK=false` 关闭整站 Mock；`VITE_MOCK_UNIMPLEMENTED=false` 同时关闭未实现接口兜底，
+避免验收时被假数据掩盖。每次修改环境变量后停止并重新运行 `npm run dev`。
 
-本机若不想污染仓库，复制 `.env.example` 为 `.env.local` 再改（`.env.local` 已被忽略）。
+先在仓库根运行 `docker compose up -d --wait`，再按 [后端双实例说明](../api/docs/deployment/local-development.md#idea-services-双实例)
+顺序启动 IDEA 的两个 dev 实例；需要 RAG 时先按原说明启动共享 Milvus。
+最后在 `view` 运行 `npm run dev`，页面仍为 `http://127.0.0.1:5173`。
+请求链路为浏览器同源 `/api` → Vite → `http://localhost:8081` Nginx → 宿主机 8080/8082，
+保持 `/api` 前缀，不需要新增 CORS。8081 仅提供 API，不能当作前端首页。
+可在浏览器 Network 核对 `/api/v1/...` 的 Request URL 仍为 5173，结合响应 X-Request-Id 和
+`docker compose logs --tail 50 nginx` 的 upstream 地址检查实际后端。
+
+也支持 `.env.local`；若同时存在 `.env.development.local`，开发模式优先采用后者，进程环境优先级更高。
+恢复离线演示时在有效的本地覆盖中设 `VITE_USE_MOCK=true`，再重启 Vite。
 
 演示账号（仅 Mock）：
 
@@ -55,11 +68,9 @@ VITE_USE_MOCK=false   # 关掉 Mock，走 vite 代理转发到后端
 真接口联调步骤：
 
 ```bash
-# 1) 后端：切物流分支起服务（PR #14 合并后可直接用 main）
-git checkout feat/shipment-web-service && mvn -f api/pom.xml spring-boot:run
+# 1) 按上述后端说明启动 Docker 与 IDEA dev 实例
 
-# 2) 前端：关掉 Mock
-echo 'VITE_USE_MOCK=false' >> view/.env.local
+# 2) 在 view/.env.development.local 关闭上述两个 Mock 开关后启动前端
 cd view && npm run dev
 
 # 3) 用 devdata 演示单验收（订单 id 与 R__030/R__040 对齐）
@@ -100,7 +111,7 @@ src/
 - [x] 订单列表与详情（order-v1）
 - [x] 物流详情抽屉（shipment-v1，四态）
 - [ ] SSE 流式回答与打字机效果
-- [ ] 商品 / 库存 / 知识库写操作表单（等 inventory / catalog 契约稳定）
+- [x] 商品 / 库存 / 知识库写操作表单（等 inventory / catalog 契约稳定）
 - [ ] 商户端会话接管与消息的实时刷新（轮询或 SSE）
 - [ ] 移动端深度适配（当前已做基础响应式）
-- [ ] 公开商城路径改 `storeSlug` 口径（等团队最终确认后统一改）
+- [x] 公开商城路径改 `storeSlug` 口径（等团队最终确认后统一改）
