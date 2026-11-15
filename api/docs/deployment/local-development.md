@@ -26,7 +26,8 @@ docker compose ps
 首次创建 Compose 文件、修改 Compose 配置或排查配置问题时，可以单独执行
 `docker compose config --quiet`。它是配置检查命令，不是每天启动 dev 的前置步骤。
 
-当前 dev Compose 只包含 MySQL 和 Redis，没有需要显式激活的 Compose profile。
+当前 dev Compose 默认包含 MySQL、Redis 和 Nginx，没有需要显式激活的 Compose profile。
+Nginx 仅发布 `127.0.0.1:8081:80`，后端仍由宿主机 IDEA/Maven 运行，不包含应用容器。
 登录会话复用现有 Redis，不需要 login profile 或额外 Redis 服务。后续引入其他中间件时，
 按对应模块说明启动；不要使用 `docker compose --profile "*" up -d`。
 
@@ -68,7 +69,11 @@ mvn spring-boot:run '-Dspring-boot.run.arguments=--spring.profiles.active=dev'
 ```
 
 首次启动空库自动执行 V1→V9 和适用种子，无需 baseline。填好实际 dev YAML 后仅激活 dev 即可启动，无需个人旧库或云端 OSS/微信凭据；占位外部配置不表示相应业务可用。
-前端及 Apifox 的 API base URL 为 http://localhost:8080，健康检查 GET /api/v1/health；文档 /swagger-ui.html、/v3/api-docs.yaml。
+Apifox 可使用代理 API 入口 `http://localhost:8081/api/v1`，健康检查为
+`http://localhost:8081/api/v1/health`。需要定点访问宿主机后端时仍可直连 `http://localhost:8080`；
+Swagger `/swagger-ui.html` 和 `/v3/api-docs.yaml` 也通过后端直连访问。
+前端页面继续由 Vite 的 `http://127.0.0.1:5173` 提供；前端代理目标与 Mock 的调整见后续联调任务，
+本节新增 Nginx 不会自动改变 Vite 配置。
 数据库工具连接 127.0.0.1:3307/gba_dev，dev_admin；Redis 工具连接 127.0.0.1:6380，无认证。前端调用 API，不直接连接数据库。
 多个前端/后端开发者各自建立空库；共享联调如需 API 远程可达，单独约定主机地址。中间件保持 loopback。
 
@@ -87,7 +92,7 @@ docker compose down
 端口或挂载配置；仅在配置未变且需要重启进程时使用。以上操作都不要求重建或删除数据卷。
 
 如果需要等待健康检查完成，可在确认配置后使用 `docker compose up -d --wait`；它是可选的
-等待步骤。Docker Desktop 启动后，推荐顺序是：启动 Compose 中间件、在 IDEA 激活 Spring
+等待步骤。Docker Desktop 启动后，推荐顺序是：启动 Compose 中间件和 Nginx、在 IDEA 激活 Spring
 `dev`、再启动后端。后端通过 `dev_admin` 连接数据库，Flyway 会自动执行待执行迁移，随后即可
 进行断点调试。前端和 Apifox 使用同一 dev API，不连接 Testcontainers。
 
@@ -98,6 +103,62 @@ docker compose down
 
 持久化验收应在明确的 dev 目标内创建独立临时表/键，重启和重建后读取，最后仅定向清理自己的表/键；不要对联调业务表 TRUNCATE。
 自动化集成测试使用动态端口的 Testcontainers，可与 dev 同时运行；它不挂载这些卷。
+
+## dev Nginx 入口与排查
+
+根 Compose 使用固定镜像 `nginx:1.28.0-alpine`，只读挂载根目录的 `docker/nginx/dev.conf`。
+容器将 `/api` 和 `/api/` 下的原始路径及查询参数等权轮询到
+`host.docker.internal:8080`、`host.docker.internal:8082`。`host.docker.internal` 是
+Docker Desktop 提供的宿主机名称；容器里的 `localhost` 指向容器自身，不能用来访问 IDEA 进程。
+Nginx 不托管前端页面，`/`、`/apiary`、Swagger 等非 API 路径返回 404。
+
+先运行根目录的 `docker compose up -d`，再启动宿主机 dev 后端。
+即使两个后端都未启动，Nginx 也能启动，此时 API 返回 502。后端可达后无需重建 Nginx，
+被动失败检测窗口为 5 秒，恢复后再次请求即可；连接超时为 3 秒，每个请求最多尝试两个 upstream。
+`docker compose up -d --wait` 中 Nginx 的健康检查仅检查其配置；容器健康不代表后端健康。
+
+```powershell
+# 仓库根目录：配置检查、状态和后端健康请求
+docker compose config --quiet
+docker compose exec -T nginx nginx -t
+docker compose ps nginx
+curl.exe -i http://127.0.0.1:8081/api/v1/health
+# 直接检查宿主机两个端口；尚未运行的实例会连接失败
+curl.exe -i http://127.0.0.1:8080/api/v1/health
+curl.exe -i http://127.0.0.1:8082/api/v1/health
+docker compose logs --tail 50 nginx
+```
+
+502 先检查后端是否已启动、端口是否正确，再从 Nginx 容器检查宿主机解析及 HTTP 连接：
+
+```powershell
+docker compose exec -T nginx nslookup host.docker.internal
+docker compose exec -T nginx wget -S -O - http://host.docker.internal:8080/api/v1/health
+docker compose exec -T nginx wget -S -O - http://host.docker.internal:8082/api/v1/health
+```
+
+宿主机直连成功但容器连接失败时，检查后端监听地址和 Docker Desktop 到宿主机的防火墙规则；
+不要扩大 Nginx 的 loopback 发布范围。504 表示代理等待上游超时，检查 IDEA 断点、后端日志及
+依赖响应。读取和发送超时均为 300 秒，读取超时约束相邻读取的间隔；调整 Agent deadline 时须
+一起复核。已发出的 POST 和已建立的 SSE 不自动重放或跨实例接续。
+
+代理使用 HTTP/1.1，关闭响应缓冲、缓存及 gzip；2 MiB 请求体上限为现有 1 MiB 知识文件预留
+multipart 开销，业务限制仍由应用执行。凭证头与响应 Content-Type 保留，合法的 X-Request-Id
+原样转发，缺失或非法时生成请求 ID。JSON 访问日志只记录方法、路径、请求 ID、状态、总耗时及
+upstream 地址/状态/耗时，不记录查询参数、Authorization、Cookie 或正文。
+默认请求错误日志因包含完整 URI 而关闭，502/504 从上述访问日志检查；容器日志沿用 20 MB × 5 轮转。
+
+修改代理配置后，先检查再重载（宿主机后端启动/停止无需重载）：
+
+```powershell
+docker compose exec -T nginx nginx -t
+docker compose exec -T nginx nginx -s reload
+```
+
+临时回退可在根目录执行 `docker compose stop nginx`，让 Apifox 或本地调用方恢复直连
+`http://localhost:8080`；若 Vite 本地代理目标已改为 8081，将其改回 8080 并重启 Vite。
+永久撤销时再移除根 Compose 的 nginx 服务及 `docker/nginx/dev.conf`。
+不需要删除 MySQL/Redis/Milvus 卷或回退数据库；下次执行未移除 nginx 的根 `up -d` 会再次启动它。
 
 ## 配置与凭据边界
 

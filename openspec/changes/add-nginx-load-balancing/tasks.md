@@ -4,10 +4,10 @@
 
 ## 1. 根 Compose 与 dev Nginx
 
-- [ ] 1.1 在根 `docker-compose.yml` 增加默认启动的 `nginx` 服务，固定镜像版本、只读挂载 `docker/nginx/dev.conf`，发布 `127.0.0.1:8081:80` 并复用现有日志轮转；执行 `docker compose config --quiet`，确认不需额外 profile、不包含应用容器且保留原 MySQL/Redis 卷和 loopback 端口。
-- [ ] 1.2 配置 `/api` 原路径代理到 `host.docker.internal:8080`、`host.docker.internal:8082`，采用等权轮询与有限的被动失败检测；执行 `nginx -t`，验证两个宿主机后端都未启动时 Nginx 仍能启动，后端启动后无需重建代理即可访问。
-- [ ] 1.3 配置 HTTP/1.1、禁用响应缓冲/缓存/gzip、300 秒读取/发送超时及容纳现有知识文件的请求体上限，保留凭证和请求关联头；日志包含 upstream 地址/状态/耗时但不记录凭证、查询参数和正文；通过真实请求检查响应头与日志，确认非 API 路径返回 404，且未启用非幂等请求重放。
-- [ ] 1.4 在 `api/docs/deployment/local-development.md` 及所属 README 记录 Nginx 本机入口、`host.docker.internal` 含义、先 Docker 后后端的启动顺序、502/504 排查和回退方式；逐条核对命令与配置一致，并运行适用的既有 RuntimeConfigurationTest，确认 dev/prod 配置边界仍成立。
+- [x] 1.1 在根 `docker-compose.yml` 增加默认启动的 `nginx` 服务，固定镜像版本、只读挂载 `docker/nginx/dev.conf`，发布 `127.0.0.1:8081:80` 并复用现有日志轮转；执行 `docker compose config --quiet`，确认不需额外 profile、不包含应用容器且保留原 MySQL/Redis 卷和 loopback 端口。
+- [x] 1.2 配置 `/api` 原路径代理到 `host.docker.internal:8080`、`host.docker.internal:8082`，采用等权轮询与有限的被动失败检测；执行 `nginx -t`，验证两个宿主机后端都未启动时 Nginx 仍能启动，后端启动后无需重建代理即可访问。
+- [x] 1.3 配置 HTTP/1.1、禁用响应缓冲/缓存/gzip、300 秒读取/发送超时及容纳现有知识文件的请求体上限，保留凭证和请求关联头；日志包含 upstream 地址/状态/耗时但不记录凭证、查询参数和正文；通过真实请求检查响应头与日志，确认非 API 路径返回 404，且未启用非幂等请求重放。
+- [x] 1.4 在 `api/docs/deployment/local-development.md` 及所属 README 记录 Nginx 本机入口、`host.docker.internal` 含义、先 Docker 后后端的启动顺序、502/504 排查和回退方式；逐条核对命令与配置一致，并运行适用的既有 RuntimeConfigurationTest，确认 dev/prod 配置边界仍成立。
 
 ## 2. IDEA Services 双实例与 Vite 联调
 
