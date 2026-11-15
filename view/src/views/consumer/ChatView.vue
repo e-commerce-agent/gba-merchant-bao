@@ -82,10 +82,18 @@ async function send() {
   const text = input.value.trim()
   if (!text || sending.value) return
 
-  if (!sessionId.value) {
-    const created = await createSession(text.slice(0, 20))
-    sessions.value.unshift(created)
-    sessionId.value = created.id
+  sending.value = true
+  try {
+    if (!sessionId.value) {
+      const created = await createSession(text.slice(0, 20))
+      sessions.value.unshift(created)
+      sessionId.value = created.id
+      await router.replace(`/consumer/chat/${created.id}`)
+    }
+  } catch (e) {
+    ElMessage.error((e as Error).message || '创建会话失败')
+    sending.value = false
+    return
   }
 
   const localMsg: ChatMessage = {
@@ -136,11 +144,16 @@ async function send() {
 }
 
 async function newSession() {
-  const created = await createSession('新的咨询')
-  sessions.value.unshift(created)
-  sessionId.value = created.id
-  messages.value = []
-  router.replace('/consumer/chat')
+  if (sending.value) return
+  try {
+    const created = await createSession('新的咨询')
+    sessions.value.unshift(created)
+    sessionId.value = created.id
+    messages.value = []
+    await router.replace(`/consumer/chat/${created.id}`)
+  } catch (e) {
+    ElMessage.error((e as Error).message || '创建会话失败')
+  }
 }
 
 function useQuick(text: string) {
@@ -173,7 +186,7 @@ onMounted(init)
         <span v-if="session" class="chat__count num">{{ messages.length }} 条消息</span>
       </div>
 
-      <el-button :icon="Plus" @click="newSession">新建会话</el-button>
+      <el-button :icon="Plus" :disabled="sending" @click="newSession">新建会话</el-button>
     </header>
 
     <div v-if="contextProduct" class="chat__context">
@@ -194,7 +207,7 @@ onMounted(init)
             <h3>你好，我是商户宝 Agent</h3>
             <p>
               商品参数、兼容性、库存状态、订单物流、售后政策，都可以直接问我。
-              回答会附上知识库来源；不确定的问题我会转给人工客服。
+              回答会保存在历史会话中，方便之后继续咨询。
             </p>
             <div class="chat__quick">
               <button v-for="q in quickPrompts" :key="q" type="button" @click="useQuick(q)">
@@ -224,7 +237,7 @@ onMounted(init)
           @keydown.enter.exact.prevent="send"
         />
         <div class="chat__composer-bar">
-          <span class="chat__hint">Enter 发送 · Shift + Enter 换行 · 回答附知识来源</span>
+          <span class="chat__hint">Enter 发送 · Shift + Enter 换行 · 历史记录自动保存</span>
           <el-button
             type="primary"
             :icon="Promotion"

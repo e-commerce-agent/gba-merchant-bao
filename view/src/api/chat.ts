@@ -5,7 +5,8 @@ import type {
   ChatMessageView,
   ChatPageView,
   ChatSession,
-  ChatSessionView
+  ChatSessionView,
+  ChatRunView
 } from './types'
 import { getToken } from '@/utils/token'
 
@@ -15,7 +16,7 @@ import { getToken } from '@/utils/token'
  * - 会话范围由登录主体（消费者 / 商户员工）决定，契约没有 scope 参数，不能传；
  * - 列表与历史均为游标分页（size + cursor，未知参数会被 400/10001 拒绝）；
  * - 发送消息必须带 clientMessageId 幂等键，新 run 返回 SSE（start → token → done/error），
- *   同 key 同正文重放返回 JSON run 标识；
+ *   同 key 同正文重放返回 JSON run 标识，再查询已持久化的历史；
  * - 契约本期没有人工接管（:takeover / :resume-agent 不存在），相关入口已下线。
  *
  * 离线演示（VITE_USE_MOCK=true）时返回展示模型原样数据，与真实模式的转换结果同构。
@@ -48,8 +49,10 @@ export async function listSessions(options: ListSessionsOptions = {}): Promise<C
 }
 
 /** title 可省略（契约：空白使用「新对话」），最多 200 字符 */
-export function createSession(title?: string) {
-  return post<ChatSession>(SESSIONS_URL, title ? { title } : {})
+export async function createSession(title?: string): Promise<ChatSession> {
+  const payload = title ? { title } : {}
+  if (shouldMock(SESSIONS_URL)) return post<ChatSession>(SESSIONS_URL, payload)
+  return toChatCard(await post<ChatSessionView>(SESSIONS_URL, payload))
 }
 
 export function getSession(sessionId: string) {
@@ -68,11 +71,14 @@ export async function listMessages(sessionId: string, size = 50, cursor?: string
   if (shouldMock(SESSIONS_URL)) {
     return get<ChatMessage[]>(`${SESSIONS_URL}/${sessionId}/messages`)
   }
-  const page = await get<ChatPageView<ChatMessageView>>(
-    `${SESSIONS_URL}/${sessionId}/messages`,
-    params
-  )
-  return page.items.map(toChatBubble)
+  const messages: ChatMessage[] = []
+  for (;;) {
+    const page = await get<ChatPageView<ChatMessageView>>(`${SESSIONS_URL}/${sessionId}/messages`, params)
+    messages.push(...page.items.map(message => toChatBubble(message, sessionId)))
+    if (!page.hasMore || !page.nextCursor) break
+    params.cursor = page.nextCursor
+  }
+  return messages
 }
 
 export interface SendMessageHandlers {
@@ -91,10 +97,10 @@ function newClientMessageId(): string {
     : `00000000-0000-4000-8000-${Date.now().toString().padStart(12, '0')}`
 }
 
-function assistantPlaceholder(messageId: string, runId: string): ChatMessage {
+function assistantPlaceholder(messageId: string, sessionId: string): ChatMessage {
   return {
     id: messageId,
-    sessionId: runId,
+    sessionId,
     role: 'assistant',
     content: '',
     createdAt: new Date().toISOString(),
@@ -111,10 +117,11 @@ function assistantPlaceholder(messageId: string, runId: string): ChatMessage {
 export async function sendMessage(
   sessionId: string,
   content: string,
-  handlers: SendMessageHandlers = {}
+  handlers: SendMessageHandlers = {},
+  clientMessageId = newClientMessageId()
 ): Promise<void> {
   const url = `${SESSIONS_URL}/${sessionId}/messages`
-  const payload = { content, clientMessageId: newClientMessageId() }
+  const payload = { content, clientMessageId }
 
   /* ---- 离线演示：Mock 直接给展示模型（一次性整段回复） ---- */
   if (shouldMock(url)) {
@@ -132,6 +139,7 @@ export async function sendMessage(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Accept: 'text/event-stream, application/json',
         Authorization: `Bearer ${getToken()}`,
         'X-Request-Id': requestIdOf()
       },
@@ -160,16 +168,28 @@ export async function sendMessage(
 
   const contentType = res.headers.get('content-type') || ''
 
-  /* 幂等重放：同 clientMessageId 同正文，返回原 run 的 JSON 标识，直接查一次历史兜底 */
+  /* 幂等重放只返回标识；按游标查找原助手，不能将它伪装成空白成功。 */
   if (contentType.includes('application/json')) {
-    const body = (await res.json()) as { data?: { messageId: string; runId: string; status?: string } }
-    const run = body?.data
-    if (run?.messageId) {
-      const replay = assistantPlaceholder(run.messageId, run.runId)
+    try {
+      const body = (await res.json()) as { data?: ChatRunView }
+      const run = body?.data
+      if (!run?.messageId) throw new ApiError('服务未返回有效的聊天响应', 0, 200)
+      const replay = (await listMessages(sessionId)).find(message => message.id === run.messageId)
+      if (!replay) throw new ApiError('未找到原回答，请刷新历史', 0, 200)
       handlers.onStart?.(replay)
       handlers.onDone?.(replay)
+    } catch (e) {
+      const err = e instanceof ApiError ? e : new ApiError('原回答加载失败，请刷新历史', 0, 0)
+      handlers.onError?.(err)
+      throw err
     }
     return
+  }
+
+  if (!contentType.includes('text/event-stream')) {
+    const err = new ApiError('服务未返回有效的聊天响应', 0, res.status)
+    handlers.onError?.(err)
+    throw err
   }
 
   /* SSE：start → token* → done | error（HTTP 已 200，终态可能在帧里） */
@@ -183,19 +203,19 @@ export async function sendMessage(
   const decoder = new TextDecoder()
   let buffer = ''
   let streaming: ChatMessage | null = null
-  const finalize = (status: string, errorCode?: string) => {
+  let terminal = false
+  const finalize = (errorMessage?: string) => {
     if (!streaming) return
     const done = { ...streaming, streaming: false }
-    if (errorCode) done.content += `\n\n（回答失败：${errorCode}）`
+    if (errorMessage) done.content += `\n\n（${errorMessage}）`
     streaming = null
     handlers.onDone?.(done)
-    void status
   }
 
   const handleFrame = (frame: string) => {
     let event = 'message'
     let data = ''
-    for (const line of frame.split('\n')) {
+    for (const line of frame.split(/\r?\n/)) {
       if (line.startsWith('event:')) event = line.slice(6).trim()
       else if (line.startsWith('data:')) data += line.slice(5).trimStart()
     }
@@ -209,8 +229,7 @@ export async function sendMessage(
 
     if (event === 'start') {
       const messageId = String(parsed.messageId ?? '')
-      const runId = String(parsed.runId ?? '')
-      streaming = assistantPlaceholder(messageId, runId)
+      streaming = assistantPlaceholder(messageId, sessionId)
       handlers.onStart?.(streaming)
     } else if (event === 'token') {
       const delta = String(parsed.delta ?? '')
@@ -219,9 +238,13 @@ export async function sendMessage(
         handlers.onDelta?.(streaming, delta)
       }
     } else if (event === 'done') {
-      finalize(String(parsed.status ?? 'COMPLETED'))
+      terminal = true
+      finalize()
     } else if (event === 'error') {
-      finalize('FAILED', String(parsed.errorCode ?? 'UNKNOWN'))
+      terminal = true
+      const message = String(parsed.message ?? '回答生成失败，请重试')
+      finalize(message)
+      throw new ApiError(message, Number(parsed.code ?? 0), 200, String(parsed.requestId ?? ''))
     }
   }
 
@@ -230,19 +253,25 @@ export async function sendMessage(
       const { done, value } = await reader.read()
       if (done) break
       buffer += decoder.decode(value, { stream: true })
-      let idx: number
-      while ((idx = buffer.indexOf('\n\n')) >= 0) {
-        const frame = buffer.slice(0, idx)
-        buffer = buffer.slice(idx + 2)
+      let boundary: RegExpExecArray | null
+      while ((boundary = /\r?\n\r?\n/.exec(buffer))) {
+        const frame = buffer.slice(0, boundary.index)
+        buffer = buffer.slice(boundary.index + boundary[0].length)
         if (frame.trim()) handleFrame(frame)
+        if (terminal) break
       }
+      if (terminal) break
     }
-    if (buffer.trim()) handleFrame(buffer.trim())
-    finalize('COMPLETED')
+    buffer += decoder.decode()
+    if (!terminal) throw new ApiError('流式响应中断，请刷新历史确认结果', 0, 0)
   } catch (e) {
     const err =
       e instanceof ApiError ? e : new ApiError('流式响应中断，请重新发送', 0, 0)
+    finalize(err.message)
     handlers.onError?.(err)
     throw err
+  } finally {
+    await reader.cancel().catch(() => {})
+    reader.releaseLock()
   }
 }

@@ -11,7 +11,7 @@
 - [dev-seed-upgrade.ps1](../../scripts/dev/dev-seed-upgrade.ps1)：开发种子升级脚本。
 - [docker-dev.ps1](../../scripts/dev/docker-dev.ps1)：开发容器管理脚本。
 - <a id="flyway-baseline"></a>[flyway-baseline.md](flyway-baseline.md)：Flyway 空库和旧库接管。
-- [local-development.md](local-development.md)：本地开发环境与联调。
+- [local-development.md](local-development.md)：本地开发环境与联调，包含 dev Nginx 8081 入口、IDEA Services 双实例 Run/Debug、Maven 双终端、Vite 5173 链路，以及 502/504 排查和回退命令。
 - <a id="logging"></a>[logging.md](logging.md)：日志配置和运行说明。
 - <a id="production"></a>[production.md](production.md)：生产运行与发布准备。
 - [verification.md](../testing/20261101-runtime-architecture/verification.md)：已有验证过程、结果与限制。

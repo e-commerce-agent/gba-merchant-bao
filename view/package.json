@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test": "node --test test/*.test.mjs",
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
@@ -21,6 +22,7 @@
   "devDependencies": {
     "@types/node": "^26.6.6",
     "@vitejs/plugin-vue": "^5.2.1",
+    "esbuild": "^0.25.12",
     "sass": "^1.83.0",
     "typescript": "~5.7.2",
     "vite": "^6.0.7",

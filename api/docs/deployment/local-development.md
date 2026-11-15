@@ -26,7 +26,8 @@ docker compose ps
 首次创建 Compose 文件、修改 Compose 配置或排查配置问题时，可以单独执行
 `docker compose config --quiet`。它是配置检查命令，不是每天启动 dev 的前置步骤。
 
-当前 dev Compose 只包含 MySQL 和 Redis，没有需要显式激活的 Compose profile。
+当前 dev Compose 默认包含 MySQL、Redis 和 Nginx，没有需要显式激活的 Compose profile。
+Nginx 仅发布 `127.0.0.1:8081:80`，后端仍由宿主机 IDEA/Maven 运行，不包含应用容器。
 登录会话复用现有 Redis，不需要 login profile 或额外 Redis 服务。后续引入其他中间件时，
 按对应模块说明启动；不要使用 `docker compose --profile "*" up -d`。
 
@@ -60,17 +61,76 @@ merchant:
 需要重新登录。JWT 密钥只由 API 使用：根 Compose 没有 app 服务，因此仅改 JWT 时不需要
 Docker 命令，也不用改根 `.env`。本次 Base64 语义替代旧短口令补长，旧会话同样需重新登录。
 
-IDEA 运行 MerchantApplication，JDK 21，工作目录设为仓库的 api，Active profiles 只填 dev。
-也可从 api 目录运行：
-
-```powershell
-mvn spring-boot:run '-Dspring-boot.run.arguments=--spring.profiles.active=dev'
-```
+IDEA 双实例配置及 Maven 双终端备用命令见下文。
 
 首次启动空库自动执行 V1→V9 和适用种子，无需 baseline。填好实际 dev YAML 后仅激活 dev 即可启动，无需个人旧库或云端 OSS/微信凭据；占位外部配置不表示相应业务可用。
-前端及 Apifox 的 API base URL 为 http://localhost:8080，健康检查 GET /api/v1/health；文档 /swagger-ui.html、/v3/api-docs.yaml。
+Apifox 可使用代理 API 入口 `http://localhost:8081/api/v1`，健康检查为
+`http://localhost:8081/api/v1/health`。需要定点访问宿主机后端时仍可直连 `http://localhost:8080`；
+Swagger `/swagger-ui.html` 和 `/v3/api-docs.yaml` 也通过后端直连访问。
+前端页面继续由 Vite 的 `http://127.0.0.1:5173` 提供，`/api` 默认代理到 Nginx 8081；
+真实联调需先按 [前端说明](../../../view/README.md#mock-与真实接口切换) 在本地覆盖中关闭两个 Mock 开关并重启 Vite。
+若浏览器 POST 返回 `403 Invalid CORS request`，检查 Vite `/api` 代理使用 `changeOrigin: false`，
+并由 Nginx 保留原 Host；否则 Host 被改为 8081、Origin 仍为页面 5173，会被 Spring 当作跨域拒绝。
+合法同源未登录请求应得到 JSON 401，恶意 Origin 仍应被拒绝，不需要放宽后端 CORS。
 数据库工具连接 127.0.0.1:3307/gba_dev，dev_admin；Redis 工具连接 127.0.0.1:6380，无认证。前端调用 API，不直接连接数据库。
 多个前端/后端开发者各自建立空库；共享联调如需 API 远程可达，单独约定主机地址。中间件保持 loopback。
+
+## IDEA Services 双实例
+
+在 **Run → Edit Configurations** 保留已有 `MerchantApplication` 作为实例一，复制一份命名为
+`MerchantApplication-8082`。两份均使用 Spring Boot 类型、主类 `com.gba.merchantbao.MerchantApplication`、
+模块 `gba-merchant-bao`、JDK 21，Active profiles 只填 `dev`，Working directory 指向仓库 `api`
+（IDEA 打开的项目根为 api 时可填 `$PROJECT_DIR$`）。
+
+| 配置 | Program arguments | 有效端口 / worker ID | 日志目录（相对 api） |
+| --- | --- | --- | --- |
+| MerchantApplication（实例一） | 留空 | 8080 / 0 | `.runtime/logs` |
+| MerchantApplication-8082（实例二） | `--server.port=8082 --merchant.id.worker-id=1 --logging.file.path=.runtime/logs/dev-8082` | 8082 / 1 | `.runtime/logs/dev-8082` |
+
+实例一使用 `application.yml` 的默认值，启动前检查实际 `application-dev.yml`、IDEA 的
+Environment variables、VM options 及继承的进程环境，确保没有 `SERVER_PORT`、
+`MERCHANT_ID_WORKER_ID`、`LOGGING_FILE_PATH`、`LOG_DIR`、`SPRING_APPLICATION_JSON` 或
+`-Dserver.port` / `-Dmerchant.id.worker-id` / `-Dlogging.file.path` 等覆盖这些值。
+也要检查 `JAVA_TOOL_OPTIONS`、`JDK_JAVA_OPTIONS` 和 `_JAVA_OPTIONS`；不要把旧实例的参数复制进实例一。
+两份配置均读取同一被忽略的 dev YAML，共享 MySQL、无密码 Redis、两把 JWT 密钥及启用时的
+RAG/Milvus；根 `.env` 只供 Compose 插值，不向 IDEA 注入，也不把个人密钥写入可提交的运行配置。
+
+先启动 Docker Desktop，在仓库根运行 `docker compose up -d --wait`；若本地 YAML 启用了 RAG，
+先按 [RAG 文档](../rag/README.md) 启动原有 Milvus standalone。运行实例一，等待
+`http://127.0.0.1:8080/api/v1/health` 成功及启动日志完成后再运行实例二，检查 8082 的相同健康路径。
+保留 dev 自动 Flyway（不要添加 `--spring.flyway.enabled=false`）；顺序启动也避免首次 RAG
+collection 初始化竞争。Milvus 仍通过宿主机 `127.0.0.1:19530` 共享，不增加第二套卷或容器。
+
+在 **View → Tool Windows → Services** 展开 Spring Boot；若配置未显示，使用 Services 的
+Add Service / Run Configuration Type 添加 Spring Boot。分别选择配置后使用 **Run** 或
+**Debug**，在对应条目查看控制台；**Stop** 只停止选中实例，需再次启动时使用该条目的
+**Run/Debug**，或用 **Rerun** 重启它。不要把两个实例一起启动来绕过首次初始化顺序。
+
+每个实例都有独立 Debug 会话，无需手填远程 JDWP 端口。可在 `FoundationController.health`
+的可执行行设置临时断点，先分别直连 8080/8082 验证两个会话，再通过 8081 或 Vite 请求观察命中节点。
+Nginx 轮询时断点只在收到该请求的实例触发；暂停整个 JVM 可能导致等待或超时，调试期间不保证严格
+逐个交替。需要定点调试时直连相应端口；验证后 Resume 并移除自己的临时断点。
+
+检查两个日志目录中的 `application.json` 和 `audit.json`，确认各自启动信息和请求 ID；不要让两个
+JVM 轮转同一文件。8081 是 API 入口，页面仍在 5173。Maven 运行成功不能代替 IDEA Debug 的断点验证。
+
+## Maven 双终端备用入口
+
+使用已安装 Maven，在两个终端分别进入仓库 `api` 目录，不引入 Maven Wrapper。
+先执行实例一，等健康检查成功后再执行实例二；与 IDEA 配置使用相同 dev YAML 和默认值，
+且不要与同端口的 IDEA 实例同时运行。
+
+```powershell
+# 终端一，工作目录 api：默认 8080、worker ID 0、.runtime/logs
+mvn spring-boot:run '-Dspring-boot.run.profiles=dev'
+```
+
+```powershell
+# 终端二，工作目录 api：覆盖 8082、worker ID 1 及独立日志目录
+mvn spring-boot:run '-Dspring-boot.run.profiles=dev' '-Dspring-boot.run.arguments=--server.port=8082 --merchant.id.worker-id=1 --logging.file.path=.runtime/logs/dev-8082'
+```
+
+各终端用 Ctrl+C 停止相应实例；重新执行同一命令即可重启。命令没有密钥参数，仍保留自动 Flyway。
 
 ## 日常启动和已有卷
 
@@ -87,7 +147,7 @@ docker compose down
 端口或挂载配置；仅在配置未变且需要重启进程时使用。以上操作都不要求重建或删除数据卷。
 
 如果需要等待健康检查完成，可在确认配置后使用 `docker compose up -d --wait`；它是可选的
-等待步骤。Docker Desktop 启动后，推荐顺序是：启动 Compose 中间件、在 IDEA 激活 Spring
+等待步骤。Docker Desktop 启动后，推荐顺序是：启动 Compose 中间件和 Nginx、在 IDEA 激活 Spring
 `dev`、再启动后端。后端通过 `dev_admin` 连接数据库，Flyway 会自动执行待执行迁移，随后即可
 进行断点调试。前端和 Apifox 使用同一 dev API，不连接 Testcontainers。
 
@@ -98,6 +158,62 @@ docker compose down
 
 持久化验收应在明确的 dev 目标内创建独立临时表/键，重启和重建后读取，最后仅定向清理自己的表/键；不要对联调业务表 TRUNCATE。
 自动化集成测试使用动态端口的 Testcontainers，可与 dev 同时运行；它不挂载这些卷。
+
+## dev Nginx 入口与排查
+
+根 Compose 使用固定镜像 `nginx:1.28.0-alpine`，只读挂载根目录的 `docker/nginx/dev.conf`。
+容器将 `/api` 和 `/api/` 下的原始路径及查询参数等权轮询到
+`host.docker.internal:8080`、`host.docker.internal:8082`。`host.docker.internal` 是
+Docker Desktop 提供的宿主机名称；容器里的 `localhost` 指向容器自身，不能用来访问 IDEA 进程。
+Nginx 不托管前端页面，`/`、`/apiary`、Swagger 等非 API 路径返回 404。
+
+先运行根目录的 `docker compose up -d`，再启动宿主机 dev 后端。
+即使两个后端都未启动，Nginx 也能启动，此时 API 返回 502。后端可达后无需重建 Nginx，
+被动失败检测窗口为 5 秒，恢复后再次请求即可；连接超时为 3 秒，每个请求最多尝试两个 upstream。
+`docker compose up -d --wait` 中 Nginx 的健康检查仅检查其配置；容器健康不代表后端健康。
+
+```powershell
+# 仓库根目录：配置检查、状态和后端健康请求
+docker compose config --quiet
+docker compose exec -T nginx nginx -t
+docker compose ps nginx
+curl.exe -i http://127.0.0.1:8081/api/v1/health
+# 直接检查宿主机两个端口；尚未运行的实例会连接失败
+curl.exe -i http://127.0.0.1:8080/api/v1/health
+curl.exe -i http://127.0.0.1:8082/api/v1/health
+docker compose logs --tail 50 nginx
+```
+
+502 先检查后端是否已启动、端口是否正确，再从 Nginx 容器检查宿主机解析及 HTTP 连接：
+
+```powershell
+docker compose exec -T nginx nslookup host.docker.internal
+docker compose exec -T nginx wget -S -O - http://host.docker.internal:8080/api/v1/health
+docker compose exec -T nginx wget -S -O - http://host.docker.internal:8082/api/v1/health
+```
+
+宿主机直连成功但容器连接失败时，检查后端监听地址和 Docker Desktop 到宿主机的防火墙规则；
+不要扩大 Nginx 的 loopback 发布范围。504 表示代理等待上游超时，检查 IDEA 断点、后端日志及
+依赖响应。读取和发送超时均为 300 秒，读取超时约束相邻读取的间隔；调整 Agent deadline 时须
+一起复核。已发出的 POST 和已建立的 SSE 不自动重放或跨实例接续。
+
+代理使用 HTTP/1.1，关闭响应缓冲、缓存及 gzip；2 MiB 请求体上限为现有 1 MiB 知识文件预留
+multipart 开销，业务限制仍由应用执行。凭证头与响应 Content-Type 保留，合法的 X-Request-Id
+原样转发，缺失或非法时生成请求 ID。JSON 访问日志只记录方法、路径、请求 ID、状态、总耗时及
+upstream 地址/状态/耗时，不记录查询参数、Authorization、Cookie 或正文。
+默认请求错误日志因包含完整 URI 而关闭，502/504 从上述访问日志检查；容器日志沿用 20 MB × 5 轮转。
+
+修改代理配置后，先检查再重载（宿主机后端启动/停止无需重载）：
+
+```powershell
+docker compose exec -T nginx nginx -t
+docker compose exec -T nginx nginx -s reload
+```
+
+临时回退可在根目录执行 `docker compose stop nginx`，让 Apifox 或本地调用方恢复直连
+`http://localhost:8080`；若 Vite 本地代理目标已改为 8081，将其改回 8080 并重启 Vite。
+永久撤销时再移除根 Compose 的 nginx 服务及 `docker/nginx/dev.conf`。
+不需要删除 MySQL/Redis/Milvus 卷或回退数据库；下次执行未移除 nginx 的根 `up -d` 会再次启动它。
 
 ## 配置与凭据边界
 
