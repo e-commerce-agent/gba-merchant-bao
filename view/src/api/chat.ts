@@ -156,7 +156,12 @@ export async function sendMessage(
 
   if (!res.ok) {
     let code = res.status
-    let message = `发送失败（${res.status}）`
+    let message = res.status === 502
+      ? '网关无法连接后端服务（502）'
+      : res.status === 504
+        ? '后端服务响应超时（504）'
+        : `发送失败（${res.status}）`
+    const responseRequestId = res.headers.get('X-Request-Id') || undefined
     try {
       const body = (await res.json()) as { code?: number; message?: string }
       if (body?.message) message = body.message
@@ -164,7 +169,8 @@ export async function sendMessage(
     } catch {
       /* 非 JSON 错误体，用兜底文案 */
     }
-    const err = new ApiError(message, code, res.status)
+    if (responseRequestId) message += `（请求编号：${responseRequestId}）`
+    const err = new ApiError(message, code, res.status, responseRequestId)
     handlers.onError?.(err)
     throw err
   }

@@ -103,3 +103,18 @@ test('invalid idempotency response reports failure to the page', async () => {
   await assert.rejects(chat.sendMessage(sessionId, '测试', { onError: error => errors.push(error) }))
   assert.equal(errors.length, 1)
 })
+
+test('gateway HTML errors preserve the proxy request ID for diagnosis', async () => {
+  globalThis.fetch = async () => new Response('<html>502 Bad Gateway</html>', {
+    status: 502,
+    headers: { 'Content-Type': 'text/html', 'X-Request-Id': 'nginx-trace-502' }
+  })
+  const errors = []
+  await assert.rejects(chat.sendMessage(sessionId, '测试', { onError: error => errors.push(error) }))
+  assert.equal(errors.length, 1)
+  assert.equal(errors[0].status, 502)
+  assert.equal(errors[0].code, 502)
+  assert.equal(errors[0].requestId, 'nginx-trace-502')
+  assert.match(errors[0].message, /502/)
+  assert.match(errors[0].message, /nginx-trace-502/)
+})

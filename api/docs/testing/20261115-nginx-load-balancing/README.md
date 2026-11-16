@@ -43,7 +43,7 @@ mvn -f api/pom.xml test-compile '-Dit.test=NginxLoadBalancingIT' failsafe:integr
 
 ## Docker Desktop 固定端口故障恢复
 
-Nginx 容器中 `getent hosts host.docker.internal` 解析到 `192.168.65.254`，容器内分别访问宿主机 8080、8082 健康接口成功。
+Nginx 容器中 `getent hosts host.docker.internal` 解析到 `本机IP地址`，容器内分别访问宿主机 8080、8082 健康接口成功。
 
 | 阶段 | 请求数 | HTTP 结果 | upstream 证据 |
 | --- | ---: | --- | --- |
