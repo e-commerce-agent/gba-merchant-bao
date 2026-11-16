@@ -18,7 +18,7 @@ public final class DevSeedUpgrade {
     public static final Set<String> OLD = Set.of("R__local_test_tenants.sql", "R__auth_demo_accounts.sql");
     public static final Set<String> NEW = Set.of("R__010_local_test_tenants.sql", "R__020_auth_demo_accounts.sql",
             "R__030_chat_demo.sql", "R__040_product_demo.sql", "R__050_inventory_demo.sql",
-            "R__060_order_demo_orders.sql", "R__070_shipment_demo_data.sql");
+            "R__060_order_demo_orders.sql", "R__070_shipment_demo_data.sql", "R__080_product_showcase.sql");
     public static final String[] LOCATIONS = {"classpath:db/migration", "classpath:db/seed/common",
             "classpath:db/seed/nonprod", "classpath:db/devdata"};
     private static final ObjectMapper JSON = new ObjectMapper();

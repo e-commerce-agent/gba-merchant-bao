@@ -22,5 +22,17 @@ services:
       driver: json-file
       options: {max-size: "20m", max-file: "5"}
 
+  # attu:
+  #   image: zilliz/attu:v2.5.10
+  #   profiles: [rag]
+  #   restart: unless-stopped
+  #   ports:
+  #     - "127.0.0.1:3001:3000"
+  #   environment:
+  #     MILVUS_URL: milvus:19530
+  #   depends_on:
+  #     milvus:
+  #       condition: service_healthy
+
 volumes:
   rag_milvus_data:

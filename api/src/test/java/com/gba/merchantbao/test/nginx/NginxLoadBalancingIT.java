@@ -86,8 +86,9 @@ class NginxLoadBalancingIT {
                 FROM merchant WHERE merchant_code='M_3C_DEMO'
                 """);
         Testcontainers.exposeHostPorts(ports);
-        String config = Files.readString(Path.of("../docker/nginx/dev.conf"));
-        for (int i = 0; i < 2; i++) config = config.replace("host.docker.internal:" + (i == 0 ? 8080 : 8082),
+        String config = Files.readString(Path.of("../docker/nginx/dev.conf"))
+                .replace("__HOST_GATEWAY_IPV4__", "host.testcontainers.internal");
+        for (int i = 0; i < 2; i++) config = config.replace("host.testcontainers.internal:" + (i == 0 ? 8080 : 8082),
                 "host.testcontainers.internal:" + ports[i]);
         Path generated = output.resolve("nginx.conf");
         Files.writeString(generated, config);

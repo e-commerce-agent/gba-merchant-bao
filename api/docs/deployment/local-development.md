@@ -161,10 +161,10 @@ docker compose down
 
 ## dev Nginx 入口与排查
 
-根 Compose 使用固定镜像 `nginx:1.28.0-alpine`，只读挂载根目录的 `docker/nginx/dev.conf`。
-容器将 `/api` 和 `/api/` 下的原始路径及查询参数等权轮询到
-`host.docker.internal:8080`、`host.docker.internal:8082`。`host.docker.internal` 是
-Docker Desktop 提供的宿主机名称；容器里的 `localhost` 指向容器自身，不能用来访问 IDEA 进程。
+根 Compose 使用固定镜像 `nginx:1.28.0-alpine`，只读挂载根目录的 `docker/nginx/dev.conf`，
+并由容器启动脚本生成活动配置。容器将 `/api` 和 `/api/` 下的原始路径及查询参数等权轮询到
+Docker `host-gateway` 的 IPv4 地址上 8080、8082 端口。容器里的 `localhost` 指向容器自身，
+不能用来访问 IDEA 进程。
 Nginx 不托管前端页面，`/`、`/apiary`、Swagger 等非 API 路径返回 404。
 
 先运行根目录的 `docker compose up -d`，再启动宿主机 dev 后端。
@@ -187,10 +187,16 @@ docker compose logs --tail 50 nginx
 502 先检查后端是否已启动、端口是否正确，再从 Nginx 容器检查宿主机解析及 HTTP 连接：
 
 ```powershell
-docker compose exec -T nginx nslookup host.docker.internal
-docker compose exec -T nginx wget -S -O - http://host.docker.internal:8080/api/v1/health
-docker compose exec -T nginx wget -S -O - http://host.docker.internal:8082/api/v1/health
+docker compose exec -T nginx grep -E 'server [0-9].*:808[02]' /etc/nginx/conf.d/default.conf
 ```
+
+从输出的 IPv4 地址分别检查 8080 和 8082 的 `/api/v1/health`；Nginx access log 中的
+`upstream_addr` 可确认实际连接地址及失败节点。
+
+开发代理在 Compose 中将专用别名 `host.docker.internal.v4` 映射到 Docker 的 `host-gateway`。
+容器启动脚本只提取 `/etc/hosts` 中该别名的 IPv4 地址并生成 Nginx upstream，因为 IDEA/Maven
+启动的后端监听 IPv4。若 Nginx 日志中的 `upstream_addr` 出现 IPv6 地址，检查容器是否由当前
+Compose 配置重建。
 
 宿主机直连成功但容器连接失败时，检查后端监听地址和 Docker Desktop 到宿主机的防火墙规则；
 不要扩大 Nginx 的 loopback 发布范围。504 表示代理等待上游超时，检查 IDEA 断点、后端日志及
@@ -201,6 +207,9 @@ docker compose exec -T nginx wget -S -O - http://host.docker.internal:8082/api/v
 multipart 开销，业务限制仍由应用执行。凭证头与响应 Content-Type 保留，合法的 X-Request-Id
 原样转发，缺失或非法时生成请求 ID。JSON 访问日志只记录方法、路径、请求 ID、状态、总耗时及
 upstream 地址/状态/耗时，不记录查询参数、Authorization、Cookie 或正文。
+Nginx 生成的 502/504 响应也带 `X-Request-Id`；聊天页会显示该请求号，便于在
+`docker compose logs nginx` 中按 `request_id` 查到实际 `upstream_addr`、`upstream_status`
+及耗时。502 表示连接/上游错误，可据此区分宿主机服务不可达或上游提前断开；504 表示超时。
 默认请求错误日志因包含完整 URI 而关闭，502/504 从上述访问日志检查；容器日志沿用 20 MB × 5 轮转。
 
 修改代理配置后，先检查再重载（宿主机后端启动/停止无需重载）：
@@ -212,7 +221,7 @@ docker compose exec -T nginx nginx -s reload
 
 临时回退可在根目录执行 `docker compose stop nginx`，让 Apifox 或本地调用方恢复直连
 `http://localhost:8080`；若 Vite 本地代理目标已改为 8081，将其改回 8080 并重启 Vite。
-永久撤销时再移除根 Compose 的 nginx 服务及 `docker/nginx/dev.conf`。
+永久撤销时再移除根 Compose 的 nginx 服务及 `docker/nginx/` 下的代理配置和启动脚本。
 不需要删除 MySQL/Redis/Milvus 卷或回退数据库；下次执行未移除 nginx 的根 `up -d` 会再次启动它。
 
 ## 配置与凭据边界

@@ -89,6 +89,10 @@ Redis、RabbitMQ、对象存储、向量数据库和关系数据库必须（MUST
 - **WHEN** 开发者启动文档规定的 `dev` 环境
 - **THEN** 根 Compose 在可覆盖的固定端口启动健康的 MySQL/Redis，IDEA 运行的 dev API 连接它们；MySQL 行和 Redis 键在重启或不删卷的容器重建后保留
 
+#### Scenario: Development API proxy reaches host backends
+- **WHEN** Nginx 代理转发到宿主机 IDEA/Maven 启动的 dev API
+- **THEN** Compose 将专用别名 `host.docker.internal.v4` 映射到 Docker 的 `host-gateway`，容器启动时只将其 IPv4 地址写入 Nginx upstream，避免将请求发送到未监听的 IPv6 地址
+
 #### Scenario: Development Redis has no password
 - **WHEN** 启动 dev 的 Redis 并连接 IDEA 应用或本地客户端
 - **THEN** dev `.env` 不包含 Redis 密码项，Compose 不设置 requirepass，应用不发送密码，健康检查使用无密码 PING；prod 的认证配置不受此规则影响
