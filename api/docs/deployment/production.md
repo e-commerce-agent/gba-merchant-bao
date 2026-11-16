@@ -85,7 +85,7 @@ docker compose --profile deploy run --rm migrate &&
 docker compose --profile deploy up -d --no-build app
 ```
 
-这里的 deploy 是 Compose profile。任何一步失败都不继续；空库从 V1 开始，已有旧库先执行 [核验与显式接管](flyway-baseline.md)，不得直接套首次空库流程。
+这里的 deploy 是 Compose profile。任何一步失败都不继续；空库从 V1 开始，已有旧库先执行 [核验与显式接管（本目录入口）](README.md#flyway-baseline)，不得直接套首次空库流程。
 检查 `docker compose --profile deploy ps`、`docker compose logs --tail=100 app`、Flyway history，以及 `curl -fsS http://127.0.0.1:8080/api/v1/health`（端口随 APP_PORT 调整）。up 成功只说明容器已启动，健康接口通过后才完成验收。
 
 ## 3. 上线后按场景操作
@@ -143,7 +143,7 @@ docker compose --profile deploy build app
 docker compose --profile deploy stop app
 ```
 
-执行 [备份恢复手册](backup-recovery.md) 中结构＋数据完整导出、文件核验和笔记本异机保存。备份失败则停止发布，不自动启动新版。确认迁移风险和备份后：
+执行 [备份恢复手册（本目录入口）](README.md#backup-recovery) 中结构＋数据完整导出、文件核验和笔记本异机保存。备份失败则停止发布，不自动启动新版。确认迁移风险和备份后：
 
 ```sh
 docker compose --profile deploy run --rm migrate &&

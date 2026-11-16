@@ -1,0 +1,53 @@
+{
+  "mode" : "real MySQL/Milvus and model SDKs; controlled HTTP model protocols; NOT real provider quality",
+  "cases" : [ {
+    "question" : "GbaPower充电器SKU-CHG-65W-CN的功率、插头和目录价是什么？",
+    "answer" : "# 3C配件商品资料（开发数据快照）\n\n商户M_3C_DEMO，币种CNY。GbaPower 65W GaN 氮化镓充电器（P-CHG-65W）：SKU-CHG-65W-CN为国标插头，65W，目录价99.00元；支持USB-C、PD3.0/QC4+/PPS。GbaPower USB-C 数据线（P-CBL-USBC）：SKU-CBL-USBC-1M-BK为1米黑色，目录价19.90元，USB-C转USB-C，480Mbps。GbaSound TWS 降噪蓝牙耳机（P-EAR-TWS）支持主动降噪、蓝牙5.3。来源R__040_product_demo.sql；非实时报价、库存或订单成交价。",
+    "sources" : [ {
+      "documentId" : "114743941374406656",
+      "chunkId" : "114743941374406657",
+      "title" : "商品资料",
+      "chunkNo" : 1,
+      "excerpt" : "# 3C配件商品资料（开发数据快照）\n\n商户M_3C_DEMO，币种CNY。GbaPower 65W GaN 氮化镓充电器（P-CHG-65W）：SKU-CHG-65W-CN为国标插头，65W，目录价99.00元；支持USB-C、PD3.0/QC4+/PPS。GbaPower USB-C 数据线（P-CBL-USBC）：SKU-CBL-USBC-1M-BK为1米黑色，目录价19.90元，USB-C转USB-C，480Mbps。GbaSound TWS 降噪蓝牙耳机（P-EAR-TWS）支持主动降噪、蓝牙5.3。来源R__040_product_demo.sql；非实时报价、库存或订单成交价。"
+    } ],
+    "passed" : true
+  }, {
+    "question" : "USB-C数据线SKU-CBL-USBC-1M-BK的长度、颜色、目录价和传输速率是什么？",
+    "answer" : "# 3C配件商品资料（开发数据快照）\n\n商户M_3C_DEMO，币种CNY。GbaPower 65W GaN 氮化镓充电器（P-CHG-65W）：SKU-CHG-65W-CN为国标插头，65W，目录价99.00元；支持USB-C、PD3.0/QC4+/PPS。GbaPower USB-C 数据线（P-CBL-USBC）：SKU-CBL-USBC-1M-BK为1米黑色，目录价19.90元，USB-C转USB-C，480Mbps。GbaSound TWS 降噪蓝牙耳机（P-EAR-TWS）支持主动降噪、蓝牙5.3。来源R__040_product_demo.sql；非实时报价、库存或订单成交价。",
+    "sources" : [ {
+      "documentId" : "114743941374406656",
+      "chunkId" : "114743941374406657",
+      "title" : "商品资料",
+      "chunkNo" : 1,
+      "excerpt" : "# 3C配件商品资料（开发数据快照）\n\n商户M_3C_DEMO，币种CNY。GbaPower 65W GaN 氮化镓充电器（P-CHG-65W）：SKU-CHG-65W-CN为国标插头，65W，目录价99.00元；支持USB-C、PD3.0/QC4+/PPS。GbaPower USB-C 数据线（P-CBL-USBC）：SKU-CBL-USBC-1M-BK为1米黑色，目录价19.90元，USB-C转USB-C，480Mbps。GbaSound TWS 降噪蓝牙耳机（P-EAR-TWS）支持主动降噪、蓝牙5.3。来源R__040_product_demo.sql；非实时报价、库存或订单成交价。"
+    } ],
+    "passed" : true
+  }, {
+    "question" : "未拆封的充电器购买后几天内能退货？非质量问题运费由谁承担？",
+    "answer" : "M_3C_DEMO售后政策（合成演示，Flyway未定义售后规则）：购买充电器、USB-C数据线或耳机后七日内，未拆封且配件齐全可申请退货；非质量问题退货运费由买家承担。已拆封耳机不适用此演示退货政策；故障问题联系店铺确认。此文不建立退款或订单处理功能。",
+    "sources" : [ {
+      "documentId" : "114743943911960576",
+      "chunkId" : "114743943911960577",
+      "title" : "售后政策",
+      "chunkNo" : 1,
+      "excerpt" : "M_3C_DEMO售后政策（合成演示，Flyway未定义售后规则）：购买充电器、USB-C数据线或耳机后七日内，未拆封且配件齐全可申请退货；非质量问题退货运费由买家承担。已拆封耳机不适用此演示退货政策；故障问题联系店铺确认。此文不建立退款或订单处理功能。"
+    } ],
+    "passed" : true
+  }, {
+    "question" : "M_3C_DEMO的3C店铺订单满多少元包邮？不满收多少运费？",
+    "answer" : "# 3C演示店铺规则（合成演示）\n\nM_3C_DEMO的3C演示店营业时间为每日09:00至18:00。订单满199元包邮，未满199元收取8元运费，仅配送中国大陆。营业和运费规则为本次合成文本，Flyway未定义这些规则。商品资料是目录快照，库存、订单成交价和物流状态以对应业务接口为准；本次RAG不会实时查询这些表。",
+    "sources" : [ {
+      "documentId" : "114743939864457216",
+      "chunkId" : "114743939864457217",
+      "title" : "店铺规则",
+      "chunkNo" : 1,
+      "excerpt" : "# 3C演示店铺规则（合成演示）\n\nM_3C_DEMO的3C演示店营业时间为每日09:00至18:00。订单满199元包邮，未满199元收取8元运费，仅配送中国大陆。营业和运费规则为本次合成文本，Flyway未定义这些规则。商品资料是目录快照，库存、订单成交价和物流状态以对应业务接口为准；本次RAG不会实时查询这些表。"
+    } ],
+    "passed" : true
+  }, {
+    "question" : "路由器R9000的固件更新周期是多久？",
+    "answer" : "当前资料中没有找到相关信息，请补充说明或联系店铺确认",
+    "sources" : [ ],
+    "passed" : true
+  } ]
+}

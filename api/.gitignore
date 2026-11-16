@@ -16,6 +16,7 @@ docs/prod-profile/opt/*
 !docs/prod-profile/opt/gba/
 docs/prod-profile/opt/gba/*
 !docs/prod-profile/opt/gba/docker-compose.yml
+!docs/prod-profile/opt/gba/docker-compose.rag.yml
 !docs/prod-profile/opt/gba/.env.example
 !docs/prod-profile/opt/gba/app/
 !docs/prod-profile/opt/gba/docker/

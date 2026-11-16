@@ -5,6 +5,7 @@ import type {
   ChatMessageView,
   ChatPageView,
   ChatSession,
+  ChatRunView,
   ChatSessionView,
   ChatSourceView,
   ChatToolCallView
@@ -51,8 +52,10 @@ export async function listSessions(options: ListSessionsOptions = {}): Promise<C
 }
 
 /** title 可省略（契约：空白使用「新对话」），最多 200 字符 */
-export function createSession(title?: string) {
-  return post<ChatSession>(SESSIONS_URL, title ? { title } : {})
+export async function createSession(title?: string): Promise<ChatSession> {
+  const payload = title ? { title } : {}
+  if (shouldMock(SESSIONS_URL)) return post<ChatSession>(SESSIONS_URL, payload)
+  return toChatCard(await post<ChatSessionView>(SESSIONS_URL, payload))
 }
 
 export function getSession(sessionId: string) {
@@ -71,11 +74,14 @@ export async function listMessages(sessionId: string, size = 50, cursor?: string
   if (shouldMock(SESSIONS_URL)) {
     return get<ChatMessage[]>(`${SESSIONS_URL}/${sessionId}/messages`)
   }
-  const page = await get<ChatPageView<ChatMessageView>>(
-    `${SESSIONS_URL}/${sessionId}/messages`,
-    params
-  )
-  return page.items.map(toChatBubble)
+  const messages: ChatMessage[] = []
+  for (;;) {
+    const page = await get<ChatPageView<ChatMessageView>>(`${SESSIONS_URL}/${sessionId}/messages`, params)
+    messages.push(...page.items.map(message => toChatBubble(message, sessionId)))
+    if (!page.hasMore || !page.nextCursor) break
+    params.cursor = page.nextCursor
+  }
+  return messages
 }
 
 export interface SendMessageHandlers {
@@ -94,10 +100,10 @@ function newClientMessageId(): string {
     : `00000000-0000-4000-8000-${Date.now().toString().padStart(12, '0')}`
 }
 
-function assistantPlaceholder(messageId: string, runId: string): ChatMessage {
+function assistantPlaceholder(messageId: string, sessionId: string): ChatMessage {
   return {
     id: messageId,
-    sessionId: runId,
+    sessionId,
     role: 'assistant',
     content: '',
     createdAt: new Date().toISOString(),
@@ -114,10 +120,11 @@ function assistantPlaceholder(messageId: string, runId: string): ChatMessage {
 export async function sendMessage(
   sessionId: string,
   content: string,
-  handlers: SendMessageHandlers = {}
+  handlers: SendMessageHandlers = {},
+  clientMessageId = newClientMessageId()
 ): Promise<void> {
   const url = `${SESSIONS_URL}/${sessionId}/messages`
-  const payload = { content, clientMessageId: newClientMessageId() }
+  const payload = { content, clientMessageId }
 
   /* ---- 离线演示：Mock 直接给展示模型（一次性整段回复） ---- */
   if (shouldMock(url)) {
@@ -135,6 +142,7 @@ export async function sendMessage(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Accept: 'text/event-stream, application/json',
         Authorization: `Bearer ${getToken()}`,
         'X-Request-Id': requestIdOf()
       },
@@ -163,16 +171,28 @@ export async function sendMessage(
 
   const contentType = res.headers.get('content-type') || ''
 
-  /* 幂等重放：同 clientMessageId 同正文，返回原 run 的 JSON 标识，直接查一次历史兜底 */
+  /* 幂等重放只返回标识；按游标查找原助手，不能将它伪装成空白成功。 */
   if (contentType.includes('application/json')) {
-    const body = (await res.json()) as { data?: { messageId: string; runId: string; status?: string } }
-    const run = body?.data
-    if (run?.messageId) {
-      const replay = assistantPlaceholder(run.messageId, run.runId)
+    try {
+      const body = (await res.json()) as { data?: ChatRunView }
+      const run = body?.data
+      if (!run?.messageId) throw new ApiError('服务未返回有效的聊天响应', 0, 200)
+      const replay = (await listMessages(sessionId)).find(message => message.id === run.messageId)
+      if (!replay) throw new ApiError('未找到原回答，请刷新历史', 0, 200)
       handlers.onStart?.(replay)
       handlers.onDone?.(replay)
+    } catch (e) {
+      const err = e instanceof ApiError ? e : new ApiError('原回答加载失败，请刷新历史', 0, 0)
+      handlers.onError?.(err)
+      throw err
     }
     return
+  }
+
+  if (!contentType.includes('text/event-stream')) {
+    const err = new ApiError('服务未返回有效的聊天响应', 0, res.status)
+    handlers.onError?.(err)
+    throw err
   }
 
   /* SSE：start → token* → done | error（HTTP 已 200，终态可能在帧里） */
@@ -186,14 +206,21 @@ export async function sendMessage(
   const decoder = new TextDecoder()
   let buffer = ''
   let streaming: ChatMessage | null = null
-  /** done 帧 payload：sources / toolCalls 在正文同事务提交后发送 */
-  let donePayload: { sources?: ChatSourceView[]; toolCalls?: ChatToolCallView[] } | null = null
+  let terminal = false
 
-  const finalize = (status: string, errorText?: string) => {
+  /** done 帧携带的 RAG 引用和工具调用摘要 */
+  let donePayload: {
+    sources?: ChatSourceView[]
+    toolCalls?: ChatToolCallView[]
+  } | null = null
+
+  const finalize = (errorMessage?: string) => {
     if (!streaming) return
+
     const done: ChatMessage = { ...streaming, streaming: false }
-    if (errorText) {
-      done.content += `\n\n（回答失败：${errorText}）`
+
+    if (errorMessage) {
+      done.content += `\n\n（${errorMessage}）`
     } else if (donePayload) {
       const citations = (donePayload.sources || []).map((s) => ({
         documentName: s.chunkNo > 1 ? `${s.title} · 第 ${s.chunkNo} 片` : s.title,
@@ -204,19 +231,20 @@ export async function sendMessage(
         params: {},
         success: t.status === 'SUCCEEDED'
       }))
+
       if (citations.length) done.citations = citations
       if (toolCalls.length) done.toolCalls = toolCalls
     }
+
     streaming = null
     donePayload = null
     handlers.onDone?.(done)
-    void status
   }
 
   const handleFrame = (frame: string) => {
     let event = 'message'
     let data = ''
-    for (const line of frame.split('\n')) {
+    for (const line of frame.split(/\r?\n/)) {
       if (line.startsWith('event:')) event = line.slice(6).trim()
       else if (line.startsWith('data:')) data += line.slice(5).trimStart()
     }
@@ -230,8 +258,7 @@ export async function sendMessage(
 
     if (event === 'start') {
       const messageId = String(parsed.messageId ?? '')
-      const runId = String(parsed.runId ?? '')
-      streaming = assistantPlaceholder(messageId, runId)
+      streaming = assistantPlaceholder(messageId, sessionId)
       handlers.onStart?.(streaming)
     } else if (event === 'token') {
       const delta = String(parsed.delta ?? '')
@@ -240,6 +267,7 @@ export async function sendMessage(
         handlers.onDelta?.(streaming, delta)
       }
     } else if (event === 'done') {
+      terminal = true
       donePayload = {
         sources: Array.isArray(parsed.sources)
           ? (parsed.sources as unknown as ChatSourceView[])
@@ -248,12 +276,22 @@ export async function sendMessage(
           ? (parsed.toolCalls as unknown as ChatToolCallView[])
           : undefined
       }
-      finalize(String(parsed.status ?? 'COMPLETED'))
+      finalize()
     } else if (event === 'error') {
-      // 契约 error 帧：code（如 TIMEOUT / CHAT_DEPENDENCY_UNAVAILABLE）+ message + terminalStatus
-      const code = String(parsed.code ?? parsed.errorCode ?? 'UNKNOWN')
-      const message = String(parsed.message ?? '')
-      finalize(String(parsed.terminalStatus ?? 'FAILED'), message ? `${message}（${code}）` : code)
+      terminal = true
+
+      const code = parsed.code ?? parsed.errorCode
+      const message = String(parsed.message || '回答生成失败，请重试')
+      const errorMessage = typeof code === 'string' && code ? `${message}（${code}）` : message
+
+      finalize(errorMessage)
+
+      throw new ApiError(
+        errorMessage,
+        typeof code === 'number' ? code : 0,
+        200,
+        String(parsed.requestId ?? '')
+      )
     }
   }
 
@@ -262,19 +300,25 @@ export async function sendMessage(
       const { done, value } = await reader.read()
       if (done) break
       buffer += decoder.decode(value, { stream: true })
-      let idx: number
-      while ((idx = buffer.indexOf('\n\n')) >= 0) {
-        const frame = buffer.slice(0, idx)
-        buffer = buffer.slice(idx + 2)
+      let boundary: RegExpExecArray | null
+      while ((boundary = /\r?\n\r?\n/.exec(buffer))) {
+        const frame = buffer.slice(0, boundary.index)
+        buffer = buffer.slice(boundary.index + boundary[0].length)
         if (frame.trim()) handleFrame(frame)
+        if (terminal) break
       }
+      if (terminal) break
     }
-    if (buffer.trim()) handleFrame(buffer.trim())
-    finalize('COMPLETED')
+    buffer += decoder.decode()
+    if (!terminal) throw new ApiError('流式响应中断，请刷新历史确认结果', 0, 0)
   } catch (e) {
     const err =
       e instanceof ApiError ? e : new ApiError('流式响应中断，请重新发送', 0, 0)
+    finalize(err.message)
     handlers.onError?.(err)
     throw err
+  } finally {
+    await reader.cancel().catch(() => {})
+    reader.releaseLock()
   }
 }

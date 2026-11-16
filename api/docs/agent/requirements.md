@@ -1,6 +1,6 @@
 # Agent 基础与对话接口需求
 
-状态：`add-agent-foundation-conversation-api` 的需求基线。实现与实际验收证据见 [验收记录](verification.md)，Apifox 导入和可控模型协议验收仍待完成，不能宣称全部验收通过。运行方式见 [手工验证和运行说明](manual-verification.md)，API 与 SSE 字段见 [接口契约](api-design.md)。
+状态：`add-agent-foundation-conversation-api` 的需求基线。实现与实际验收证据见 [验收记录（本目录入口）](README.md#verification)，Apifox 导入和可控模型协议验收仍待完成，不能宣称全部验收通过。运行方式见 [手工验证和运行说明（本目录入口）](README.md#manual-verification)，API 与 SSE 字段见 [接口契约（本目录入口）](README.md#api-design)。
 
 ## 1. 目标和范围
 
@@ -49,11 +49,11 @@ OpenAPI 是契约，Flyway 是迁移工具，TDD 是开发方法，Apifox 是联
 
 ## 5. 场景验收矩阵
 
-下列行逐一对应本 change 两份 delta spec 的全部 32 个 `Scenario`。英文名称是 spec 中的精确场景名，用于追踪；本表定义验收标准，逐项证据和实际状态以 [验收记录](verification.md) 为准。
+下列行逐一对应本 change 两份 delta spec 的全部 32 个 `Scenario`。英文名称是 spec 中的精确场景名，用于追踪；本表定义验收标准，逐项证据和实际状态以 [验收记录（本目录入口）](README.md#verification) 为准。
 
 ### 5.1 agent-runtime（14 个场景）
 
-来源：[agent-runtime spec](../../../openspec/changes/add-agent-foundation-conversation-api/specs/agent-runtime/spec.md)。
+来源：[agent-runtime spec（本目录入口）](README.md#agent-runtime-spec)。
 
 | 编号 | Spec Scenario | 验收标准 | 后续证据 |
 | --- | --- | --- | --- |
@@ -74,7 +74,7 @@ OpenAPI 是契约，Flyway 是迁移工具，TDD 是开发方法，Apifox 是联
 
 ### 5.2 agent-conversation（18 个场景）
 
-来源：[agent-conversation spec](../../../openspec/changes/add-agent-foundation-conversation-api/specs/agent-conversation/spec.md)。
+来源：[agent-conversation spec（本目录入口）](README.md#agent-conversation-spec)。
 
 | 编号 | Spec Scenario | 验收标准 | 后续证据 |
 | --- | --- | --- | --- |

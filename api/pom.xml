@@ -85,6 +85,8 @@
     <dependencies>
         <dependency><groupId>dev.langchain4j</groupId><artifactId>langchain4j-open-ai</artifactId></dependency>
         <dependency><groupId>dev.langchain4j</groupId><artifactId>langchain4j-http-client-jdk</artifactId></dependency>
+        <!-- Explicit scalar schema; the LangChain4j store's default VARCHAR IDs do not fit our BIGINT IDs. -->
+        <dependency><groupId>io.milvus</groupId><artifactId>milvus-sdk-java</artifactId><version>2.5.9</version></dependency>
         <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-web</artifactId></dependency>
         <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-security</artifactId></dependency>
         <dependency><groupId>org.springframework.security</groupId><artifactId>spring-security-test</artifactId><scope>test</scope></dependency>

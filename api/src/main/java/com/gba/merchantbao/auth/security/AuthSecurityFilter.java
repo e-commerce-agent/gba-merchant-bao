@@ -57,6 +57,7 @@ public class AuthSecurityFilter extends OncePerRequestFilter {
                     // Role authorization precedes body deserialization.
                     if(path.startsWith("/api/v1/staff-accounts"))AccountService.requireRole(actor,AccountRole.MERCHANT_STAFF);
                     if(path.startsWith("/api/v1/consumer-accounts"))AccountService.requireRole(actor,AccountRole.CONSUMER);
+                    if(path.equals("/api/v1/knowledge")||path.startsWith("/api/v1/knowledge/"))AccountService.requireRole(actor,AccountRole.MERCHANT_STAFF);
                     if(!request.getMethod().equals("GET")&&PRODUCT_WRITE.matcher(path).matches())AccountService.requireRole(actor,AccountRole.MERCHANT_STAFF);
                 }
                 SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(principal,null,List.of(new SimpleGrantedAuthority("ROLE_"+role))));

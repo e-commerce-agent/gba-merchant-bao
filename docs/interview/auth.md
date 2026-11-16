@@ -1,6 +1,6 @@
 # 认证模块面试卡片
 
-更新：2026-11-06。实现已由 [PR #12](https://github.com/e-commerce-agent/gba-merchant-bao/pull/12) 合入；本次 `docs/auth-interview` 只归档和整理材料，不增加认证功能。完整需求与决策见 [归档 change](../../openspec/changes/archive/2026-11-06-add-redis-auth-sessions/design.md)，实际验证见 [验收记录](../../api/docs/auth/verification.md)。
+更新：2026-11-06。实现已由 [PR #12](https://github.com/e-commerce-agent/gba-merchant-bao/pull/12) 合入；本次 `docs/auth-interview` 只归档和整理材料，不增加认证功能。完整需求与决策见 [归档 change](../../openspec/changes/archive/2026-11-06-add-redis-auth-sessions/design.md)，实际验证见 [验收记录](../../api/docs/testing/20261106-auth-acceptance/README.md)。
 
 ## 一、业务梳理
 
@@ -114,7 +114,7 @@ Commit 链接：[账户持久化 c4802d2](https://github.com/e-commerce-agent/gb
 
 | 记录 | 实际结果 | 来源与解释 |
 | --- | --- | --- |
-| `mvn -f api/pom.xml test` | 44 项，失败/错误/跳过均 0；19:27:41 完成 | Surefire XML 与 [最终验收](../../api/docs/auth/verification.md) |
+| `mvn -f api/pom.xml test` | 44 项，失败/错误/跳过均 0；19:27:41 完成 | Surefire XML 与 [最终验收](../../api/docs/testing/20261106-auth-acceptance/README.md) |
 | `mvn -f api/pom.xml clean verify` | 44 单元/契约 + 62 IT = 106 项；失败/错误/跳过均 0；6 分 45 秒 | 19:34:59 完成；重复运行的 44 项不再累计成独立用例 |
 | 核心认证 IT | AuthFlowIT 15 项，AuthSmsRedisIT 6 项，AuthDevManualIT 1 项 | 类级用例数，不能表述为“并发 15/6/1 人” |
 | HTTP / Springdoc | 九操作；隔离 PowerShell 联调 PASS | 实际快照结构比较忽略 runtime servers 后一致；未执行独立 oasdiff 或 Apifox |

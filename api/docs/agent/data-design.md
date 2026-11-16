@@ -1,10 +1,10 @@
 # Agent 会话数据设计
 
-本文件对应 change 的任务 2，聚焦持久化设计；接口见 [api-design.md](api-design.md)，需求见 [requirements.md](requirements.md)。模型调用、Service 编排与 HTTP/SSE 的实现证据见 [verification.md](verification.md)；Redis ChatMemory 仍属后续工作。
+本文件描述 Agent 会话的持久化设计；接口见 [接口契约（本目录入口）](README.md#api-design)，需求见 [requirements 文档（本目录入口）](README.md#requirements)。模型调用、Service 编排与 HTTP/SSE 的实现证据见 [验收记录（本目录入口）](README.md#verification)；Redis ChatMemory 仍属后续工作。
 
 ## 迁移与数据约定
 
-现有结构迁移为 V1–V4；新增 `V5__agent_conversation.sql`，不改写既有脚本及 checksum。商品/订单等模块汇合时只协调**尚未执行**的编号；已执行的迁移只通过后续前向迁移修正。生产回退先禁用功能，保留历史，不删除已执行迁移。
+会话基础结构由 `V5__agent_conversation.sql` 引入，不改写既有脚本及 checksum。商品/订单等模块汇合时只协调**尚未执行**的编号；已执行的迁移只通过后续前向迁移修正。生产回退先禁用功能，保留历史，不删除已执行迁移。RAG 通过 V10 增加来源快照，Function Calling 通过 `V11__agent_tool_summary.sql` 新增可空 `tool_calls_json JSON`；既有消息保持 NULL，读取时映射为 `[]`。
 
 沿用 InnoDB、utf8mb4、BIGINT Snowflake ID 和 merchant 租户根。Java 持久化行使用 record，ID 由现有 IdGenerator 分配；API 层另行转换为十进制字符串。本模块时间用 UTC `DATETIME(3)`，Java 用 LocalDateTime 表达数据库 UTC 墙钟值，后续 Service 必须用 UTC 时钟创建，VO 转 ISO-8601 UTC；既有认证表的 TIMESTAMP(6) 不改动。DATETIME 不自动转换时区，不能使用服务器本地时间写入。
 
@@ -40,6 +40,8 @@
 | error_code | VARCHAR(64) ASCII binary，可空 | 失败/取消/超时的稳定错误；成功及非终态为空 |
 | prompt_version / model_service_label / model_name | VARCHAR(64)/VARCHAR(64)/VARCHAR(128)，可空 | 助手调用元信息，不保存 URL、key 或完整 Prompt |
 | input_tokens / output_tokens | BIGINT，可空 | 助手可得用量，非负；未知为 NULL，USER 必须空 |
+| sources_json | JSON，可空 | V10：成功助手消息实际入模的 RAG 来源快照；其他情况为空 |
+| tool_calls_json | JSON，可空 | V11：最多一个固定工具成功摘要，仅 name=lookup_order、status=SUCCEEDED；不存参数、订单号或原始结果 |
 | created_at / completed_at | DATETIME(3) | 创建非空，终态完成时间非空，非终态完成时间为空；完成不早于创建 |
 
 复合 FK `(merchant_id,session_id) → chat_session(merchant_id,id)` 阻止跨租户挂载，默认 RESTRICT，不级联删除审计历史。唯一键均为租户前缀：
@@ -69,23 +71,10 @@
 
 每组都有同商户两个消费者、一个员工和另一商户消费者；每个会话各一轮静态问答，next_message_seq=3。所有开发问答标明为演示，不冒充模型联调。R030 的依赖/身份检查在业务写入前完成，保留临时校验列名作为错误定位；MySQL 临时表不能在同一语句中重复打开，依赖和身份校验分成三条 INSERT。显式补种也要求停写、备份及核对身份，不对业务并发补种作承诺。
 
-## 2026-11-08 持久化验证
+持久化阶段结果见 [本目录 README](README.md#persistence-verification)。
 
-本轮按切片先观察失败再实现：迁移仍停在 V4、非法状态未被拒绝、Mapper 类型缺失、@Sql fixture 缺失、R030 数据缺失，以及旧维护工具拒绝待执行 V5。对应实现后分别复验通过。仅实现任务 2，后续 Service 必须继续验证幂等、双消息原子提交及跨实例执行事务，不能将这些 Mapper 测试等同于完整运行时验收。
+## Function Calling 终态快照
 
-最终在仓库根运行（本地 Maven 依赖已缓存，使用 `-o`）：
+`ChatService.finish` 在同一短事务内校验本人会话及原运行权，更新助手正文/终态/用量，保存 `sources_json` 和 `tool_calls_json`，再释放运行权。任一写入失败均回滚，不发送 SSE done。仅在事务提交后向客户端发送相同的来源和工具摘要。
 
-```powershell
-mvn -o -f api/pom.xml '-Dtest=ChatSchemaIT,ChatPersistenceIT,DevSeedMigrationIT,FlywayMigrationIT,AuthSchemaIT,AuthPersistenceIT,FoundationSchemaContractTest,MigrationScriptContractTest,RuntimeConfigurationTest' test
-```
-
-| 测试 | 通过项数 | 验证边界 |
-| --- | --- | --- |
-| ChatSchemaIT | 2 | 空库/V4 升级、历史 checksum/行保留、租户 FK、幂等/序号/run 唯一、状态/身份/用量约束 |
-| ChatPersistenceIT | 3 | 角色/账号/商户隔离、会话游标、消息序号、归档/运行权条件写、终态/迟到回调、fixture 显式加载与回滚 |
-| DevSeedMigrationIT | 21 | R030 顺序/补缺/人工修改/身份冲突，以及既有改名维护、备份恢复、CLI 与拒绝未知迁移 |
-| FlywayMigrationIT | 4 | 既有空库、baseline、V3 升级、重复执行兼容 |
-| AuthSchemaIT / AuthPersistenceIT | 2 / 4 | 既有认证结构与 Mapper 回归 |
-| FoundationSchemaContractTest / MigrationScriptContractTest / RuntimeConfigurationTest | 4 / 3 / 3 | V1–V4 不变、种子脚本约定、test/prod locations 隔离 |
-
-共 **46 项，0 failures、0 errors、0 skipped**，Maven 退出码 0。原始报告在 `api/target/surefire-reports/` 的对应 `TEST-*.xml` 和 `.txt`。`openspec validate add-agent-foundation-conversation-api --strict` 通过。V1–V4 的文件 SHA256 与本轮修改前一致；测试不操作开发数据库或数据卷。此记录仅是持久化阶段验证，完整模块验收仍由后续任务完成。
+只有工具查询和最终回答都成功完成才保存 `[{"name":"lookup_order","status":"SUCCEEDED"}]`；成功但未调用工具保存 `[]`。失败、取消、超时清空两个快照；USER、旧消息及未成功完成的消息在 API 中统一返回 `toolCalls: []`。模型调用 id、原始参数、订单结果只留在本次服务端协议往返中。

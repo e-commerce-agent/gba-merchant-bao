@@ -2,6 +2,10 @@ server:
   port: 8080
 
 spring:
+  servlet:
+    multipart:
+      # Resolve after route selection, so the knowledge advice can return our 413 envelope.
+      resolve-lazily: true
   jackson:
     serialization:
       write-dates-as-timestamps: false
@@ -35,7 +39,7 @@ springdoc:
   swagger-ui:
     enabled: ${merchant.openapi.enabled:true}
     path: /swagger-ui.html
-  packages-to-scan: com.gba.merchantbao.legacy,com.gba.merchantbao.api,com.gba.merchantbao.auth.controller,com.gba.merchantbao.chat.controller,com.gba.merchantbao.shipment.controller,com.gba.merchantbao.product.controller,com.gba.merchantbao.inventory.controller,com.gba.merchantbao.order.controller
+  packages-to-scan: com.gba.merchantbao.legacy,com.gba.merchantbao.api,com.gba.merchantbao.auth.controller,com.gba.merchantbao.chat.controller,com.gba.merchantbao.knowledge.controller,com.gba.merchantbao.shipment.controller,com.gba.merchantbao.product.controller,com.gba.merchantbao.inventory.controller,com.gba.merchantbao.order.controller
 
 mybatis:
   #mapper配置文件
@@ -54,6 +58,15 @@ logging:
     com.gba.merchantbao.legacy.controller: info
 
 merchant:
+  rag:
+    enabled: ${MERCHANT_RAG_ENABLED:false}
+    embedding-base-url: ${RAG_EMBEDDING_BASE_URL:}
+    embedding-api-key: ${RAG_EMBEDDING_API_KEY:}
+    embedding-model: ${RAG_EMBEDDING_MODEL:text-embedding-3-small}
+    embedding-dimension: ${RAG_EMBEDDING_DIMENSION:1536}
+    milvus-uri: ${RAG_MILVUS_URI:http://127.0.0.1:19530}
+    milvus-token: ${RAG_MILVUS_TOKEN:}
+    collection: ${RAG_COLLECTION:knowledge_text_embedding_3_small}
   agent:
     enabled: false
     prompt-version: assistant-v1

@@ -1,6 +1,6 @@
 # Agent 基础与对话接口契约
 
-状态：`add-agent-foundation-conversation-api` 的接口设计基线，需求和场景矩阵见 [需求文档](requirements.md)。Service 已按可信 Actor 实现本人会话与幂等归档：员工、同租户他人和跨租户资源同为 404，运行中归档为 busy。实际 HTTP/SSE 与快照以对应实现任务及测试为准；本文不表示通过 Apifox 验收。
+状态：`add-agent-foundation-conversation-api` 的接口设计基线，需求和场景矩阵见 [需求文档（本目录入口）](README.md#requirements)。Service 已按可信 Actor 实现本人会话与幂等归档：员工、同租户他人和跨租户资源同为 404，运行中归档为 busy。实际 HTTP/SSE 与快照以对应实现任务及测试为准；本文不表示通过 Apifox 验收。
 
 ## 1. 公共协议
 
@@ -100,7 +100,9 @@ JSON 错误示例（所有 404 不透露到底是跨租户、他人还是不存�
   "inputTokens": null,
   "outputTokens": null,
   "createdAt": "2026-11-08T08:03:12Z",
-  "completedAt": "2026-11-08T08:03:14Z"
+  "completedAt": "2026-11-08T08:03:14Z",
+  "sources": [],
+  "toolCalls": []
 }
 ```
 
@@ -163,6 +165,12 @@ POST `/api/v1/chat/sessions/{sessionId}/archive` 不携带 body（允许 `{}`，
 
 GET `/api/v1/chat/sessions/{sessionId}/messages?size=20` 返回 data={items:[ChatMessageView],nextCursor,hasMore}，严格按 messageSeq 升序。归档和异常轮次均可读，历史不只返回成功文本。部分 token 在本次运行未结束前可能只在 SSE 中，不承诺每个 token 立刻出现在数据库；进程崩溃可能丢失未提交部分。
 
+RAG 增量：每条历史消息追加 `sources` 数组，仅成功助手回答包含本次实际入模资料的快照；旧消息、USER、失败/取消/超时、无资料均为 `[]`。字段和聊天接入行为见 [RAG 聊天增量](../rag/README.md#现有聊天增量)。合法重复提交仍返回原 ChatRunView，来源从本人历史读取。
+
+Function Calling 增量：每条历史消息和 SSE done 必须包含 `toolCalls` 数组，最多一项。工具查询且最终回答成功时为 `[{"name":"lookup_order","status":"SUCCEEDED"}]`；未调用、旧消息、USER、失败、取消、超时均为 `[]`。摘要只含固定工具名和成功状态，不含调用 id、订单号、原始参数或原始结果。正文、`sources` 和 `toolCalls` 在同一终态事务提交，done 与后续历史保持一致；摘要保存失败返回 error，不发送 done。
+
+不新增 HTTP 路由或请求字段，提交仍只有 `{content,clientMessageId}`。RAG 无匹配时空来源和原问题继续进入模型，模型可选择唯一订单工具；命中资料时来源仍保留。
+
 ### 3.5 提交新消息和重复请求
 
 ```http
@@ -220,7 +228,7 @@ X-Request-Id: chat-send-001
 | 输出 token 后模型故障 | 一次 error、保存 FAILED，不从头重生成 | 无新 run |
 | 断线后请求命中另一实例 | GET 历史或原 key JSON 返回共享已提交状态，无重放 | 无 |
 
-以上契约由 Service/MySQL、MockMvc、真实 Servlet HTTP 与本地模型协议 stub 定向测试覆盖。实际 Springdoc 分组及导出方式见 [运行说明](manual-verification.md)；Apifox 导入仍属后续任务。
+以上契约由 Service/MySQL、MockMvc、真实 Servlet HTTP 与本地模型协议 stub 定向测试覆盖。实际 Springdoc 分组及导出方式见 [运行说明（本目录入口）](README.md#manual-verification)；Apifox 导入仍属后续任务。
 
 ## 5. SSE 事件协议（v1）
 
@@ -230,7 +238,7 @@ X-Request-Id: chat-send-001
 
 | 项目 | 类型/语义 |
 | --- | --- |
-| event | start/token/done/error；未来可能新增 citation/tool_call，客户端应忽略未识别的非终止扩展事件 |
+| event | start/token/done/error；本期仅这四种事件，工具摘要位于 done.toolCalls，不发送独立 tool_call |
 | id | `runId:seq`，seq 从 1 递增的十进制事件序号；仅供流内关联，不是消息序号或可重放游标 |
 | data.version | 固定字符串 v1 |
 | data.runId | 此轮运行 ID，十进制字符串；同一流不改变 |
@@ -244,7 +252,7 @@ X-Request-Id: chat-send-001
 | --- | --- | --- |
 | start | userMessageId：用户消息 ID；两条消息已可靠接收 | 否，恰好一次且第一个 |
 | token | delta：非空文本片段，可包含换行；一次 delta 不等于一个 tokenizer token | 否，零至多个，有序拼接 |
-| done | status=COMPLETED；usage：null 或可得用量对象 | 是，最终状态已落库 |
+| done | status=COMPLETED；usage：null 或可得用量对象；sources：实际入模参考片段数组，无资料为 []；toolCalls：固定工具摘要数组，未调用为 [] | 是，正文、sources 及 toolCalls 同事务提交 |
 | error | code：第 1.2 节字符串标识；message：安全摘要；terminalStatus=CANCELLED/TIMED_OUT/FAILED | 是，不再发 done |
 
 `usage` 未获得任何实际用量时整体 null；部分获得时允许 `{inputTokens:null,outputTokens:18}`。不得用估算值冒充供应商计费。历史用量字段与 run 对应，未知仍为 null。
@@ -272,7 +280,7 @@ data: {"version":"v1","runId":"500000000000000001","sessionId":"3000000000000000
 
 event: done
 id: 500000000000000001:4
-data: {"version":"v1","runId":"500000000000000001","sessionId":"300000000000000001","messageId":"400000000000000002","requestId":"chat-send-001","status":"COMPLETED","usage":null}
+data: {"version":"v1","runId":"500000000000000001","sessionId":"300000000000000001","messageId":"400000000000000002","requestId":"chat-send-001","status":"COMPLETED","usage":null,"sources":[],"toolCalls":[]}
 
 ```
 
@@ -301,7 +309,7 @@ data: {"version":"v1","runId":"500000000000000001","sessionId":"3000000000000000
 
 ### 5.4 后续 citation/tool_call
 
-这两种名称只保留扩展约定，不属于本期实际发出的事件。后续事件继续包含 v1 公共关联字段；citation 用于经过可见性校验的来源引用，tool_call 用于脱敏的执行摘要，均不是终止事件。具体 payload/schema 在 RAG/FC change 冻结，不在本期设计假引用、开放任意工具执行或泄露原始工具参数/返回值。未知非终止扩展事件不能被前端当作 done。
+这两种名称只保留扩展约定，不属于本期实际发出的事件。后续事件继续包含 v1 公共关联字段；citation 用于经过可见性校验的来源引用，tool_call 用于脱敏的执行摘要，均不是终止事件。RAG 来源通过 sources 返回，Function Calling 摘要通过 toolCalls 返回；不开放任意工具执行或暴露原始工具参数/返回值。未知非终止扩展事件不能被前端当作 done。
 
 ## 6. 浏览器 fetch、CORS 与断线恢复
 

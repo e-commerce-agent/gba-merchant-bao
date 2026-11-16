@@ -1,9 +1,6 @@
 # Agent Apifox 导入与验收
 
-## 实际状态（2026-11-09）
-
-目标项目为「商户宝Agen电商客服API」
-用户已明确确认将 [实际 Springdoc 快照](../../../docs/api/agent-conversation-v1.openapi.yaml) 和认证模块导入 Apifox 客户端，无需重复导入。独立环境、本地凭据引用及协议用例仍待核对/执行，任务 6.1、6.2不做了。
+实际阶段状态见 [本目录 README](README.md#apifox-status)。
 
 ## 导入与本地环境
 
@@ -13,16 +10,17 @@
 4. 本地值中保存 accessToken、staffToken、otherTenantToken、sessionId、clientMessageId；共享/初始值留空。Bearer 引用 `{{accessToken}}`，路径引用 `{{sessionId}}`。登录返回的 data.accessToken 与后端 merchant.agent.api-key 不同；Apifox 不需要模型 key。
 5. 新发送意图使用新 UUID，网络重试和幂等用例复用原 UUID/原文；保存业务标识供历史与 DB 查询。环境和用例导出前去掉 token、开发密码和真实 key。
 
-自动化 [ChatAcceptanceIT](../../src/test/java/com/gba/merchantbao/test/ChatAcceptanceIT.java) 提供独立 MySQL/Redis 与真实认证的可控模型基线。另提供仅显式选择才运行的 [AgentApifoxWorkspace](../../src/test/java/com/gba/merchantbao/test/AgentApifoxWorkspace.java)，默认 test/verify 不选择它，也不打入应用 JAR。需要 Docker，在仓库根目录启动：
+自动化 [ChatAcceptanceIT](../../src/test/java/com/gba/merchantbao/test/chat/ChatAcceptanceIT.java) 提供独立 MySQL/Redis 与真实认证的可控模型基线。另提供仅显式选择才运行的 [AgentApifoxWorkspace](../../src/test/java/com/gba/merchantbao/test/chat/AgentApifoxWorkspace.java)，默认 test/verify 不选择它，也不打入应用 JAR。需要 Docker，在仓库根目录启动：
 
 ```powershell
 mvn -f api/pom.xml '-Dtest=AgentApifoxWorkspace#serveApifoxOnDisposableInfrastructure' test
 ```
 
-服务仅绑定 127.0.0.1，使用 test profile 与动态端口，45 分钟后超时失败。准备成功后 `api/.runtime/agent-apifox-local.json` 记录 baseUrl、fixtureUrl 与手工用例 sessionId；不记录真实模型 key。fixtureUrl 是本机临时入口，不要公开。每次请求可从该入口获取临时应用登录 token，token 只存脚本运行变量，不放共享环境。停止时从仓库根目录另开终端执行：
+服务仅绑定 127.0.0.1，使用 test profile 与动态端口，45 分钟后超时失败。准备成功后 `api/.runtime/manual/agent/agent-apifox-local.json` 记录 baseUrl、fixtureUrl 与手工用例 sessionId；不记录真实模型 key。fixtureUrl 是本机临时入口，不要公开。每次请求可从该入口获取临时应用登录 token，token 只存脚本运行变量，不放共享环境。停止时从仓库根目录另开终端执行：
 
 ```powershell
-New-Item -ItemType File -Path api/.runtime/agent-apifox.stop
+New-Item -ItemType Directory -Force -Path api/.runtime/manual/agent
+New-Item -ItemType File -Path api/.runtime/manual/agent/agent-apifox.stop
 ```
 
 服务会退出临时账号会话、关闭 helper、清理容器。下次启动前只删除该 stop 标记。不要把临时地址当作长期服务或指向共享 dev 中间件。
@@ -54,4 +52,4 @@ FROM chat_message WHERE merchant_id = ? AND session_id = ? AND run_id = ?
 ORDER BY message_seq;
 ```
 
-每轮记录 HTTP/MIME、事件顺序、业务标识、预设正文比对、DB 终态和清理结果；不用整表计数或空表假设。归档测试会话并退出临时认证。真实模型只断言非空输出、完成状态和历史一致，实际结果见 [verification.md](verification.md)。
+每轮记录 HTTP/MIME、事件顺序、业务标识、预设正文比对、DB 终态和清理结果；不用整表计数或空表假设。归档测试会话并退出临时认证。真实模型只断言非空输出、完成状态和历史一致，实际结果见 [验收记录（本目录入口）](README.md#verification)。

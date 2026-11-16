@@ -143,8 +143,8 @@ const CHAT_FAILED_TEXT: Record<string, string> = {
  * 消息气泡。契约 senderType 只有 USER/ASSISTANT（人工客服身份为未来扩展）。
  * RAG 来源快照映射为引用列表；toolCalls 为唯一只读订单工具的固定成功摘要。
  */
-export function toChatBubble(message: ChatMessageView): ChatMessage {
-  const failedText = CHAT_FAILED_TEXT[message.status]
+export function toChatBubble(message: ChatMessageView, sessionId: string): ChatMessage {
+  const failedText = message.senderType === 'ASSISTANT' ? CHAT_FAILED_TEXT[message.status] : undefined
   const citations = (message.sources || []).map((s) => ({
     documentName: s.chunkNo > 1 ? `${s.title} · 第 ${s.chunkNo} 片` : s.title,
     snippet: s.excerpt
@@ -156,7 +156,7 @@ export function toChatBubble(message: ChatMessageView): ChatMessage {
   }))
   return {
     id: message.messageId,
-    sessionId: message.runId,
+    sessionId,
     role: message.senderType === 'USER' ? 'user' : 'assistant',
     content: failedText ? `${message.content}\n\n（${failedText}）` : message.content,
     createdAt: message.createdAt,

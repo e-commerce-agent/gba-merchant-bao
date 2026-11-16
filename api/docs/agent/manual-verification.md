@@ -1,12 +1,12 @@
 # 对话接口手工验证与运行说明
 
-本页对应第 3～5 节实现。接口契约见 [api-design.md](api-design.md)，模型配置见 [model-integration.md](model-integration.md)。
+本页对应第 3～5 节实现。接口契约见 [接口契约（本目录入口）](README.md#api-design)，模型配置见 [model-integration 文档（本目录入口）](README.md#model-integration)。
 实际 Springdoc 分组：`GET /v3/api-docs.yaml/agent-conversation-v1`；仓库快照为 [agent-conversation-v1.openapi.yaml](../../../docs/api/agent-conversation-v1.openapi.yaml)。
 `ChatHttpIT` 从随机端口应用导出并解析 YAML，断言六操作、鉴权、错误、SSE/JSON MIME 与事件样例。
 
 ## 启动与凭证选择
 
-公共配置默认禁用模型；dev 直接在被忽略的 application-dev.yml 中配置 merchant.agent，dots 地址/模型/api-key 请求头见 [模型配置](model-integration.md)。本机文件已预填并启用，填入 api-key 后以 dev 启动或重启 API 即可；不需要配置额外环境变量。
+公共配置默认禁用模型；dev 直接在被忽略的 application-dev.yml 中配置 merchant.agent，dots 地址/模型/api-key 请求头见 [模型配置（本目录入口）](README.md#model-integration)。本机文件已预填并启用，填入 api-key 后以 dev 启动或重启 API 即可；不需要配置额外环境变量。
 base-url 为 API 根地址，不能包含 `/chat/completions`。浏览器只持有本应用的 access token。
 消费者使用目标 store 对应消费者登录流程取得的 access token；员工使用该商户员工登录流程取得的 access token。
 员工也只能查看自己创建的会话，不能用员工 token 查看消费者会话。切换 store 或账号时同时切换 token 和 sessionId；不能通过 body 传 merchantId/accountId/role 切换身份。
@@ -126,4 +126,4 @@ status 标签为固定集合，不把 requestId/runId/商户放入指标标签�
 
 部署反向代理时再针对消息 POST 核对 `proxy_buffering off`、缓存关闭、读取/发送超时大于应用总 deadline + 写入余量，避免压缩/代理聚合抹掉分段体验。
 通过浏览器网络面板和 `curl -N` 确认 start/token 逐段到达，测试断开、慢客户端、CORS 和 X-Request-Id 透传；数据库共享运行权不依赖粘性会话。
-当前没有部署 Nginx 或完整聊天前端。真实模型、独立 MySQL/Redis 综合验收和 Apifox 的实际状态见 [验收记录](verification.md)；Apifox 操作见 [验收步骤](apifox-verification.md)。
+当前没有部署 Nginx 或完整聊天前端。真实模型、独立 MySQL/Redis 综合验收和 Apifox 的实际状态见 [验收记录（本目录入口）](README.md#verification)；Apifox 操作见 [验收步骤（本目录入口）](README.md#apifox-verification)。
