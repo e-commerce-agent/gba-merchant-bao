@@ -12,6 +12,7 @@
 - [docker-dev.ps1](../../scripts/dev/docker-dev.ps1)：开发容器管理脚本。
 - <a id="flyway-baseline"></a>[flyway-baseline.md](flyway-baseline.md)：Flyway 空库和旧库接管。
 - [local-development.md](local-development.md)：本地开发环境与联调，包含 dev Nginx 8081 入口、IDEA Services 双实例 Run/Debug、Maven 双终端、Vite 5173 链路，以及 502/504 排查和回退命令。
+- [product-demo.md](product-demo.md)：R080 商品展示数据、两端分页、SQL 补种后的商户缓存失效，以及 Redis 商品键与 TTL 现场观察。
 - <a id="logging"></a>[logging.md](logging.md)：日志配置和运行说明。
 - <a id="production"></a>[production.md](production.md)：生产运行与发布准备。
 - [verification.md](../testing/20261101-runtime-architecture/verification.md)：已有验证过程、结果与限制。

@@ -15,7 +15,7 @@ R__020_auth_demo_accounts.sql 仅在 dev 提供两个租户首员工和三个消
 租户与账号仅补缺失记录，保留人工名称/状态/密码等资料；预期租户缺失或稳定身份冲突时通过 `dev_seed_*` 校验明确失败。R 首次或校验和变化才执行，上游变化不自动触发下游；手工删除数据后重启不自动补回。补种须显式受控执行，不改 history。
 ## 初始化顺序
 
-先执行所有待执行 V，再按 R 描述的三位数字前缀排序：nonprod 的 `R__010_local_test_tenants.sql` → devdata 的 `R__020_auth_demo_accounts.sql` → `R__030_chat_demo.sql` → `R__040_product_demo.sql` → `R__050_inventory_demo.sql` → `R__060_order_demo_orders.sql` → `R__070_shipment_demo_data.sql`。locations 顺序不表达依赖，不使用 AFTER_MIGRATE 回调或启动补写。
+先执行所有待执行 V，再按 R 描述的三位数字前缀排序：nonprod 的 `R__010_local_test_tenants.sql` → devdata 的 `R__020_auth_demo_accounts.sql` → `R__030_chat_demo.sql` → `R__040_product_demo.sql` → `R__050_inventory_demo.sql` → `R__060_order_demo_orders.sql` → `R__070_shipment_demo_data.sql` → `R__080_product_showcase.sql`。locations 顺序不表达依赖，不使用 AFTER_MIGRATE 回调或启动补写。
 
 | V | 结构 | R | 业务依赖 |
 | --- | --- | --- | --- |
@@ -24,6 +24,9 @@ R__020_auth_demo_accounts.sql 仅在 dev 提供两个租户首员工和三个消
 | V7 | SKU 库存、库存流水、幂等表 | R050 库存 | R040 SKU |
 | V8 | 订单、订单项成交快照 | R060 订单 | 账号及 R040 商品/SKU |
 | V9 | 运单、物流轨迹 | R070 物流 | R060 订单 |
+| V6、V7 | 复用商品与库存结构 | R080 商品展示 | M_3C_DEMO、R040 的三个原分类 |
+
+R080 额外提供 M_3C_DEMO 的 5 个根分类、20 个 PUBLISHED 商品、40 个 ACTIVE SKU、40 个结构化属性和 40 条库存。稳定 ID 分别为 `2500000000000801–0805`、`2500000000000901–0920`、`2500000000001001–1040`、`2500000000001101–1140`、`2500000000001201–1240`；SKU 与库存 ID 相差 200。全部身份 guard 通过后只补缺失行，不恢复已下架商品、不覆盖人工价格/属性/库存/version、不生成库存流水。仅 dev 加载；直接执行 SQL 后必须使目标商户商品缓存失效，后端重启不会清空 Redis。双端分页与缓存观察见 [商品演示](../../../../../docs/deployment/product-demo.md)。
 
 只重排当前本地 dev V5 之后尚未执行的 V6–V9；其他旧 V6–V9 编号布局不兼容，维护工具会拒绝。test/prod 不加载 R040–R070，且新结构迁移不读取 R 种子。
 
