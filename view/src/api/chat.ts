@@ -5,8 +5,10 @@ import type {
   ChatMessageView,
   ChatPageView,
   ChatSession,
+  ChatRunView,
   ChatSessionView,
-  ChatRunView
+  ChatSourceView,
+  ChatToolCallView
 } from './types'
 import { getToken } from '@/utils/token'
 
@@ -16,8 +18,9 @@ import { getToken } from '@/utils/token'
  * - 会话范围由登录主体（消费者 / 商户员工）决定，契约没有 scope 参数，不能传；
  * - 列表与历史均为游标分页（size + cursor，未知参数会被 400/10001 拒绝）；
  * - 发送消息必须带 clientMessageId 幂等键，新 run 返回 SSE（start → token → done/error），
- *   同 key 同正文重放返回 JSON run 标识，再查询已持久化的历史；
- * - 契约本期没有人工接管（:takeover / :resume-agent 不存在），相关入口已下线。
+ *   同 key 同正文重放返回 JSON run 标识；
+ * - RAG 仅检索本商户 READY 资料，done 帧携带 sources（≤5）与 toolCalls（≤1），
+ *   契约没有人工接管（:takeover / :resume-agent 不存在），相关入口已下线。
  *
  * 离线演示（VITE_USE_MOCK=true）时返回展示模型原样数据，与真实模式的转换结果同构。
  */
@@ -204,11 +207,37 @@ export async function sendMessage(
   let buffer = ''
   let streaming: ChatMessage | null = null
   let terminal = false
+
+  /** done 帧携带的 RAG 引用和工具调用摘要 */
+  let donePayload: {
+    sources?: ChatSourceView[]
+    toolCalls?: ChatToolCallView[]
+  } | null = null
+
   const finalize = (errorMessage?: string) => {
     if (!streaming) return
-    const done = { ...streaming, streaming: false }
-    if (errorMessage) done.content += `\n\n（${errorMessage}）`
+
+    const done: ChatMessage = { ...streaming, streaming: false }
+
+    if (errorMessage) {
+      done.content += `\n\n（${errorMessage}）`
+    } else if (donePayload) {
+      const citations = (donePayload.sources || []).map((s) => ({
+        documentName: s.chunkNo > 1 ? `${s.title} · 第 ${s.chunkNo} 片` : s.title,
+        snippet: s.excerpt
+      }))
+      const toolCalls = (donePayload.toolCalls || []).map((t) => ({
+        tool: t.name,
+        params: {},
+        success: t.status === 'SUCCEEDED'
+      }))
+
+      if (citations.length) done.citations = citations
+      if (toolCalls.length) done.toolCalls = toolCalls
+    }
+
     streaming = null
+    donePayload = null
     handlers.onDone?.(done)
   }
 
@@ -239,12 +268,30 @@ export async function sendMessage(
       }
     } else if (event === 'done') {
       terminal = true
+      donePayload = {
+        sources: Array.isArray(parsed.sources)
+          ? (parsed.sources as unknown as ChatSourceView[])
+          : undefined,
+        toolCalls: Array.isArray(parsed.toolCalls)
+          ? (parsed.toolCalls as unknown as ChatToolCallView[])
+          : undefined
+      }
       finalize()
     } else if (event === 'error') {
       terminal = true
-      const message = String(parsed.message ?? '回答生成失败，请重试')
-      finalize(message)
-      throw new ApiError(message, Number(parsed.code ?? 0), 200, String(parsed.requestId ?? ''))
+
+      const code = parsed.code ?? parsed.errorCode
+      const message = String(parsed.message || '回答生成失败，请重试')
+      const errorMessage = typeof code === 'string' && code ? `${message}（${code}）` : message
+
+      finalize(errorMessage)
+
+      throw new ApiError(
+        errorMessage,
+        typeof code === 'number' ? code : 0,
+        200,
+        String(parsed.requestId ?? '')
+      )
     }
   }
 

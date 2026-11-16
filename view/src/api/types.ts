@@ -342,7 +342,8 @@ export interface ChatSession {
 }
 
 /* ------------------------- Agent 会话（契约原始类型） ------------------------- */
-/* agent-conversation-v1：游标分页 + SSE，人工接管 / 置信度 / 引用留待未来扩展 */
+/* agent-conversation-v1：游标分页 + SSE，done 帧携带 RAG sources 与 toolCalls；
+   人工接管 / 置信度仍为未来扩展 */
 
 export type ChatSessionStatus = 'ACTIVE' | 'ARCHIVED'
 
@@ -386,6 +387,25 @@ export interface ChatMessageView {
   outputTokens: number | null
   createdAt: string
   completedAt: string | null
+  /** RAG 来源快照：成功助手消息才有，旧消息 / USER / 失败 / 无资料为空数组 */
+  sources: ChatSourceView[]
+  /** Function Calling 摘要：唯一只读订单工具，未调用 / 失败为空数组 */
+  toolCalls: ChatToolCallView[]
+}
+
+/** 契约 Source：实际入模的参考片段快照（≤5 条） */
+export interface ChatSourceView {
+  documentId: string
+  chunkId: string
+  title: string
+  chunkNo: number
+  excerpt: string
+}
+
+/** 契约 ToolCallSummary：固定成功摘要，不含参数与原始结果 */
+export interface ChatToolCallView {
+  name: 'lookup_order'
+  status: 'SUCCEEDED'
 }
 
 /** POST /chat/sessions/{id}/messages 幂等重放时返回的 run 标识（JSON 响应） */
@@ -397,34 +417,24 @@ export interface ChatRunView {
   status: ChatRunStatus
 }
 
-/* ------------------------------ 知识库 / 任务 ------------------------------ */
+/* ------------------------- 知识库文档（knowledge-v1 契约原始类型） ------------------------- */
 
-export type DocumentTaskStatus =
-  | 'QUEUED'
-  | 'PARSING'
-  | 'CHUNKING'
-  | 'EMBEDDING'
-  | 'SUCCEEDED'
-  | 'FAILED'
+/** 契约 KnowledgeDocument：同步导入，无任务/重试接口 */
+export type KnowledgeDocStatus = 'PROCESSING' | 'READY' | 'FAILED'
 
-export interface DocumentTask {
-  id: string
-  fileName: string
-  fileSize: number
-  status: DocumentTaskStatus
-  progress: number
+export interface KnowledgeDocumentView {
+  documentId: string
+  title: string
+  status: KnowledgeDocStatus
   chunkCount: number
   createdAt: string
-  errorMessage?: string
 }
 
-export interface KnowledgeBase {
-  id: string
-  name: string
-  description: string
-  documentCount: number
-  chunkCount: number
-  updatedAt: string
+/** GET /knowledge/documents 的分页载荷（items + nextCursor + hasMore） */
+export interface KnowledgePageView {
+  items: KnowledgeDocumentView[]
+  nextCursor: string | null
+  hasMore: boolean
 }
 
 /* ------------------------------ 工作台指标 ------------------------------ */

@@ -23,6 +23,12 @@ export default defineConfig(({ mode }) => {
               // Nginx preserves this Host; Spring must see the browser's same origin.
               // Keep Origin unchanged so cross-origin requests are still rejected.
               changeOrigin: false
+            },
+            // 物流 WebService（SOAP 1.1，shipment.wsdl）：/services/shipment
+            '/services': {
+              target: env.VITE_PROXY_TARGET,
+              changeOrigin: true
+              
             }
           }
         : undefined

@@ -1,8 +1,7 @@
 import type {
   ChatMessage,
   ChatSession,
-  DocumentTask,
-  KnowledgeBase,
+  KnowledgeDocumentView,
   MerchantOverview
 } from '@/api/types'
 
@@ -198,62 +197,35 @@ export const merchantMessages: ChatMessage[] = [
   }
 ]
 
-export const documentTasks: DocumentTask[] = [
+/** knowledge-v1 演示文档（同步上传契约：PROCESSING/READY/FAILED + chunkCount） */
+export const knowledgeDocs: KnowledgeDocumentView[] = [
   {
-    id: 'DT3001',
-    fileName: '极闪 GX-65W-GaN 产品说明书.pdf',
-    fileSize: 2_412_800,
-    status: 'SUCCEEDED',
-    progress: 100,
-    chunkCount: 42,
+    documentId: '610000000000000001',
+    title: '售后政策 2026 版',
+    status: 'READY',
+    chunkCount: 8,
     createdAt: iso(180)
   },
   {
-    id: 'DT3002',
-    fileName: '兼容性说明-笔记本机型.md',
-    fileSize: 18_400,
-    status: 'SUCCEEDED',
-    progress: 100,
-    chunkCount: 12,
+    documentId: '610000000000000002',
+    title: '兼容性说明-笔记本机型',
+    status: 'READY',
+    chunkCount: 5,
     createdAt: iso(176)
   },
   {
-    id: 'DT3003',
-    fileName: '售后政策 2026 版.docx',
-    fileSize: 486_000,
-    status: 'EMBEDDING',
-    progress: 68,
-    chunkCount: 0,
-    createdAt: iso(6)
+    documentId: '610000000000000003',
+    title: '香港地区插头标准对照表',
+    status: 'READY',
+    chunkCount: 3,
+    createdAt: iso(60)
   },
   {
-    id: 'DT3004',
-    fileName: '香港地区插头标准对照表.xlsx',
-    fileSize: 92_000,
+    documentId: '610000000000000004',
+    title: '承运商时效说明',
     status: 'FAILED',
-    progress: 32,
-    chunkCount: 0,
-    createdAt: iso(48),
-    errorMessage: '解析失败：表格存在合并单元格，无法切分'
-  }
-]
-
-export const knowledgeBases: KnowledgeBase[] = [
-  {
-    id: 'KB001',
-    name: '产品说明书库',
-    description: '充电器、数据线、移动电源的官方说明书与参数表',
-    documentCount: 12,
-    chunkCount: 386,
-    updatedAt: iso(60)
-  },
-  {
-    id: 'KB002',
-    name: '售后与物流政策',
-    description: '退换货规则、保修范围、承运商时效',
-    documentCount: 5,
-    chunkCount: 74,
-    updatedAt: iso(320)
+    chunkCount: 1,
+    createdAt: iso(6)
   }
 ]
 

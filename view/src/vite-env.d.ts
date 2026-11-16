@@ -6,6 +6,8 @@ interface ImportMetaEnv {
   readonly VITE_PROXY_TARGET: string
   readonly VITE_USE_MOCK: string
   readonly VITE_DEFAULT_MERCHANT_CODE: string
+  /** 仅本地演示：物流 SOAP 服务间凭证，生产由网关注入，不进仓库 */
+  readonly VITE_SHIPMENT_WS_TOKEN?: string
 }
 
 interface ImportMeta {

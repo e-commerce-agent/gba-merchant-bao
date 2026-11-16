@@ -118,7 +118,7 @@ export function toDetailModel(product: PublicProductView): ProductDetail {
 
 /**
  * 会话卡片。契约只有 ACTIVE/ARCHIVED 两种状态，也没有 lastMessage / messageCount /
- * consumerName / 置信度（citation、人工接管均为未来扩展），对应展示位留空由页面降级显示。
+ * consumerName / 置信度（人工接管仍为未来扩展），对应展示位留空由页面降级显示。
  */
 export function toChatCard(session: ChatSessionView): ChatSession {
   return {
@@ -139,15 +139,29 @@ const CHAT_FAILED_TEXT: Record<string, string> = {
   FAILED: '回答生成失败，请重试'
 }
 
-/** 消息气泡。契约 senderType 只有 USER/ASSISTANT（人工客服身份为未来扩展） */
+/**
+ * 消息气泡。契约 senderType 只有 USER/ASSISTANT（人工客服身份为未来扩展）。
+ * RAG 来源快照映射为引用列表；toolCalls 为唯一只读订单工具的固定成功摘要。
+ */
 export function toChatBubble(message: ChatMessageView, sessionId: string): ChatMessage {
   const failedText = message.senderType === 'ASSISTANT' ? CHAT_FAILED_TEXT[message.status] : undefined
+  const citations = (message.sources || []).map((s) => ({
+    documentName: s.chunkNo > 1 ? `${s.title} · 第 ${s.chunkNo} 片` : s.title,
+    snippet: s.excerpt
+  }))
+  const toolCalls = (message.toolCalls || []).map((t) => ({
+    tool: t.name,
+    params: {},
+    success: t.status === 'SUCCEEDED'
+  }))
   return {
     id: message.messageId,
     sessionId,
     role: message.senderType === 'USER' ? 'user' : 'assistant',
     content: failedText ? `${message.content}\n\n（${failedText}）` : message.content,
     createdAt: message.createdAt,
-    streaming: message.status === 'STARTED' || message.status === 'STREAMING'
+    streaming: message.status === 'STARTED' || message.status === 'STREAMING',
+    citations: citations.length ? citations : undefined,
+    toolCalls: toolCalls.length ? toolCalls : undefined
   }
 }
